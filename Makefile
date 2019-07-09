@@ -19,6 +19,7 @@ TARGET        = tranter
 
 OBJECTS       =  build/main.o     \
                  build/comserver.o  \
+				 build/rs485server.o  \
                  build/comport.o  \
                  build/HttpPost.o  \
                  build/HttpServer.o \
@@ -49,6 +50,10 @@ build/main.o: main.cpp \
 build/comserver.o: comserver.cpp \
      comserver.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/comserver.o comserver.cpp
+	
+build/rs485server.o: rs485server.cpp \
+     rs485server.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/rs485server.o rs485server.cpp
 
 build/comport.o: comport.cpp \
      comport.h

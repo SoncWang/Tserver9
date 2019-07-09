@@ -394,8 +394,8 @@ typedef struct Remote_Control_struct	//
 	UINT16 RSU6_Open;			//RSU天线6遥分执行 1523
 
 	UINT16 SysReset;			//系统重启 1548
-//	UINT16 Door_UnLock;			//电子门锁开
-//	UINT16 Door_Lock;			//电子门锁关
+	UINT16 Door_UnLock;			//电子门锁开
+	UINT16 Door_Lock;			//电子门锁关
 }REMOTE_CONTROL;
 
 

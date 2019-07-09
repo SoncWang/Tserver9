@@ -37,6 +37,7 @@
 #include <string>
 #include <semaphore.h>  
 #include "Protocol.h"
+#include "rs485server.h"
 
 using namespace std;//寮??ユ?翠釜??绌洪??
 
@@ -760,6 +761,10 @@ void RemoteControl(UINT8* pRCtrl)
 	  
 	if(pstuRCtrl->SysReset==WRITE_ENABLE)					//系统重启 1548
  		{SendCom1RCtlReg(0x01,FORCE_COIL,SYSRESET,WRITE_ENABLE);usleep(2000);}
+	if(pstuRCtrl->Door_UnLock==WRITE_ENABLE)					//开锁
+ 		{SendCom4RCtlReg(DOOR_LOCK_ADDR,FORCE_COIL,DOOR_LOCK_REG,REMOTE_UNLOCK);usleep(2000);}
+	if(pstuRCtrl->Door_Lock==WRITE_ENABLE)					//关锁
+ 		{SendCom4RCtlReg(DOOR_LOCK_ADDR,FORCE_COIL,DOOR_LOCK_REG,REMOTE_LOCK);usleep(2000);}
 }
 
 void *LTKJ_DataPostthread(void *param)

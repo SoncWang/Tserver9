@@ -2,13 +2,14 @@
 #include <linux/watchdog.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>  
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <string>
 #include <sys/time.h>
 #include <csignal>
 
 #include "main.h"
+#include "rs485server.h"
 
 using namespace std;
 
@@ -78,12 +79,12 @@ void InitTimer(void)
      //设置时间间隔为10秒
      interval.tv_sec = 10;
 	 interval.tv_usec =0;
-      
+
      timer.it_interval = interval;
      timer.it_value = interval;
-      
+
      setitimer(ITIMER_VIRTUAL, &timer, NULL);//让它产生SIGVTALRM信号
-      
+
      //为SIGVTALRM注册信号处理函数
      signal(SIGALRM, sig_handler);
 }
@@ -97,10 +98,10 @@ int main(void)
 	REMOTE_CONTROL *pRCtrl;
 	int jsonPackLen=0;
 	FLAGRUNSTATUS *pFlagRunStatus;
-	
+
 	//读设置文件
 	GetConfig();
-	
+
 	// 环境数据结构体
 	stuEnvi_Param = (ENVI_PARAMS*)malloc(sizeof(ENVI_PARAMS));
 	memset(stuEnvi_Param,0,sizeof(ENVI_PARAMS));
@@ -132,16 +133,17 @@ int main(void)
 	stuRsuControl = (RSUCONTROLER*)malloc(sizeof(RSUCONTROLER));
 	memset(stuRsuControl,0,sizeof(RSUCONTROLER));
 
-	//system("hwclock 鈥搒");  //鍐欏埌纭椂閽?    
+	//system("hwclock 鈥搒");  //鍐欏埌纭椂閽?
 	//初始化串口
 	cominit();
+	rs485init();
 
 	//初始化http服务端
 	HttpInit();
 
 	//初始化服务器线程
 	initServer();
-	
+
 //    WatchDogInit();
 
 	//初始化宇视摄像机
@@ -152,15 +154,15 @@ int main(void)
 
 	//初始化RSU
 	init_net_rsu();
-	
+
 	//初始化RSU
 	snmpInit();
 
 	//初始化利通定时推送线程
-	init_LTKJ_DataPost();
+	//init_LTKJ_DataPost();
 
 	//初始化新粤定时推送线程
-	init_XY_DataPost();
+	//init_XY_DataPost();
 
 
 /*    while(1)
@@ -232,6 +234,12 @@ int main(void)
 			break;
 		case 't' :	//RSU下发数据C0帧
 			send_RSU(0xC4,0 ,1,1);
+			break;
+		case 'y' :	//测试开锁
+			SendCom4RCtlReg(DOOR_LOCK_ADDR,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+			break;
+		case 'z' :	//测试锁
+			SendCom4RCtlReg(DOOR_LOCK_ADDR,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
 			break;
 		case 'q' : //退出
 			break;
