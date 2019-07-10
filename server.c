@@ -18,14 +18,14 @@
 #include <string>
 
 #include <stdio.h>
-#include <stdlib.h> 
-#include <unistd.h>  
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 #include <termios.h>
-#include <errno.h>   
-#include <limits.h> 
+#include <errno.h>
+#include <limits.h>
 #include <asm/ioctls.h>
 #include <time.h>
 #include <pthread.h>
@@ -35,7 +35,7 @@
 #include "comserver.h"
 #include "MyCritical.h"
 #include <string>
-#include <semaphore.h>  
+#include <semaphore.h>
 #include "Protocol.h"
 #include "rs485server.h"
 
@@ -44,7 +44,7 @@ using namespace std;//寮??ユ?翠釜??绌洪??
 #define PORT 		5000       		// The port which is communicate with server
 #define BACKLOG 	10
 
-#define LENGTH 512              		// Buffer length                                                                                 
+#define LENGTH 512              		// Buffer length
 
 int fd_A[BACKLOG];    // accepted connection fd
 int conn_amount;      // current connection amount
@@ -98,8 +98,8 @@ void setSystemTimer(void * data)
 	sprintf(str,"date %s\n",data);
 	printf("setSystemTimer %s",str);
 	system(str);
-	
-		
+
+
 /*	struct rtc_time setrtc_tm;
 	struct rtc_time getrtc_tm;
 	char *rtcbuff;
@@ -128,14 +128,14 @@ void setSystemTimer(void * data)
 	ret = ioctl(gRTCfd, SETRTCTIME, &setrtc_tm);
 	if(ret < 0){
 		OSA_ERROR("RTC_SET_TIME\n");
-	
+
 	}
 	//ret = ioctl(gRTCfd, GETRTCTIME, rtcbuff);
 	//if(ret < 0){
 		//OSA_ERROR("RTC_SET_TIME\n");
-	
+
 	//}
-	
+
 	//memcpy(&getrtc_tm,rtcbuff,sizeof(getrtc_tm));
 	//printf("year :%04d mouth:%02d day:%02d\r\n",getrtc_tm.tm_year,getrtc_tm.tm_mon,getrtc_tm.tm_mday);
 	//set_time(gRTCfd,&rtc_tm);
@@ -158,7 +158,7 @@ void SetIPinfo(IPInfo *ipInfo)
 	StrMask=ipInfo->submask;		//子网掩码
 	StrGateway=ipInfo->gateway_addr;//网关
 	StrDNS=ipInfo->dns;				//DNS地址
-	
+
 	Setconfig("IP=",ipInfo->ip);
 	Setconfig("Mask=",ipInfo->submask);
 	Setconfig("Gateway=",ipInfo->gateway_addr);
@@ -179,9 +179,9 @@ void initServer()
 {
 	//获取RTC时钟
 	gRTCfd=rtc_init();
-	
+
 	pthread_t tNetwork_server;
-	if (pthread_create(&tNetwork_server, NULL, NetWork_server_thread,NULL)) 
+	if (pthread_create(&tNetwork_server, NULL, NetWork_server_thread,NULL))
 	{
 		printf("NetWork server create failed!\n");
 	}
@@ -200,9 +200,9 @@ void* NetWork_server_thread(void *param)
 	int num;
 	socklen_t sin_size;
 	char sdbuf[LENGTH];          		// Send buffer
-	struct sockaddr_in server_addr; 
-	struct sockaddr_in client_addr; 
-	char sendstr[16]= {"123456789 abcde"}; 
+	struct sockaddr_in server_addr;
+	struct sockaddr_in client_addr;
+	char sendstr[16]= {"123456789 abcde"};
 	char buf[NETPACKET_MAXLEN];
 	int ret;
 	int i;
@@ -210,10 +210,10 @@ void* NetWork_server_thread(void *param)
 	sockpara.IsQuit = 0;
 	char * jsonPack=(char *)malloc(50*1024);
 	int jsonPackLen=0;
-           
-	/* Get the Socket file descriptor */  
-	if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1 )  
-	{   
+
+	/* Get the Socket file descriptor */
+	if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1 )
+	{
     	printf ("ERROR: Failed to obtain Socket Despcritor.\n");
     	return (0);
 	} else {
@@ -228,7 +228,7 @@ void* NetWork_server_thread(void *param)
 
 	/*  Blind a special Port */
 	if( bind(sockfd, (struct sockaddr*)&server_addr, sizeof(struct sockaddr)) == -1 )
-	{  
+	{
 	  	printf ("ERROR: Failed to bind Port %d.\n",PORT);
 		return (0);
 	} else {
@@ -236,8 +236,8 @@ void* NetWork_server_thread(void *param)
 	}
 
 	/*  Listen remote connect/calling */
-	if(listen(sockfd,BACKLOG) == -1)    
-	{  
+	if(listen(sockfd,BACKLOG) == -1)
+	{
     	printf ("ERROR: Failed to listen Port %d.\n", PORT);
 		return (0);
 	} else {
@@ -275,18 +275,18 @@ void* NetWork_server_thread(void *param)
 		printf("TCP_KEEPCNT Error!\n");
 	}
 	//hym end
-			
+
 	fd_set fdsr;
 	int maxsock;
 	struct timeval tv;
-	
+
 	conn_amount = 0;
 	sin_size = sizeof(client_addr);
 	maxsock = sockfd;
 	while (1) {
 		FD_ZERO(&fdsr);
 		FD_SET(sockfd, &fdsr);
-	
+
 		// timeout setting
 		tv.tv_sec = 30;
 		tv.tv_usec = 0;
@@ -299,21 +299,21 @@ void* NetWork_server_thread(void *param)
 					maxsock = fd_A[i];
 			}
 		}
-	
+
 		ret = select(maxsock + 1, &fdsr, NULL, NULL, &tv);
 		if (ret < 0) {
 			perror("select");
 		} else if (ret == 0) {
-	
+
 			continue;
 		}
-	
-		for (i = 0; i < conn_amount; i++) 
+
+		for (i = 0; i < conn_amount; i++)
 		{
-			if (FD_ISSET(fd_A[i], &fdsr)) 
+			if (FD_ISSET(fd_A[i], &fdsr))
 			{
 				ret = recv(fd_A[i], buf, NETCMD_HEADERLEN, 0);
-				if (ret <= 0) 
+				if (ret <= 0)
 				{ // client close
 					printf("client[%d] close\n", i);
 					close(fd_A[i]);
@@ -321,12 +321,12 @@ void* NetWork_server_thread(void *param)
 					fd_A[i] = 0;
 					if(i==conn_amount-1)
 						conn_amount--;
-				} 
-				else 
+				}
+				else
 				{
 					if(ret==NETCMD_HEADERLEN)
 					{
-						
+
 						NETCMD_HEADER *pheader = (NETCMD_HEADER *) buf;
 						if (pheader->magic == NETCMD_MAGIC)
 						{
@@ -335,9 +335,9 @@ void* NetWork_server_thread(void *param)
 							{
 								ret += recv(fd_A[i], pheader->data,	pheader->datalen, 0);
 							}
-							
+
 							//printf("Client_CmdProcessbuff:\r\n");
-							if (ret == NETCMD_HEADERLEN + pheader->datalen) 
+							if (ret == NETCMD_HEADERLEN + pheader->datalen)
 							{
 								//printf("");
 								//("Client_CmdProcessbuff:%s\r\n",buf);
@@ -346,8 +346,8 @@ void* NetWork_server_thread(void *param)
 //								printf("len=%d,data=%s",pheader->datalen,pheader->data );
 								NetSend(fd_A[i], buf,pheader->datalen + NETCMD_HEADERLEN);
 							}
-						} 
-						else 
+						}
+						else
 						{
 							//printf("client[%d] not a current client force closed\n",i);
 							close(fd_A[i]);
@@ -355,16 +355,16 @@ void* NetWork_server_thread(void *param)
 							fd_A[i] = 0;
 							if (i == conn_amount - 1)
 								conn_amount--;
-	
+
 						}
 					}
-	
+
 				}
 			}
 		}
 		//printf("sockfd%d1212\r\n",sockfd);
-	
-		if (FD_ISSET(sockfd, &fdsr)) 
+
+		if (FD_ISSET(sockfd, &fdsr))
 		{
 			//printf("sockfd*****\r\n");
 			newfd = accept(sockfd, (struct sockaddr *) &client_addr,&sin_size);
@@ -374,20 +374,20 @@ void* NetWork_server_thread(void *param)
 				perror("accept");
 				continue;
 			}
-	
+
 			// add to fd queue
-			if (conn_amount < BACKLOG) 
+			if (conn_amount < BACKLOG)
 			{
 				//find empty
 				for (i = 0; i < conn_amount; i++)
 				{
-					if (fd_A[i] == 0) 
+					if (fd_A[i] == 0)
 					{
 						fd_A[i] = newfd;
 						break;
 					}
 				}
-	
+
 				if(i==conn_amount)
 				{
 					fd_A[i] = newfd;
@@ -401,7 +401,7 @@ void* NetWork_server_thread(void *param)
 				SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
 				printf("%s",jsonPack);
 				NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
-				
+
 			}
 		}
 	}
@@ -418,7 +418,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	char tmpStringData[100];
 	struct rtc_time rtc_tm;
 	int ret;
-	
+
 	unsigned char  regAddr;
 	unsigned short regValue;
 	int status;
@@ -430,9 +430,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			sprintf(tmpStringData,"LTKJ-CONTROLER-V1.0");
 			memcpy( (char *) pCMD->data,tmpStringData,strlen(tmpStringData));
 			pCMD->datalen = strlen(tmpStringData);
-			
+
 			break;
-		case NETCMD_DATETIME: 
+		case NETCMD_DATETIME:
 			if(pCMD->status==SFLAG_WRITE)
 			{
 				sprintf(tmpStringData,"date %s\n",pCMD->data);
@@ -441,15 +441,15 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 //  				  	system("reboot") ;
 //					setSystemTimer((void *)pCMD->data);
 				pCMD->datalen =  0;
-			
+
 			}
 			else
 			{
-						pCMD->datalen = 0; 
+						pCMD->datalen = 0;
 			}
 			break;
 
-		case NETCMD_NETWORK: 
+		case NETCMD_NETWORK:
 			if(pCMD->status==SFLAG_READ)
 			{
 				printf("Get IP Addr\n");
@@ -468,18 +468,18 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 //                system("reboot") ;
 			}
 			break;
-		case NETCMD_REBOOT: 
+		case NETCMD_REBOOT:
 			pCMD->datalen = 0;
 			printf("System Reboot\n");
 			system("reboot") ;
 			break;
 
-		case NETCMD_CONFIG_PARA: 
+		case NETCMD_CONFIG_PARA:
 			printf("NETCMD_CONFIG_PARA param = %s length=%d \n",pCMD->data,pCMD->datalen);
 			pCMD->datalen = 0;
 			break;
 
-		case NETCMD_SEND_ENVI_PARAM: 
+		case NETCMD_SEND_ENVI_PARAM:
 			if(pCMD->status==SFLAG_READ)
 			{
 				SendCom1ReadReg(0x01,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);//查询环境变量寄存器
@@ -495,8 +495,8 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			pCMD->datalen = 0;
 			break;
-		
-		case NETCMD_SEND_UPS_PARAM: 
+
+		case NETCMD_SEND_UPS_PARAM:
 			if(pCMD->status==SFLAG_READ)
 			{
 				SendCom1ReadReg(0x01,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);//查询UPS变量寄存器
@@ -512,12 +512,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			pCMD->datalen = 0;
 			break;
-			
-		case NETCMD_SEND_SPD_PARAM: 
+
+		case NETCMD_SEND_SPD_PARAM:
 			if(pCMD->status==SFLAG_READ)
 			{
 				SendCom1ReadReg(0x01,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);//查询SPD变量寄存器
-				
+
 /*				char * jsonPack=(char *)malloc(1024);
 				memset(jsonPack,0,1024);
 				int jsonPackLen=0;
@@ -529,11 +529,11 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			pCMD->datalen = 0;
 			break;
-		case NETCMD_SEND_DEV_PARAM: 
+		case NETCMD_SEND_DEV_PARAM:
 			if(pCMD->status==SFLAG_READ)
 			{
 				SendCom1ReadReg(0x01,READ_REGS,PARAMS_START_ADDR,PARAMS_REG_MAX);//查询装置参数寄存器
-				
+
 /*				char * jsonPack=(char *)malloc(1024);
 				memset(jsonPack,0,1024);
 				int jsonPackLen=0;
@@ -545,7 +545,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			pCMD->datalen = 0;
 			break;
-		case NETCMD_SEND_DEV_INFO: 
+		case NETCMD_SEND_DEV_INFO:
 			if(pCMD->status==SFLAG_READ)
 			{
 //				SendCom1ReadReg(0x01,READ_REGS,DEVICEINFO_START_ADDR,DEVICEINFO_REG_MAX);//查询装置信息寄存器
@@ -562,14 +562,14 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			pCMD->datalen = 0;
 			break;
-		case NETCMD_SEND_RSU_PARAM: 
+		case NETCMD_SEND_RSU_PARAM:
 			if(pCMD->status==SFLAG_READ)
 			{
 				SendCom1ReadReg(0x01,READ_REGS,RSU_START_ADDR,RSU_REG_MAX);//查询RSU天线参数寄存器
 			}
 			pCMD->datalen = 0;
 			break;
-		case NETCMD_SET_DEV_PARAM: 
+		case NETCMD_SET_DEV_PARAM:
 			if(pCMD->status==SFLAG_WRITE)
 			{
 				DEVICE_PARAMS *pstuDevPam=stuDev_Param;
@@ -603,9 +603,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
    int nSendLen = 0;
    int nLen = 0;
    while(nSendLen < nsize) {
-	 // printf("nsize :%d\r\n",nsize);	   
-	 nLen = send(s, pbuffer+nSendLen, nsize - nSendLen, MSG_NOSIGNAL);	
-	 //printf("nLen :%d\r\n",nLen);  
+	 // printf("nsize :%d\r\n",nsize);
+	 nLen = send(s, pbuffer+nSendLen, nsize - nSendLen, MSG_NOSIGNAL);
+	 //printf("nLen :%d\r\n",nLen);
 	 if(nLen<=0)
 	   break;
 	 nSendLen += nLen;
@@ -613,21 +613,21 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
    return nSendLen;
  }
 
- 
+
  int  MySendMessage(char *pBuf)
  {
 	 int nsendlen;
 	 int i,nlen;
 	 char done = 0;
-	 
+
 	 NETCMD_HEADER netcmd;
 	 netcmd.cmd 	= NETCMD_SEND_DATA;
 	 netcmd.magic	= 0x12345678;
 	 netcmd.status	= SFLAG_READ;
 	 netcmd.datalen = strlen(pBuf);
 //	 netcmd.data    = pBuf;
-		 
- 
+
+
 	 for (i = 0; i < BACKLOG; i++) {
 		 if (fd_A[i] > 0) {
 			 nlen = NetSend(fd_A[i], (char *) &netcmd,NETCMD_HEADERLEN);
@@ -644,9 +644,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 //		 else
 //			 printf("soket %d is unable=%d\n", i,fd_A[i]);
-		 	
+
 	 }
-		 
+
 	 return 0;
  }
 
@@ -654,24 +654,24 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
  {
 	 printf("%s\n",str);
  }
- 
+
  int  NetSendParm(NETCMD_TYPE cmd,char *pBuf,int len)
   {
 	  int nsendlen;
 	  int i,nlen;
 	  char done = 0;
-	  
+
 	  NETCMD_HEADER netcmd;
 	  netcmd.cmd	 = cmd;
 	  netcmd.magic	 = 0x12345678;
 	  netcmd.status  = SFLAG_READ;
 	  netcmd.datalen = len;
-		  
-  
+
+
 	  for (i = 0; i < BACKLOG; i++) {
 		  if (fd_A[i] > 0) {
 			  nlen = NetSend(fd_A[i], (char *) &netcmd,NETCMD_HEADERLEN);
- 
+
 			  nsendlen=len;
 			  if (nsendlen > 0) {
 				  nlen = NetSend(fd_A[i], (char *) pBuf, nsendlen);
@@ -684,17 +684,17 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		  }
  // 	  else
  // 		  printf("soket %d is unable=%d\n", i,fd_A[i]);
-			 
+
 	  }
-		  
+
 	  return 0;
   }
- 
+
  int Net_close()
  {
 	 int i;
 	 fd_set fdsr;
- 
+
 	 for (i = 0; i < BACKLOG; i++) {
 		 if (fd_A[i] != 0)
 		 {
@@ -705,11 +705,11 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 }
 	 return 0;
  }
- 
+
 void RemoteControl(UINT8* pRCtrl)
 {
 	REMOTE_CONTROL *pstuRCtrl=(REMOTE_CONTROL *)pRCtrl;
-	
+
 	if(pstuRCtrl->RSU1_PreClose==WRITE_ENABLE)			//RSU天线1遥合预置
  		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_PRECLOSE,WRITE_ENABLE);usleep(2000);}//delay 2ms
 	if(pstuRCtrl->RSU1_Close==WRITE_ENABLE)						//RSU天线1遥合执行
@@ -758,13 +758,13 @@ void RemoteControl(UINT8* pRCtrl)
  		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU6_PREOPEN,WRITE_ENABLE);usleep(2000);}
 	if(pstuRCtrl->RSU6_Open==WRITE_ENABLE)						//RSU天线6遥分预置
  		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU6_OPEN,WRITE_ENABLE);usleep(2000);}
-	  
+
 	if(pstuRCtrl->SysReset==WRITE_ENABLE)					//系统重启 1548
  		{SendCom1RCtlReg(0x01,FORCE_COIL,SYSRESET,WRITE_ENABLE);usleep(2000);}
 	if(pstuRCtrl->Door_UnLock==WRITE_ENABLE)					//开锁
- 		{SendCom4RCtlReg(DOOR_LOCK_ADDR,FORCE_COIL,DOOR_LOCK_REG,REMOTE_UNLOCK);usleep(2000);}
+ 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_1,FORCE_COIL,DOOR_LOCK_REG,REMOTE_UNLOCK);usleep(2000);}
 	if(pstuRCtrl->Door_Lock==WRITE_ENABLE)					//关锁
- 		{SendCom4RCtlReg(DOOR_LOCK_ADDR,FORCE_COIL,DOOR_LOCK_REG,REMOTE_LOCK);usleep(2000);}
+ 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_1,FORCE_COIL,DOOR_LOCK_REG,REMOTE_LOCK);usleep(2000);}
 }
 
 void *LTKJ_DataPostthread(void *param)
@@ -782,7 +782,7 @@ void *LTKJ_DataPostthread(void *param)
 		SetjsonTableStr("flagrunstatus",jsonPack,&jsonPackLen);
 		printf("%s",jsonPack);
 		HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
-		
+
 		sleep(10);
 	}
 	free(jsonPack);
@@ -811,7 +811,7 @@ void *XY_DataPostthread(void *param)
 		printf("%s",jsonPack);
 		HttpPostParm(StrServerURL2,jsonPack,jsonPackLen);
 		NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);
-		
+
 		sleep(10);
 	}
 	free(jsonPack);

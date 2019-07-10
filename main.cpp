@@ -23,6 +23,8 @@ REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
 FLAGRUNSTATUS *stuFlagRunStatus;//门架自由流运行状态结构体
 //THUAWEIGantry *stuHUAWEIDevValue;//华为机柜状态
 RSUCONTROLER *stuRsuControl;	//RSU控制器状态
+LOCKER_HW_PARAMS *lockerHw_Param;
+
 
 extern string StrServerURL1;	//服务端URL1
 extern string StrServerURL2;	//服务端URL2
@@ -133,6 +135,9 @@ int main(void)
 	stuRsuControl = (RSUCONTROLER*)malloc(sizeof(RSUCONTROLER));
 	memset(stuRsuControl,0,sizeof(RSUCONTROLER));
 
+	lockerHw_Param = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
+	memset(lockerHw_Param,0,sizeof(LOCKER_HW_PARAMS));
+
 	//system("hwclock 鈥搒");  //鍐欏埌纭椂閽?
 	//初始化串口
 	cominit();
@@ -163,6 +168,9 @@ int main(void)
 
 	//初始化新粤定时推送线程
 	//init_XY_DataPost();
+
+	/*A fixed timer to polling the LOCKER*/
+	lockerPollingInit();
 
 
 /*    while(1)
@@ -236,10 +244,10 @@ int main(void)
 			send_RSU(0xC4,0 ,1,1);
 			break;
 		case 'y' :	//测试开锁
-			SendCom4RCtlReg(DOOR_LOCK_ADDR,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+			SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
 			break;
 		case 'z' :	//测试锁
-			SendCom4RCtlReg(DOOR_LOCK_ADDR,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
+			SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
 			break;
 		case 'q' : //退出
 			break;
