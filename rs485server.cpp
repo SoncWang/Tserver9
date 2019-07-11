@@ -28,7 +28,9 @@ CComPort *mComPort4 = NULL;
 CMyCritical Com4Cri;
 CMyCritical Com4SendCri;
 
-extern LOCKER_HW_PARAMS *lockerHw_Param;
+UINT32  comm_flag=0;
+
+extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_NUM];
 
 const UINT32 locker_id[CARD_NUM] =
 {
@@ -37,6 +39,41 @@ const UINT32 locker_id[CARD_NUM] =
 	1547012,
 	10863352,
 	2857740885
+};
+
+/*5次锁的轮询后轮询其它事项*/
+const UINT16 polling_cnt[] =
+{
+#if (LOCK_NUM >= 1)
+	LOCKER_1_STATUS,
+#endif
+#if (LOCK_NUM >= 2)
+	LOCKER_2_STATUS,
+#endif
+#if (LOCK_NUM >= 1)
+	LOCKER_1_STATUS,
+#endif
+#if (LOCK_NUM >= 2)
+	LOCKER_2_STATUS,
+#endif
+#if (LOCK_NUM >= 1)
+	LOCKER_1_STATUS,
+#endif
+#if (LOCK_NUM >= 2)
+	LOCKER_2_STATUS,
+#endif
+#if (LOCK_NUM >= 1)
+	LOCKER_1_STATUS,
+#endif
+#if (LOCK_NUM >= 2)
+	LOCKER_2_STATUS,
+#endif
+#if (LOCK_NUM >= 1)
+	LOCKER_1_STATUS,
+#endif
+#if (LOCK_NUM >= 2)
+	LOCKER_2_STATUS
+#endif
 };
 
 
@@ -59,7 +96,7 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
     bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC high
     bytSend[len-1] =  CRC&0x00FF;           //CRC low
 
-	//for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	mComPort4->SendBuf(bytSend,len);
 
@@ -73,10 +110,30 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 void *Locker_DataPollingthread(void *param)
 {
 	param = NULL;
+	static UINT16 polling_counter = 0;
 
 	while(1)
 	{
-		SendCom4ReadReg(DOOR_LOCK_ADDR_1,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+		comm_flag |= LBIT(polling_cnt[polling_counter]);
+		polling_counter++;
+		if (polling_counter >= (sizeof(polling_cnt)/sizeof(UINT16)))
+		{
+			printf("\r\npoling over");
+			printf("0x%02x" ,polling_counter);printf("\r\n");
+			polling_counter = 0;
+		}
+
+		if (comm_flag &LBIT(LOCKER_1_STATUS))
+		{
+			comm_flag &= ~(LBIT(LOCKER_1_STATUS));
+			SendCom4ReadReg(DOOR_LOCK_ADDR_1,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+		}
+		else if (comm_flag &LBIT(LOCKER_2_STATUS))
+		{
+			comm_flag &= ~(LBIT(LOCKER_2_STATUS));
+			SendCom4ReadReg(DOOR_LOCK_ADDR_2,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+		}
+		//SendCom4ReadReg(DOOR_LOCK_ADDR_1,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
 		usleep(INTERVAL_TIME);		// every 700ms sending
 	}
 	return 0 ;
@@ -146,26 +203,43 @@ void char_to_long(UINT8* buffer,UINT32* value)
 
 /*Unpack the data from RS485*/
 #define FIXED_NUM		4	// The former num of the locker's status
-static UINT8 locker_opened = 0;
-static UINT16 last_cnt = 0;
+static UINT8 locker_opened[LOCK_NUM] = {0,};
+static UINT16 last_cnt[LOCK_NUM] = {0,};
 static UINT32 last_card = 0;
 
 int DealComm485(unsigned char *buf,unsigned short int len)
 {
 	UINT8 i=0;
-	UINT16* pointer = &lockerHw_Param->status;
-	UINT8* pid = &lockerHw_Param->id[0];
+	UINT8 addr = 1;
+	UINT8 addr_base = 0;
+	UINT16* pointer = &(lockerHw_Param[0]->status);
+	UINT8* pid = &(lockerHw_Param[0]->id[0]);
 	UINT32 card_read = 0;
 
 	if((len == (LOCKER_REG_NUM*2+5)))
 	{
+		addr = *(buf+0);		// the first byte is the addr.
+		if(addr == DOOR_LOCK_ADDR_1)
+		{
+			addr_base = 0;
+		}
+		#if (LOCK_NUM >= 2)
+		else
+		{
+			addr_base = 1;
+		}
+		#endif
+
+		pointer = &(lockerHw_Param[addr_base]->status);
+		pid = &(lockerHw_Param[addr_base]->id[0]);
+
 		for (i=0;i<FIXED_NUM;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
 		}
-		if(last_cnt >= lockerHw_Param->report_cnt)
+		if(last_cnt[addr_base] >= lockerHw_Param[addr_base]->report_cnt)
 		{
-			locker_opened = 0;
+			locker_opened[addr_base] = 0;
 		}
 
 		for (i=0;i< (LOCKER_REG_NUM-FIXED_NUM)*2;i++)
@@ -183,31 +257,31 @@ int DealComm485(unsigned char *buf,unsigned short int len)
 
 	}
 
-	char_to_long(&lockerHw_Param->id[1],&card_read);
+	char_to_long(&(lockerHw_Param[addr_base]->id[1]),&card_read);
 
-	//printf("data begain\r\n");
-	//printf("%5hd ",lockerHw_Param->status);printf("\r\n");
-	//printf("%5hd ",lockerHw_Param->open_reason);printf("\r\n");
-	//printf("%5hd ",lockerHw_Param->report_cnt);printf("\r\n");
-	//printf("%5hd ",lockerHw_Param->id_length);printf("\r\n");
+	printf("data begain\r\n");
+	printf("%5hd ",lockerHw_Param[addr_base]->status);printf("\r\n");
+	printf("%5hd ",lockerHw_Param[addr_base]->open_reason);printf("\r\n");
+	printf("%5hd ",lockerHw_Param[addr_base]->report_cnt);printf("\r\n");
+	printf("%5hd ",lockerHw_Param[addr_base]->id_length);printf("\r\n");
 	int j ;//for(j=0;j<(LOCKER_REG_NUM-FIXED_NUM)*2;j++) printf("0x%02x ",lockerHw_Param->id[j]);
-	//printf("0x%08x" ,card_read);printf("\r\n");
+	printf("0x%08x" ,card_read);printf("\r\n");
 
 
 	for (j=0;j<CARD_NUM;j++)
 	{
-		if (locker_opened == 0)
+		if (locker_opened[addr_base] == 0)
 		{
 			if (card_read == locker_id[j])
 			{
-				SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
-				locker_opened =1;
+				SendCom4RCtlReg(addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+				locker_opened[addr_base] =1;
 				last_card = card_read;
 				break;
 			}
 		}
 	}
-	last_cnt = lockerHw_Param->report_cnt;
+	last_cnt[addr_base] = lockerHw_Param[addr_base]->report_cnt;
 	return 0 ;
 }
 
@@ -220,13 +294,16 @@ void *ComPort4Thread(void *param)
    unsigned char buf[256] ;
    while(1)
    {
-      len = read(mComPort4->fd, buf+buffPos, 256) ;
-	  buffPos = buffPos+len;
-	  if(buffPos<5) continue;
+      len = read(mComPort4->fd, buf+buffPos, 256);
 
-	  //CRC
-	  unsigned short int CRC = CRC16(buf,buffPos-2) ;
-	  if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
+	  if (len > 0)
+	  {
+	  	buffPos = buffPos+len;
+	  	if(buffPos<5) continue;
+
+	  	//CRC
+	  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
+	  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
 		{
 		  printf("CRC error\r\n");
  		  if(buffPos>=256) buffPos=0;
@@ -234,14 +311,14 @@ void *ComPort4Thread(void *param)
 		  continue ;
 	  	}
 
-      printf("com1 len=%d\r\n",buffPos) ;
+      	printf("com1 len=%d\r\n",buffPos) ;
 
-	  /*debug the information*/
-	  //int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+	  	/*debug the information*/
+	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
-	  DealComm485(buf , buffPos);
-
-	  buffPos=0;
+	  	DealComm485(buf , buffPos);
+	  	buffPos=0;
+   	}
       usleep(5000); //delay 5ms
    }
 

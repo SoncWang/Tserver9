@@ -6,9 +6,10 @@
 #include "./src/jsonPackage.h"
 #include "HttpPost.h"
 
-#define LOCK_NUM			1
-#define VA_METER_BD_NUM		0
+#define LBIT(i)	(1UL<<(i))	// 要注意32位平台LONG也是32位
 
+#define LOCK_NUM			2
+#define VA_METER_BD_NUM		0
 
 #define CARD_NUM		5	// 暂时为5张卡
 
@@ -33,7 +34,7 @@
 #define LOCKER_REG_NUM			9		// 4+5(字)
 #define FRAME_HEAD_NUM 			3		/*读数据时返回帧有效数据前数据个数*/
 
-#define INTERVAL_TIME		700000
+#define INTERVAL_TIME		400000	// 400ms
 
 
 

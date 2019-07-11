@@ -761,10 +761,14 @@ void RemoteControl(UINT8* pRCtrl)
 
 	if(pstuRCtrl->SysReset==WRITE_ENABLE)					//系统重启 1548
  		{SendCom1RCtlReg(0x01,FORCE_COIL,SYSRESET,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->Door_UnLock==WRITE_ENABLE)					//开锁
+	if(pstuRCtrl->Door1_UnLock==WRITE_ENABLE)					//开锁
  		{SendCom4RCtlReg(DOOR_LOCK_ADDR_1,FORCE_COIL,DOOR_LOCK_REG,REMOTE_UNLOCK);usleep(2000);}
-	if(pstuRCtrl->Door_Lock==WRITE_ENABLE)					//关锁
+	if(pstuRCtrl->Door1_Lock==WRITE_ENABLE)					//关锁
  		{SendCom4RCtlReg(DOOR_LOCK_ADDR_1,FORCE_COIL,DOOR_LOCK_REG,REMOTE_LOCK);usleep(2000);}
+	if(pstuRCtrl->Door2_UnLock==WRITE_ENABLE)					//开锁
+ 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_2,FORCE_COIL,DOOR_LOCK_REG,REMOTE_UNLOCK);usleep(2000);}
+	if(pstuRCtrl->Door2_Lock==WRITE_ENABLE)					//关锁
+ 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_2,FORCE_COIL,DOOR_LOCK_REG,REMOTE_LOCK);usleep(2000);}
 }
 
 void *LTKJ_DataPostthread(void *param)
