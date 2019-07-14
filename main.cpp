@@ -18,7 +18,7 @@ UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
 SPD_PARAMS *stuSpd_Param;		//防雷器结构体
 DEVICE_PARAMS *stuDev_Param;	//装置参数寄存器
 DeviceInfoParams *stuDev_Info;	//采集器设备信息结构体
-RSU_PARAMS *stuRSU_Param;		//RSU天线信息结构体
+RSU_PARAMS *stuRSU_Param[VA_METER_BD_NUM];		//RSU天线信息结构体
 REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
 FLAGRUNSTATUS *stuFlagRunStatus;//门架自由流运行状态结构体
 //THUAWEIGantry *stuHUAWEIDevValue;//华为机柜状态
@@ -120,8 +120,14 @@ int main(void)
 	stuDev_Info = (DeviceInfoParams*)malloc(sizeof(DeviceInfoParams));
 	memset(stuDev_Info,0,sizeof(DeviceInfoParams));
 	//RSU天线信息结构体
-	stuRSU_Param = (RSU_PARAMS*)malloc(sizeof(RSU_PARAMS));
-	memset(stuRSU_Param,0,sizeof(RSU_PARAMS));
+	stuRSU_Param[0] = (RSU_PARAMS*)malloc(sizeof(RSU_PARAMS));
+	memset(stuRSU_Param[0],0,sizeof(RSU_PARAMS));
+
+	#if (VA_METER_BD_NUM >= 2)
+	stuRSU_Param[1] = (RSU_PARAMS*)malloc(sizeof(RSU_PARAMS));
+	memset(stuRSU_Param[1],0,sizeof(RSU_PARAMS));
+	#endif
+
 	//遥控寄存器结构体
 	stuRemote_Ctrl = (REMOTE_CONTROL*)malloc(sizeof(REMOTE_CONTROL));
 	memset(stuRemote_Ctrl,0,sizeof(REMOTE_CONTROL));

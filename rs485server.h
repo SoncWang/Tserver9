@@ -9,7 +9,7 @@
 #define LBIT(i)	(1UL<<(i))	// 要注意32位平台LONG也是32位
 
 #define LOCK_NUM			2
-#define VA_METER_BD_NUM		0
+#define VA_METER_BD_NUM		2
 
 #define CARD_NUM		5	// 暂时为5张卡
 
@@ -36,9 +36,27 @@
 
 #define INTERVAL_TIME		400000	// 400ms
 
+/*VOLT-AMP sampling definition*/
+#define REAL_DATA_NUM			42  	/*需实时更新数据长度，0x69-0x40*/
+#define VA_STATION_ADDRESS_1	80
+#define VA_STATION_ADDRESS_2	81
+#define VA_REG					0x40
+#define VA_DATA_NUM				42
+
+//消息等待枚举
+typedef enum
+{
+	WAIT_NONE = 0,
+	WAIT_LOCKER_1_MSG,
+	WAIT_LOCKER_2_MSG,
+	WAIT_VA_DATA_1_MSG,
+	WAIT_VA_DATA_2_MSG,
+
+	WAIT_MSG_NUM
+}WAIT_MSG_LIST;
 
 
-/*结构联合声明整型*/
+/*结构联合声明短整型*/
 typedef union int_union
 {
 	UINT16 i;
@@ -51,7 +69,6 @@ typedef union long_union
 	UINT32 i;
 	UINT8 b[4];
 }LONG_UNION;
-
 
 
 /*the struct definition of the LOCKER*/
@@ -87,7 +104,7 @@ typedef enum
 	VOLT_AMP_GET_FLAG_3,
 	#endif
 
-	POLLING_NUM		// 4
+	POLLING_NUM
 }POLLING_LIST;
 
 
@@ -97,6 +114,8 @@ void rs485init(void) ;
 UINT16 SendCom4RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code);
 int DealComm485(unsigned char *buf,unsigned short int len);
 void lockerPollingInit();
+void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char seq);
+int DealLockerMsg(unsigned char *buf,unsigned short int len);
 
 
 #endif

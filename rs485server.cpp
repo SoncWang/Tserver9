@@ -29,8 +29,12 @@ CMyCritical Com4Cri;
 CMyCritical Com4SendCri;
 
 UINT32  comm_flag=0;
+UINT8  WAIT_response_flag=0;
+UINT8 Recive_Flag = 0;			/* 接收标志*/
+
 
 extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_NUM];
+extern RSU_PARAMS *stuRSU_Param[VA_METER_BD_NUM];
 
 const UINT32 locker_id[CARD_NUM] =
 {
@@ -38,44 +42,81 @@ const UINT32 locker_id[CARD_NUM] =
 	13838538,
 	1547012,
 	10863352,
-	2857740885
+	2857740885u
 };
 
 /*5次锁的轮询后轮询其它事项*/
 const UINT16 polling_cnt[] =
 {
 #if (LOCK_NUM >= 1)
-	LOCKER_1_STATUS,
+	LOCKER_1_STATUS
 #endif
 #if (LOCK_NUM >= 2)
-	LOCKER_2_STATUS,
+	,LOCKER_2_STATUS
 #endif
 #if (LOCK_NUM >= 1)
-	LOCKER_1_STATUS,
+	,LOCKER_1_STATUS
 #endif
 #if (LOCK_NUM >= 2)
-	LOCKER_2_STATUS,
+	,LOCKER_2_STATUS
 #endif
 #if (LOCK_NUM >= 1)
-	LOCKER_1_STATUS,
+	,LOCKER_1_STATUS
 #endif
 #if (LOCK_NUM >= 2)
-	LOCKER_2_STATUS,
+	,LOCKER_2_STATUS
 #endif
 #if (LOCK_NUM >= 1)
-	LOCKER_1_STATUS,
+	,LOCKER_1_STATUS
 #endif
 #if (LOCK_NUM >= 2)
-	LOCKER_2_STATUS,
+	,LOCKER_2_STATUS
 #endif
 #if (LOCK_NUM >= 1)
-	LOCKER_1_STATUS,
+	,LOCKER_1_STATUS
 #endif
 #if (LOCK_NUM >= 2)
-	LOCKER_2_STATUS
+	,LOCKER_2_STATUS
+#endif
+#if (VA_METER_BD_NUM >=1)
+	,VOLT_AMP_GET_FLAG_1
+#endif
+#if (LOCK_NUM >= 1)
+	,LOCKER_1_STATUS
+#endif
+#if (LOCK_NUM >= 2)
+	,LOCKER_2_STATUS
+#endif
+#if (LOCK_NUM >= 1)
+	,LOCKER_1_STATUS
+#endif
+#if (LOCK_NUM >= 2)
+	,LOCKER_2_STATUS
+#endif
+#if (LOCK_NUM >= 1)
+	,LOCKER_1_STATUS
+#endif
+#if (LOCK_NUM >= 2)
+	,LOCKER_2_STATUS
+#endif
+#if (LOCK_NUM >= 1)
+	,LOCKER_1_STATUS
+#endif
+#if (LOCK_NUM >= 2)
+	,LOCKER_2_STATUS
+#endif
+#if (LOCK_NUM >= 1)
+	,LOCKER_1_STATUS
+#endif
+#if (LOCK_NUM >= 2)
+	,LOCKER_2_STATUS
+#endif
+#if (VA_METER_BD_NUM >=2)
+	,VOLT_AMP_GET_FLAG_2
+#elif (VA_METER_BD_NUM >=1)
+	,VOLT_AMP_GET_FLAG_1
 #endif
 };
-
 
 
 int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
@@ -127,13 +168,28 @@ void *Locker_DataPollingthread(void *param)
 		{
 			comm_flag &= ~(LBIT(LOCKER_1_STATUS));
 			SendCom4ReadReg(DOOR_LOCK_ADDR_1,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+			WAIT_response_flag = WAIT_LOCKER_1_MSG;
 		}
 		else if (comm_flag &LBIT(LOCKER_2_STATUS))
 		{
 			comm_flag &= ~(LBIT(LOCKER_2_STATUS));
 			SendCom4ReadReg(DOOR_LOCK_ADDR_2,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+			WAIT_response_flag = WAIT_LOCKER_2_MSG;
 		}
-		//SendCom4ReadReg(DOOR_LOCK_ADDR_1,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+		else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_1))
+		{
+			comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_1));
+			SendCom4ReadReg(VA_STATION_ADDRESS_1, READ_REGS, VA_REG, VA_DATA_NUM);
+			WAIT_response_flag = WAIT_VA_DATA_1_MSG;
+		}
+		#if (VA_METER_BD_NUM >=2)
+		else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_2))
+		{
+			comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_2));
+			SendCom4ReadReg(VA_STATION_ADDRESS_2, READ_REGS, VA_REG, VA_DATA_NUM);
+			WAIT_response_flag = WAIT_VA_DATA_2_MSG;
+		}
+		#endif
 		usleep(INTERVAL_TIME);		// every 700ms sending
 	}
 	return 0 ;
@@ -207,7 +263,7 @@ static UINT8 locker_opened[LOCK_NUM] = {0,};
 static UINT16 last_cnt[LOCK_NUM] = {0,};
 static UINT32 last_card = 0;
 
-int DealComm485(unsigned char *buf,unsigned short int len)
+int DealLockerMsg(unsigned char *buf,unsigned short int len)
 {
 	UINT8 i=0;
 	UINT8 addr = 1;
@@ -249,7 +305,7 @@ int DealComm485(unsigned char *buf,unsigned short int len)
 			#if 0
 			if ((i>0)&&(i<5))
 			{
-				card_read <<=(8*(i-1));
+				card_read <<=8;
 				card_read |= (UINT8)(*(pid+i));
 			}
 			#endif
@@ -259,11 +315,11 @@ int DealComm485(unsigned char *buf,unsigned short int len)
 
 	char_to_long(&(lockerHw_Param[addr_base]->id[1]),&card_read);
 
-	printf("data begain\r\n");
-	printf("%5hd ",lockerHw_Param[addr_base]->status);printf("\r\n");
-	printf("%5hd ",lockerHw_Param[addr_base]->open_reason);printf("\r\n");
-	printf("%5hd ",lockerHw_Param[addr_base]->report_cnt);printf("\r\n");
-	printf("%5hd ",lockerHw_Param[addr_base]->id_length);printf("\r\n");
+	printf("lock begain\r\n");
+	//printf("%5hd ",lockerHw_Param[addr_base]->status);printf("\r\n");
+	//printf("%5hd ",lockerHw_Param[addr_base]->open_reason);printf("\r\n");
+	//printf("%5hd ",lockerHw_Param[addr_base]->report_cnt);printf("\r\n");
+	//printf("%5hd ",lockerHw_Param[addr_base]->id_length);printf("\r\n");
 	int j ;//for(j=0;j<(LOCKER_REG_NUM-FIXED_NUM)*2;j++) printf("0x%02x ",lockerHw_Param->id[j]);
 	printf("0x%08x" ,card_read);printf("\r\n");
 
@@ -284,6 +340,111 @@ int DealComm485(unsigned char *buf,unsigned short int len)
 	last_cnt[addr_base] = lockerHw_Param[addr_base]->report_cnt;
 	return 0 ;
 }
+
+/******************************************************************************
+ * 函数名:	comm_VAData_analyse
+ * 描述: 		电压电流采集传感器的解析
+ *            -
+ * 输入参数:
+ * 输出参数:
+ * 返回值:
+ *
+ * 作者:Jerry
+ * 创建日期:2019.7.12
+ ******************************************************************************/
+void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char seq)
+{
+	UINT8 i;
+	UINT16 *pointer = &stuRSU_Param[seq]->phase[0].vln;	/*第0相*/
+
+	if(len == (REAL_DATA_NUM*2+5))
+	{
+		printf("va begain\r\n");
+		for (i=0;i<2;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[0].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[0].amp);printf("\r\n");
+
+		/*第1相*/
+		pointer = &stuRSU_Param[seq]->phase[1].vln;
+		for(i = 7;i <= 8;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-7));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[1].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[1].amp);printf("\r\n");
+
+		/*第2相*/
+		pointer = &stuRSU_Param[seq]->phase[2].vln;
+		for(i = 14;i <= 15;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-14));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[2].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[2].amp);printf("\r\n");
+
+		/*第3相*/
+		pointer = &stuRSU_Param[seq]->phase[3].vln;
+		for(i = 21;i <= 22;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-21));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[3].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[3].amp);printf("\r\n");
+
+		/*第4相*/
+		pointer = &stuRSU_Param[seq]->phase[4].vln;
+		for(i = 28;i <= 29;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-27));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[4].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[4].amp);printf("\r\n");
+
+		/*第5相*/
+		pointer = &stuRSU_Param[seq]->phase[5].vln;
+		for(i = 35;i <= 36;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-35));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[5].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[5].amp);printf("\r\n");
+	}
+}
+
+
+
+int DealComm485(unsigned char *buf,unsigned short int len)
+{
+	switch(Recive_Flag)
+	{
+		case WAIT_LOCKER_1_MSG:					/*MSG from the locker*/
+		case WAIT_LOCKER_2_MSG:
+			DealLockerMsg(buf, len);
+		break;
+
+		case WAIT_VA_DATA_1_MSG:				/*MSG from the Volt-amp detector*/
+			comm_VAData_analyse(buf, len,0);
+		break;
+
+	#if (VA_METER_BD_NUM >= 2)
+		case WAIT_VA_DATA_2_MSG:
+			comm_VAData_analyse(buf, len,1);
+		break;
+	#endif
+
+		default:
+		break;
+	}
+
+	Recive_Flag = 0;
+	WAIT_response_flag = 0;
+	return 0;
+}
+
+
 
 
 void *ComPort4Thread(void *param)
@@ -312,6 +473,7 @@ void *ComPort4Thread(void *param)
 	  	}
 
       	printf("com1 len=%d\r\n",buffPos) ;
+		Recive_Flag = WAIT_response_flag;	// already received the data.
 
 	  	/*debug the information*/
 	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
