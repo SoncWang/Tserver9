@@ -34,7 +34,7 @@
 #define LOCKER_REG_NUM			9		// 4+5(字)
 #define FRAME_HEAD_NUM 			3		/*读数据时返回帧有效数据前数据个数*/
 
-#define INTERVAL_TIME		400000	// 400ms
+#define INTERVAL_TIME		450000	// 500ms
 
 /*VOLT-AMP sampling definition*/
 #define REAL_DATA_NUM			42  	/*需实时更新数据长度，0x69-0x40*/
@@ -51,6 +51,10 @@ typedef enum
 	WAIT_LOCKER_2_MSG,
 	WAIT_VA_DATA_1_MSG,
 	WAIT_VA_DATA_2_MSG,
+	WAIT_LOCKER_1_UNLOCK_RES,
+	WAIT_LOCKER_1_LOCK_RES,
+	WAIT_LOCKER_2_UNLOCK_RES,
+	WAIT_LOCKER_2_LOCK_RES,
 
 	WAIT_MSG_NUM
 }WAIT_MSG_LIST;
@@ -74,6 +78,7 @@ typedef union long_union
 /*the struct definition of the LOCKER*/
 typedef struct locker_struct
 {
+	UINT16 address;		// modbus station address
 	UINT16 status;		// 0:close 1:open
 	UINT16 open_reason;	// 0:close 1:cmd 2:reserve 3:key
 	UINT16 report_cnt;	// >128 it will be cleared.
@@ -107,6 +112,22 @@ typedef enum
 	POLLING_NUM
 }POLLING_LIST;
 
+typedef enum
+{
+	#if (LOCK_NUM >= 1)
+	LOCKER_1_CTRL_UNLOCK = 0,
+	LOCKER_1_CTRL_LOCK,
+	#endif
+
+	#if (LOCK_NUM >= 2)
+	LOCKER_2_CTRL_UNLOCK,
+	LOCKER_2_CTRL_LOCK,
+	#endif
+
+	ROMOTE_CTRL_NUM
+}REMOTE_CTRL_LIST;
+
+extern UINT32  ctrl_flag;	// 写标志
 
 
 

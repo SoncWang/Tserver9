@@ -7,27 +7,35 @@
 #include <string>
 #include <sys/time.h>
 #include <csignal>
-
-#include "main.h"
+#include <unistd.h>
+#include <sys/stat.h>
 #include "rs485server.h"
+#include "main.h"
 
 using namespace std;
 
-ENVI_PARAMS *stuEnvi_Param;		// »·¾³Êý¾Ý½á¹¹Ìå
-UPS_PARAMS *stuUps_Param;		//USP½á¹¹Ìå µçÔ´Êý¾Ý¼Ä´æÆ÷
-SPD_PARAMS *stuSpd_Param;		//·ÀÀ×Æ÷½á¹¹Ìå
-DEVICE_PARAMS *stuDev_Param;	//×°ÖÃ²ÎÊý¼Ä´æÆ÷
-DeviceInfoParams *stuDev_Info;	//²É¼¯Æ÷Éè±¸ÐÅÏ¢½á¹¹Ìå
-RSU_PARAMS *stuRSU_Param[VA_METER_BD_NUM];		//RSUÌìÏßÐÅÏ¢½á¹¹Ìå
-REMOTE_CONTROL *stuRemote_Ctrl;	//Ò£¿Ø¼Ä´æÆ÷½á¹¹Ìå
-FLAGRUNSTATUS *stuFlagRunStatus;//ÃÅ¼Ü×ÔÓÉÁ÷ÔËÐÐ×´Ì¬½á¹¹Ìå
-//THUAWEIGantry *stuHUAWEIDevValue;//»ªÎª»ú¹ñ×´Ì¬
-RSUCONTROLER *stuRsuControl;	//RSU¿ØÖÆÆ÷×´Ì¬
+ENVI_PARAMS *stuEnvi_Param;		// çŽ¯å¢ƒæ•°æ®ç»“æž„ä½“
+UPS_PARAMS *stuUps_Param;		//USPç»“æž„ä½“ ç”µæºæ•°æ®å¯„å­˜å™¨
+SPD_PARAMS *stuSpd_Param;		//é˜²é›·å™¨ç»“æž„ä½“
+DEVICE_PARAMS *stuDev_Param;	//è£…ç½®å‚æ•°å¯„å­˜å™¨
+VMCONTROL_PARAM *stuVMCtl_Param;	//é‡‡é›†å™¨è®¾å¤‡ä¿¡æ¯ç»“æž„ä½“
+RSU_PARAMS *stuRSU_Param[VA_METER_BD_NUM];		//RSUå¤©çº¿ä¿¡æ¯ç»“æž„ä½“
+REMOTE_CONTROL *stuRemote_Ctrl;	//é¥æŽ§å¯„å­˜å™¨ç»“æž„ä½“
+FLAGRUNSTATUS *stuFlagRunStatus;//é—¨æž¶è‡ªç”±æµè¿è¡ŒçŠ¶æ€ç»“æž„ä½“
+//THUAWEIGantry *stuHUAWEIDevValue;//åŽä¸ºæœºæŸœçŠ¶æ€
+RSUCONTROLER *stuRsuControl;	//RSUæŽ§åˆ¶å™¨çŠ¶æ€
+AIRCOND_PARAM *stuAirCondRead;		//è¯»ç©ºè°ƒçŠ¶æ€ç»“æž„ä½“
+AIRCOND_PARAM *stuAirCondWrite;		//å†™ç©ºè°ƒçŠ¶æ€ç»“æž„ä½“
 LOCKER_HW_PARAMS *lockerHw_Param[LOCK_NUM];
 
+extern string StrServerURL1;	//æœåŠ¡ç«¯URL1
+extern string StrServerURL2;	//æœåŠ¡ç«¯URL2
 
-extern string StrServerURL1;	//·þÎñ¶ËURL1
-extern string StrServerURL2;	//·þÎñ¶ËURL2
+extern string StrAdrrLock1;	//é—¨é”1çš„åœ°å€
+extern string StrAdrrLock2;	//é—¨é”2çš„åœ°å€
+extern string StrAdrrVAMeter1;	//ç”µåŽ‹ç”µæµä¼ æ„Ÿå™¨1çš„åœ°å€
+extern string StrAdrrVAMeter2;	//ç”µåŽ‹ç”µæµä¼ æ„Ÿå™¨2çš„åœ°å€
+
 
 /*char gIpAddr[20];
 HANDLE g_hCamera;
@@ -59,35 +67,27 @@ void WatchDogInit(void)
     printf("The timeout was is %d seconds\n", timeout);
 }
 
-//¶¨Ê±ÖÐ¶Ï´¦Àí
+//å®šæ—¶ä¸­æ–­å¤„ç†
 void sig_handler(int signo)
 {
     printf("sig_handler\t\n");
-
-/*	//½«ÃÅ¼ÜÔËÐÐ²ÎÊý×ª³ÉJSON×Ö·û´®
-	char * jsonPack=(char *)malloc(50*1024);
-	FLAGRUNSTATUS *pFlagRunStatus;
-	int jsonPackLen=0;
-	jsonStrFlagRunStatusWriter((char*)pFlagRunStatus,jsonPack,&jsonPackLen);
-	HttpPostParm(jsonPack,jsonPackLen);
-	free(jsonPack);*/
 }
 
-//³õÊ¼»¯¶¨Ê±Æ÷
+//åˆå§‹åŒ–å®šæ—¶å™¨
 void InitTimer(void)
 {
      struct timeval interval;
      struct itimerval timer;
-     //ÉèÖÃÊ±¼ä¼ä¸ôÎª10Ãë
+     //è®¾ç½®æ—¶é—´é—´éš”ä¸º10ç§’
      interval.tv_sec = 10;
 	 interval.tv_usec =0;
 
      timer.it_interval = interval;
      timer.it_value = interval;
 
-     setitimer(ITIMER_VIRTUAL, &timer, NULL);//ÈÃËü²úÉúSIGVTALRMÐÅºÅ
+     setitimer(ITIMER_VIRTUAL, &timer, NULL);//è®©å®ƒäº§ç”ŸSIGVTALRMä¿¡å·
 
-     //ÎªSIGVTALRM×¢²áÐÅºÅ´¦Àíº¯Êý
+     //ä¸ºSIGVTALRMæ³¨å†Œä¿¡å·å¤„ç†å‡½æ•°
      signal(SIGALRM, sig_handler);
 }
 
@@ -101,149 +101,157 @@ int main(void)
 	int jsonPackLen=0;
 	FLAGRUNSTATUS *pFlagRunStatus;
 
-	//¶ÁÉèÖÃÎÄ¼þ
+	//è¯»è®¾ç½®æ–‡ä»¶
 	GetConfig();
 
-	// »·¾³Êý¾Ý½á¹¹Ìå
+	// çŽ¯å¢ƒæ•°æ®ç»“æž„ä½“
 	stuEnvi_Param = (ENVI_PARAMS*)malloc(sizeof(ENVI_PARAMS));
-	memset(stuEnvi_Param,0,sizeof(ENVI_PARAMS));
-	//USP½á¹¹Ìå µçÔ´Êý¾Ý
+	InitStuEnvi_Param(stuEnvi_Param);
+	//USPç»“æž„ä½“ ç”µæºæ•°æ®
 	stuUps_Param = (UPS_PARAMS*)malloc(sizeof(UPS_PARAMS));
-	memset(stuUps_Param,0,sizeof(UPS_PARAMS));
-	//·ÀÀ×Æ÷½á¹¹Ìå
+	InitStuUPS_Param(stuUps_Param);
+	//é˜²é›·å™¨ç»“æž„ä½“
 	stuSpd_Param = (SPD_PARAMS*)malloc(sizeof(SPD_PARAMS));
 	memset(stuSpd_Param,0,sizeof(SPD_PARAMS));
-	//×°ÖÃ²ÎÊý¼Ä´æÆ÷
+	//è£…ç½®å‚æ•°å¯„å­˜å™¨
 	stuDev_Param = (DEVICE_PARAMS*)malloc(sizeof(DEVICE_PARAMS));
 	memset(stuDev_Param,0,sizeof(DEVICE_PARAMS));
-	//²É¼¯Æ÷Éè±¸ÐÅÏ¢½á¹¹Ìå
-	stuDev_Info = (DeviceInfoParams*)malloc(sizeof(DeviceInfoParams));
-	memset(stuDev_Info,0,sizeof(DeviceInfoParams));
-	//RSUÌìÏßÐÅÏ¢½á¹¹Ìå
+	//æŽ§åˆ¶å™¨å‚æ•°ç»“æž„ä½“
+	stuVMCtl_Param = (VMCONTROL_PARAM*)malloc(sizeof(VMCONTROL_PARAM));
+	memset(stuVMCtl_Param,0,sizeof(VMCONTROL_PARAM));
+	//RSUå¤©çº¿ä¿¡æ¯ç»“æž„ä½“
 	stuRSU_Param[0] = (RSU_PARAMS*)malloc(sizeof(RSU_PARAMS));
 	memset(stuRSU_Param[0],0,sizeof(RSU_PARAMS));
+	stuRSU_Param[0]->address = atoi(StrAdrrVAMeter1.c_str());
 
 	#if (VA_METER_BD_NUM >= 2)
 	stuRSU_Param[1] = (RSU_PARAMS*)malloc(sizeof(RSU_PARAMS));
 	memset(stuRSU_Param[1],0,sizeof(RSU_PARAMS));
+	stuRSU_Param[1]->address = atoi(StrAdrrVAMeter2.c_str());
 	#endif
-
-	//Ò£¿Ø¼Ä´æÆ÷½á¹¹Ìå
+	//é¥æŽ§å¯„å­˜å™¨ç»“æž„ä½“
 	stuRemote_Ctrl = (REMOTE_CONTROL*)malloc(sizeof(REMOTE_CONTROL));
 	memset(stuRemote_Ctrl,0,sizeof(REMOTE_CONTROL));
-	//ÃÅ¼Ü×ÔÓÉÁ÷ÔËÐÐ×´Ì¬½á¹¹Ìå
+	//é—¨æž¶è‡ªç”±æµè¿è¡ŒçŠ¶æ€ç»“æž„ä½“
 	stuFlagRunStatus = (FLAGRUNSTATUS*)malloc(sizeof(FLAGRUNSTATUS));
 	memset(stuFlagRunStatus,0,sizeof(FLAGRUNSTATUS));
-	//»ªÎª»ú¹ñ×´Ì¬½á¹¹Ìå
+	//åŽä¸ºæœºæŸœçŠ¶æ€ç»“æž„ä½“
 //	stuHUAWEIDevValue = (THUAWEIGantry*)malloc(sizeof(THUAWEIGantry));
 //	memset(stuHUAWEIDevValue,0,sizeof(THUAWEIGantry));
-	///RSU¿ØÖÆÆ÷×´Ì¬
+	///RSUæŽ§åˆ¶å™¨çŠ¶æ€
 	stuRsuControl = (RSUCONTROLER*)malloc(sizeof(RSUCONTROLER));
 	memset(stuRsuControl,0,sizeof(RSUCONTROLER));
+	//è¯»ç©ºè°ƒçŠ¶æ€ç»“æž„ä½“
+	stuAirCondRead = (AIRCOND_PARAM*)malloc(sizeof(AIRCOND_PARAM));
+	memset(stuAirCondRead,0,sizeof(AIRCOND_PARAM));
+	//å†™ç©ºè°ƒçŠ¶æ€ç»“æž„ä½“
+	stuAirCondWrite = (AIRCOND_PARAM*)malloc(sizeof(AIRCOND_PARAM));
+	memset(stuAirCondWrite,0,sizeof(AIRCOND_PARAM));
 
 	lockerHw_Param[0] = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
 	memset(lockerHw_Param[0],0,sizeof(LOCKER_HW_PARAMS));
+	lockerHw_Param[0]->address = atoi(StrAdrrLock1.c_str());
 
 	#if (LOCK_NUM >= 2)
 	lockerHw_Param[1] = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
 	memset(lockerHw_Param[1],0,sizeof(LOCKER_HW_PARAMS));
+	lockerHw_Param[1]->address = atoi(StrAdrrLock2.c_str());
 	#endif
 
-	//system("hwclock â€“s");  //å†™åˆ°ç¡¬æ—¶é’?
-	//³õÊ¼»¯´®¿Ú
+	//system("hwclock éˆ¥æ’");  //éæ¬åŸŒçº­î„æ¤‚é–½?
+	//åˆå§‹åŒ–ä¸²å£
 	cominit();
 	rs485init();
 
-	//³õÊ¼»¯http·þÎñ¶Ë
+	lockerPollingInit();
+
+	//åˆå§‹åŒ–httpæœåŠ¡ç«¯
 	HttpInit();
 
-	//³õÊ¼»¯·þÎñÆ÷Ïß³Ì
+	//åˆå§‹åŒ–æœåŠ¡å™¨çº¿ç¨‹
 	initServer();
 
 //    WatchDogInit();
 
-	//³õÊ¼»¯ÓîÊÓÉãÏñ»ú
+	//åˆå§‹åŒ–å®‡è§†æ‘„åƒæœº
 //	IpcamInit();
 
-	//³õÊ¼»¯¶¨Ê±Æ÷
+	//åˆå§‹åŒ–å®šæ—¶å™¨
 //	InitTimer();
 
-	//³õÊ¼»¯RSU
-	init_net_rsu();
+	//åˆå§‹åŒ–RSU
+	//init_net_rsu();
 
-	//³õÊ¼»¯RSU
+	//åˆå§‹åŒ–RSU
 	snmpInit();
 
-	//³õÊ¼»¯ÀûÍ¨¶¨Ê±ÍÆËÍÏß³Ì
-	//init_LTKJ_DataPost();
+	//åˆå§‹åŒ–åˆ©é€šå®šæ—¶æŽ¨é€çº¿ç¨‹
+	init_LTKJ_DataPost();
 
-	//³õÊ¼»¯ÐÂÔÁ¶¨Ê±ÍÆËÍÏß³Ì
-	//init_XY_DataPost();
-
-	/*A fixed timer to polling the LOCKER*/
-	lockerPollingInit();
+	//åˆå§‹åŒ–æ–°ç²¤å®šæ—¶æŽ¨é€çº¿ç¨‹
+	init_XY_DataPost();
 
 
 /*    while(1)
     {
 		usleep(5000);//delay 5ms
 	}*/
-	printf("ÊäÈëÌáÊ¾ : \n 'v' ·¢ËÍ°æ±¾ºÅ\n 'e' ²éÑ¯»·¾³²ÎÊý\n 'u' ²éÑ¯UPS²ÎÊý\n 's' ²éÑ¯·ÀÀ×Æ÷²ÎÊý\n ");
-	printf("'d' ²éÑ¯×°ÖÃ²ÎÊý\n 'i' ²éÑ¯×°ÖÃÐÅÏ¢\n 'r' ²éÑ¯RSUÌìÏß²ÎÊý\n 'c' µç×ÓÃÅËø¹Ø\n 'o' µç×ÓÃÅËø¿ª\n ");
-	printf("'h' ÍÆËÍÃÅ¼ÜÔËÐÐ×´Ì¬\n 't' RSUÏÂ·¢Êý¾Ý\n 'q' ÍË³ö\n");
+	printf("è¾“å…¥æç¤º : \n 'v' å‘é€ç‰ˆæœ¬å·\n 'e' æŸ¥è¯¢çŽ¯å¢ƒå‚æ•°\n 'u' æŸ¥è¯¢UPSå‚æ•°\n 's' æŸ¥è¯¢é˜²é›·å™¨å‚æ•°\n ");
+	printf("'d' æŸ¥è¯¢è£…ç½®å‚æ•°\n 'i' æŸ¥è¯¢è£…ç½®ä¿¡æ¯\n 'r' æŸ¥è¯¢RSUå¤©çº¿å‚æ•°\n 'c' ç”µå­é—¨é”å…³\n 'o' ç”µå­é—¨é”å¼€\n ");
+	printf("'h' æŽ¨é€é—¨æž¶è¿è¡ŒçŠ¶æ€\n 't' RSUä¸‹å‘æ•°æ®\n 'q' é€€å‡º\n");
     while('q' != (ch = getchar()))
     {
         switch(ch)
         {
-//        case 't' :  //´¥·¢×¥ÅÄ
+//        case 't' :  //è§¦å‘æŠ“æ‹
 //			TrigerImage(g_hCamera);
 //			break;
-        case 'v' :  //·¢ËÍ×Ö·û´®
-			sprintf(str,"MySendMessage! ¹ã¶«ÀûÍ¨¿Æ¼¼Í¶×ÊÓÐÏÞ¹«Ë¾£º%d\n",loop/10);
+        case 'v' :  //å‘é€å­—ç¬¦ä¸²
+			sprintf(str,"MySendMessage! å¹¿ä¸œåˆ©é€šç§‘æŠ€æŠ•èµ„æœ‰é™å…¬å¸ï¼š%d\n",loop/10);
 			printf(str);
 			MySendMessage(str);
 
 			break;
-		case 'e' :	//²éÑ¯»·¾³±äÁ¿¼Ä´æÆ÷
+		case 'e' :	//æŸ¥è¯¢çŽ¯å¢ƒå˜é‡å¯„å­˜å™¨
 			//SendCom1QueryEvnReg();
 			SendCom1ReadReg(0x01,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);
 			break;
-		case 'u' :	//²éÑ¯UPS±äÁ¿¼Ä´æÆ÷
+		case 'u' :	//æŸ¥è¯¢UPSå˜é‡å¯„å­˜å™¨
 			SendCom1ReadReg(0x01,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);
 			break;
-		case 's' :	//²éÑ¯SPD±äÁ¿¼Ä´æÆ÷
+		case 's' :	//æŸ¥è¯¢SPDå˜é‡å¯„å­˜å™¨
 			SendCom1ReadReg(0x01,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);
 			break;
-		case 'd' :	//²éÑ¯×°ÖÃ²ÎÊý¼Ä´æÆ÷
+		case 'd' :	//æŸ¥è¯¢è£…ç½®å‚æ•°å¯„å­˜å™¨
 			SendCom1ReadReg(0x01,READ_REGS,PARAMS_START_ADDR,PARAMS_REG_MAX);
 			break;
-		case 'i' :	//²éÑ¯×°ÖÃÐÅÏ¢¼Ä´æÆ÷
+		case 'i' :	//æŸ¥è¯¢è£…ç½®ä¿¡æ¯å¯„å­˜å™¨
 			SendCom1ReadReg(0x01,READ_REGS,DEVICEINFO_START_ADDR,DEVICEINFO_REG_MAX);
 			break;
-		case 'r' :	//²éÑ¯RSUÌìÏß²ÎÊý¼Ä´æÆ÷
+		case 'r' :	//æŸ¥è¯¢RSUå¤©çº¿å‚æ•°å¯„å­˜å™¨
 			SendCom1ReadReg(0x01,READ_REGS,RSU_START_ADDR,RSU_REG_MAX);
 			break;
-		case 'c' :	//Ò£¿Ø¼Ä´æÆ÷ ËøÃÅ
-			memset(jsonPack,0,1024);
+		case 'c' :	//é¥æŽ§å¯„å­˜å™¨ é”é—¨
+/*			memset(jsonPack,0,1024);
 			pRCtrl=stuRemote_Ctrl;
-//			pRCtrl->Door_Lock=0xFF00;  //µç×ÓÃÅËø¹Ø
-//			pRCtrl->Door_UnLock=0x0000;  //µç×ÓÃÅËø¿ª
-			pRCtrl->RSU1_Close=0xFF00;  //RSUÌìÏß1Ò£ºÏÖ´ÐÐ
-			pRCtrl->RSU1_Open=0x0000;  //RSUÌìÏß1Ò£·ÖÖ´ÐÐ
+//			pRCtrl->Door_Lock=0xFF00;  //ç”µå­é—¨é”å…³
+//			pRCtrl->Door_UnLock=0x0000;  //ç”µå­é—¨é”å¼€
+			pRCtrl->RSU1_Close=0xFF00;  //RSUå¤©çº¿1é¥åˆæ‰§è¡Œ
+			pRCtrl->RSU1_Open=0x0000;  //RSUå¤©çº¿1é¥åˆ†æ‰§è¡Œ
 			jsonStrRemoteCtrlWriter((char*)pRCtrl,jsonPack,&jsonPackLen);
-			NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);
+			NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);*/
 			break;
-		case 'o' :	//Ò£¿Ø¼Ä´æÆ÷ ¿ªÃÅ
-			memset(jsonPack,0,1024);
+		case 'o' :	//é¥æŽ§å¯„å­˜å™¨ å¼€é—¨
+/*			memset(jsonPack,0,1024);
 			pRCtrl=stuRemote_Ctrl;
-//			pRCtrl->Door_Lock=0x0000;  //µç×ÓÃÅËø¹Ø
-//			pRCtrl->Door_UnLock=0xFF00;  //µç×ÓÃÅËø¿ª
-			pRCtrl->RSU1_Close=0x0000;  //RSUÌìÏß1Ò£ºÏÖ´ÐÐ
-			pRCtrl->RSU1_Open=0xFF00;  //RSUÌìÏß1Ò£·ÖÖ´ÐÐ
+//			pRCtrl->Door_Lock=0x0000;  //ç”µå­é—¨é”å…³
+//			pRCtrl->Door_UnLock=0xFF00;  //ç”µå­é—¨é”å¼€
+			pRCtrl->RSU1_Close=0x0000;  //RSUå¤©çº¿1é¥åˆæ‰§è¡Œ
+			pRCtrl->RSU1_Open=0xFF00;  //RSUå¤©çº¿1é¥åˆ†æ‰§è¡Œ
 			jsonStrRemoteCtrlWriter((char*)pRCtrl,jsonPack,&jsonPackLen);
-			NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);
+			NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);*/
 			break;
-		case 'h' :	//ÍÆËÍÃÅ¼ÜÔËÐÐ×´Ì¬
+		case 'h' :	//æŽ¨é€é—¨æž¶è¿è¡ŒçŠ¶æ€
 			memset(jsonPack,0,50*1024);
 			SetjsonTableStr("flagrunstatus",jsonPack,&jsonPackLen);
 //			SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
@@ -251,22 +259,29 @@ int main(void)
 			HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
 			NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
 			break;
-		case 't' :	//RSUÏÂ·¢Êý¾ÝC0Ö¡
+		case 't' :	//RSUä¸‹å‘æ•°æ®C0å¸§
 			send_RSU(0xC4,0 ,1,1);
 			break;
-		case 'y' :	//²âÊÔ¿ªËø
-			SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+
+		case 'y' :	//æµ‹è¯•å¼€é”
+			ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
+			//SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
 			break;
-		case 'z' :	//²âÊÔËø
-			SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
+		case 'z' :	//æµ‹è¯•é”
+			ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
+			//SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
 			break;
-		case 'a' :	//²âÊÔ¿ªËø
-			SendCom4RCtlReg(DOOR_LOCK_ADDR_2,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+		#if (LOCK_NUM >= 2)
+		case 'a' :	//æµ‹è¯•å¼€é”
+			ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
+			//SendCom4RCtlReg(DOOR_LOCK_ADDR_2,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
 			break;
-		case 'b' :	//²âÊÔËø
-			SendCom4RCtlReg(DOOR_LOCK_ADDR_2,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
+		case 'b' :	//æµ‹è¯•é”
+			ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
+			//SendCom4RCtlReg(DOOR_LOCK_ADDR_2,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
 			break;
-		case 'q' : //ÍË³ö
+		#endif
+		case 'q' : //é€€å‡º
 			break;
 		}
 	}
@@ -286,14 +301,14 @@ int main(void)
 	ConnectDataCamera(g_hCamera,gIpAddr);
 }
 
-//ÊÓÆµÏÔÊ¾Ïß³Ì(JPEG)
+//è§†é¢‘æ˜¾ç¤ºçº¿ç¨‹(JPEG)
 void MYCameraJpegCallBackFunc(char * pBuffer,int size,IMAGE_CAPTURE_INFO *pImageInfo,DWORD nContext)
 {
 	char str[100],strPlatePos[100];
 	int nPlatePosStrLen=0;
 
-	//´æ´¢JPEGÍ¼Æ¬
-	memcpy(gPlateNum,pImageInfo->nCarSpeed,sizeof(char)*12);		   //³µÅÆ
+	//å­˜å‚¨JPEGå›¾ç‰‡
+	memcpy(gPlateNum,pImageInfo->nCarSpeed,sizeof(char)*12);		   //è½¦ç‰Œ
 	gPlateColor=(ColorType)pImageInfo->nLimitSpeed[0];
 	printf("MYCameraJpegCallBackFunc plate=%s, color=%d\n",gPlateNum,gPlateColor);
 
@@ -326,5 +341,148 @@ void WriteLog(char* str)
 {
 	printf("%s\n",str);
 }*/
+
+void InitStuEnvi_Param(ENVI_PARAMS *pParam)
+{
+	pParam->temp=0x7fff;	// å½“å‰çŽ¯å¢ƒæ¸©åº¦å€¼300 Ã—10
+	pParam->moist=0x7fff;	// å½“å‰çŽ¯å¢ƒæ¹¿åº¦å€¼301 Ã—10
+	pParam->water_flag=0x7fff;	// æ¼æ°´302
+	pParam->front_door_flag=0x7fff;			//å‰æŸœé—¨å¼€å…³çŠ¶æ€303
+	pParam->back_door_flag=0x7fff;		//åŽæŸœé—¨å¼€å…³çŠ¶æ€304
+	pParam->door_overtime=0x7fff;		//æŸœé—¨å¼€å¯è¶…æ—¶305
+	pParam->smoke_event_flag=0x7fff;	//çƒŸé›¾æŠ¥è­¦306
+	pParam->Reserve1=0x7fff;			//ä¿ç•™1 307
+	pParam->Reserve2=0x7fff; 			//ä¿ç•™2 308
+	pParam->Reserve3=0x7fff;			//ä¿ç•™1 309
+	pParam->air_cond_status=0x7fff;		//ç©ºè°ƒçŠ¶æ€310
+	pParam->air_cond_fan_in_status=0x7fff;			//ç©ºè°ƒå†…é£ŽæœºçŠ¶æ€311
+	pParam->air_cond_fan_out_status=0x7fff;			//ç©ºè°ƒå¤–é£ŽæœºçŠ¶æ€312
+	pParam->air_cond_comp_status=0x7fff;			//ç©ºè°ƒåŽ‹ç¼©æœºçŠ¶æ€313
+	pParam->air_cond_heater_status=0x7fff;			//ç©ºè°ƒç”µåŠ çƒ­çŠ¶æ€314
+	pParam->air_cond_fan_emgy_status=0x7fff;		//ç©ºè°ƒåº”æ€¥é£ŽæœºçŠ¶æ€315
+	pParam->air_cond_temp_out=0x7fff;		//å½“å‰ç©ºè°ƒå®¤å¤–æ¸©åº¦å€¼316 Ã—10
+	pParam->air_cond_temp_in=0x7fff;		//å½“å‰ç©ºè°ƒå®¤å†…æ¸©åº¦å€¼317 Ã—10
+	pParam->air_cond_amp=0x7fff;					//å½“å‰ç©ºè°ƒç”µæµå€¼318 Ã—1000
+	pParam->air_cond_volt=0x7fff;					//å½“å‰ç©ºè°ƒç”µåŽ‹å€¼319 Ã—1
+
+	pParam->air_cond_hightemp_alarm=0x7fff;			//ç©ºè°ƒé«˜æ¸©å‘Šè­¦320
+	pParam->air_cond_lowtemp_alarm=0x7fff;			//ç©ºè°ƒä½Žæ¸©å‘Šè­¦321
+	pParam->air_cond_highmoist_alarm=0x7fff;		//ç©ºè°ƒé«˜æ¹¿å‘Šè­¦322
+	pParam->air_cond_lowmoist_alarm=0x7fff;			//ç©ºè°ƒä½Žæ¹¿å‘Šè­¦323
+	pParam->air_cond_infan_alarm=0x7fff;			//ç©ºè°ƒå†…é£Žæœºæ•…éšœ324
+	pParam->air_cond_outfan_alarm=0x7fff;			//ç©ºè°ƒå¤–é£Žæœºæ•…éšœ325
+	pParam->air_cond_comp_alarm=0x7fff;				//ç©ºè°ƒåŽ‹ç¼©æœºæ•…éšœ326
+	pParam->air_cond_heater_alarm=0x7fff;			//ç©ºè°ƒç”µåŠ çƒ­æ•…éšœ327
+	pParam->air_cond_emgyfan_alarm=0x7fff;			//ç©ºè°ƒåº”æ€¥é£Žæœºæ•…éšœ328
+
+}
+
+
+void InitStuUPS_Param(UPS_PARAMS *pParam)
+{
+	// è¾“å…¥æ•°æ®
+	pParam->in_phase_num=0x7fff;		// ç›¸æ•° 40
+	pParam->in_freq=0x7fff; 		// äº¤æµè¾“å…¥é¢‘çŽ‡	41 Ã—100
+	pParam->volt_Ain=0x7fff;		//äº¤æµè¾“å…¥ç›¸ç”µåŽ‹A 42 Ã—10
+	pParam->volt_Bin=0x7fff;		//äº¤æµè¾“å…¥ç›¸ç”µåŽ‹B 43 Ã—10
+	pParam->volt_Cin=0x7fff;		//äº¤æµè¾“å…¥ç›¸ç”µåŽ‹C 44 Ã—10
+
+	pParam->amp_Ain=0x7fff; 		//äº¤æµè¾“å…¥ç›¸ç”µæµA	  45 Ã—10
+	pParam->amp_Bin=0x7fff; 		//äº¤æµè¾“å…¥ç›¸ç”µæµB	  46 Ã—10
+	pParam->amp_Cin=0x7fff; 		//äº¤æµè¾“å…¥ç›¸ç”µæµC	  47 Ã—10
+
+	pParam->fact_Ain=0x7fff;		// åŠŸçŽ‡å› ç´ 
+	pParam->fact_Bin=0x7fff;		// åŠŸçŽ‡å› ç´ 
+	pParam->fact_Cin=0x7fff;		// åŠŸçŽ‡å› ç´ 
+
+	pParam->bypass_voltA=0x7fff;	// æ—è·¯ç”µåŽ‹A
+	pParam->bypass_voltB=0x7fff;	// æ—è·¯ç”µåŽ‹B
+	pParam->bypass_voltC=0x7fff;	// æ—è·¯ç”µåŽ‹C
+	pParam->bypass_freq=0x7fff; // æ—è·¯é¢‘çŽ‡
+	//è¾“å‡ºæ•°æ®
+	pParam->out_phase_num=0x7fff;		// è¾“å‡ºç›¸æ•° 48
+	pParam->out_freq=0x7fff;			//UPSäº¤æµè¾“å‡ºé¢‘çŽ‡ 49		Ã—100
+	pParam->volt_Aout=0x7fff;		//äº¤æµè¾“å‡ºç›¸ç”µåŽ‹A 50 Ã—10
+	pParam->volt_Bout=0x7fff;		//äº¤æµè¾“å‡ºç›¸ç”µåŽ‹B 51 Ã—10
+	pParam->volt_Cout=0x7fff;		//äº¤æµè¾“å‡ºç›¸ç”µåŽ‹C 52 	 Ã—10
+	pParam->amp_Aout=0x7fff;		//äº¤æµè¾“å‡ºç›¸ç”µæµA 53 Ã—10
+	pParam->amp_Bout=0x7fff;		//äº¤æµè¾“å‡ºç›¸ç”µæµB 54 Ã—10
+	pParam->amp_Cout=0x7fff;		//äº¤æµè¾“å‡ºç›¸ç”µæµC 55 Ã—10
+
+/*	pParam->fact_Aout=0x7fff;
+	pParam->fact_Bout=0x7fff;
+	pParam->fact_Cout=0x7fff;*/
+	pParam->kw_Aout=0x7fff; 	// æœ‰åŠŸ
+	pParam->kw_Bout=0x7fff; 	// æœ‰åŠŸ
+	pParam->kw_Cout=0x7fff; 	// æœ‰åŠŸ
+	pParam->kva_Aout=0x7fff;		// è§†åœ¨
+	pParam->kva_Bout=0x7fff;		// è§†åœ¨
+	pParam->kva_Cout=0x7fff;		// è§†åœ¨
+
+	pParam->load_Aout=0x7fff;		// è´Ÿè½½
+	pParam->load_Bout=0x7fff;		// è´Ÿè½½
+	pParam->load_Cout=0x7fff;		// è´Ÿè½½
+
+	//ç”µæ± å‚æ•°
+	pParam->running_day=0x7fff; 		// UPSè¿è¡Œæ—¶é—´ 56 å¤©
+	pParam->battery_volt=0x7fff;		//UPSç”µæ± ç”µåŽ‹	57 Ã—10
+	pParam->amp_charge=0x7fff;			//UPSå……ç”µç”µæµ 58 Ã—100
+	pParam->amp_discharge=0x7fff;		//UPSæ”¾ç”µç”µæµ
+	pParam->battery_left=0x7fff;		//UPSç”µæ± åŽå¤‡æ—¶é—´ 59 Ã—10ï¼Œåˆ†é’Ÿ
+	pParam->battery_tmp=0x7fff; 		// çŽ¯å¢ƒæ¸©åº¦ 60 Ã—10
+	pParam->battery_capacity=0x7fff;	//ç”µæ± å½“å‰å®¹é‡ 61 Ã—100%
+	pParam->battery_dischg_times=0x7fff;//ç”µæ± æ”¾ç”µæ¬¡æ•° 62
+
+	//USPçŠ¶æ€å‚æ•°
+	pParam->supply_out_status=0x7fff;		// è¾“å‡ºä¾›ç”µçŠ¶æ€ 63
+	pParam->supply_in_status=0x7fff;		// è¾“å…¥ä¾›ç”µçŠ¶æ€ 64
+	pParam->battery_status=0x7fff;			// ç”µæ± çŠ¶æ€ 65
+
+	//USPå‘Šè­¦
+	pParam->main_abnormal=0x7fff;			// ä¸»è·¯å¼‚å¸¸ 66 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->system_overtemp=0x7fff; 		// ç³»ç»Ÿè¿‡æ¸©, 67 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->sysbat_low_prealarm=0x7fff; 	// ç³»ç»Ÿç”µæ± ç”µé‡ä½Žé¢„å‘Šè­¦,68 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->rectifier_overload=0x7fff;		// æ•´æµå™¨è¿‡è½½,69 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->inverter_overload=0x7fff;		// é€†å˜å™¨è¿‡è½½,70 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->bypass_abnomal=0x7fff;			// æ—è·¯å¼‚å¸¸,71 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->battery_low_prealarm=0x7fff;	// ç”µæ± ç”µåŽ‹ä½Ž,72 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->battery_abnomal=0x7fff; 		// ç”µæ± ç”µåŽ‹å¼‚å¸¸,73 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->battery_overtemp=0x7fff;		// ç”µæ± è¿‡æ¸©,74 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->fan_abnormal=0x7fff;			// é£Žæ‰‡æ•…éšœ,75 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->shutdown_alarm=0x7fff;			//ç´§æ€¥å…³æœºå‘Šè­¦,76 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->maintain_status=0x7fff; 		//ç»´ä¿®æ¨¡å¼,77 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->inverter_supply=0x7fff; 		//ç”µæ± é€†å˜ä¾›ç”µ,78 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+	pParam->bypass_supply=0x7fff;			//æ—è·¯ä¾›ç”µ,79 0x00ï¼šæ­£å¸¸ 0xF0ï¼šå¼‚å¸¸
+}
+
+void WriteLog(char* str)
+ {
+	 char sDateTime[30],stmp[10];
+	 FILE *fpLog;
+	 string exePath,filename;
+	 exePath="logs";
+	 if(access(exePath.c_str(),0) == -1)
+	 	mkdir(exePath.c_str(),0755);
+
+	 time_t nSeconds;
+	 struct tm * pTM;
+
+	 time(&nSeconds);
+	 pTM = localtime(&nSeconds);
+
+	 //ç³»ç»Ÿæ—¥æœŸå’Œæ—¶é—´,æ ¼å¼: yyyymmddHHMMSS
+	 sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
+			 pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
+			 pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
+
+	 sprintf(stmp,"%d",pTM->tm_mday);
+	 filename=exePath+"/"+stmp+".txt";
+	 fpLog = fopen(filename.c_str(), "a");
+
+	 fseek(fpLog, 0, SEEK_END);
+	 fprintf(fpLog, "%s->%s\n", sDateTime,str);
+
+	 fclose(fpLog);
+ }
 
 

@@ -15,7 +15,9 @@
 #include "net_rsu.h"
 #define NETWORK_FILE "/opt/config"
 static int sockfd_rsu; 
-extern RSUCONTROLER *stuRsuControl;	//RSU¿ØÖÆÆ÷×´Ì¬
+//extern std::string StrRSUIP;	//RSUIPåœ°å€
+//extern std::string StrRSUPort;	//RSUç«¯å£
+extern RSUCONTROLER *stuRsuControl;	//RSUæ§åˆ¶å™¨çŠ¶æ€
 
 static void* NetWork_server_thread_RSU(void *arg);
 unsigned short const crc_ccitt_table[256] = {
@@ -64,7 +66,7 @@ void send_RSU(char command,bool ReSend,char state,int num)
 	char buff_len = 0;
 	int i;
 	unsigned short crc;
-	//----´¦ÀíÖ¡ĞòºÅ-------
+	//----å¤„ç†å¸§åºå·-------
 	if(!ReSend)
 	{
 		if(rsctl_all == 0)
@@ -87,25 +89,25 @@ void send_RSU(char command,bool ReSend,char state,int num)
 	send_buff[3] = rsctl_all;	
 	switch(command)
 	{
-		case 0xC4:				   //´ò¿ª£¬¹Ø±Õ¸´Î»ÌìÏßÖ¸Áî
-		send_buff[4] = 0x00;		//Êı¾İ³¤¶ÈËÄ¸ö×Ö½Ú
+		case 0xC4:				   //æ‰“å¼€ï¼Œå…³é—­å¤ä½å¤©çº¿æŒ‡ä»¤
+		send_buff[4] = 0x00;		//æ•°æ®é•¿åº¦å››ä¸ªå­—èŠ‚
 		send_buff[5] = 0x00;
 		send_buff[6] = 0x00;
 		send_buff[7] = 2;
 		send_buff[8] = 0xc4;
 		if(state==0x01)
 		{
-			send_buff[9] = 0x01;	//´ò¿ªÌìÏß
+			send_buff[9] = 0x01;	//æ‰“å¼€å¤©çº¿
 		}  
 		else if(state==0x00)
 		{	
-			send_buff[9] = 0x00;	//¹Ø±ÕÌìÏß
+			send_buff[9] = 0x00;	//å…³é—­å¤©çº¿
 		}  
-		send_buff[10]=num;		//¶ÔÄÄÌ¨ÌìÏß½øĞĞ²Ù×÷
+		send_buff[10]=num;		//å¯¹å“ªå°å¤©çº¿è¿›è¡Œæ“ä½œ
 		buff_len=11;
 		break;
-		case 0xC0:		   //»ñÈ¡ÌìÏßÅäÖÃÖ¸Áî
-		send_buff[4] = 0x00;		//Êı¾İ³¤¶ÈËÄ¸ö×Ö½Ú
+		case 0xC0:		   //è·å–å¤©çº¿é…ç½®æŒ‡ä»¤
+		send_buff[4] = 0x00;		//æ•°æ®é•¿åº¦å››ä¸ªå­—èŠ‚
 		send_buff[5] = 0x00;
 		send_buff[6] = 0x00;
 		send_buff[7] = 17;
@@ -117,7 +119,7 @@ void send_RSU(char command,bool ReSend,char state,int num)
 		buff_len=25;
 		break;
 		case 0x1D:
-		send_buff[4] = 0x00;		//Êı¾İ³¤¶ÈËÄ¸ö×Ö½Ú
+		send_buff[4] = 0x00;		//æ•°æ®é•¿åº¦å››ä¸ªå­—èŠ‚
 		send_buff[5] = 0x00;
 		send_buff[6] = 0x00;
 		send_buff[7] = 2;
@@ -142,26 +144,26 @@ void send_RSU(char command,bool ReSend,char state,int num)
 	printf("\n");
 	write(sockfd_rsu,send_buff,buff_len);
 }
-static char* getNetworkInfo(char *maches)	//¶ÁÈ¡ÅäÖÃÎÄ¼şµÄÄÚÈİ
+static char* getNetworkInfo(char *maches)	//è¯»å–é…ç½®æ–‡ä»¶çš„å†…å®¹
 {
 	char szBuf[256];
 	char *szNetwork=NULL;
 	int i = 0;
 	FILE *fp = NULL;
-	if((fp=fopen(NETWORK_FILE, "r"))==NULL)             //ÅĞ¶ÏÎÄ¼şÊÇ·ñÎª¿Õ
+	if((fp=fopen(NETWORK_FILE, "r"))==NULL)             //åˆ¤æ–­æ–‡ä»¶æ˜¯å¦ä¸ºç©º
    	{
         	printf( "Can 't   open   file!\n"); 
 		return 0;
     	}
-	while(fgets(szBuf,128,fp))                         //´ÓÎÄ¼ş¿ª¹Ø¿ªÊ¼ÏòÏÂ¶Á£¬°Ñ¶Áµ½µÄÄÚÈİ·Åµ½szBufÖĞ
+	while(fgets(szBuf,128,fp))                         //ä»æ–‡ä»¶å¼€å…³å¼€å§‹å‘ä¸‹è¯»ï¼ŒæŠŠè¯»åˆ°çš„å†…å®¹æ”¾åˆ°szBufä¸­
     	{                         
-		if(strstr(szBuf,maches) != NULL)                 //ÕÒµ½machesÔÚÎÄ¼şÖĞµÚÒ»´Î³öÏÖµÄÎ»ÖÃ¡£¡£Èçaddress 
+		if(strstr(szBuf,maches) != NULL)                 //æ‰¾åˆ°machesåœ¨æ–‡ä»¶ä¸­ç¬¬ä¸€æ¬¡å‡ºç°çš„ä½ç½®ã€‚ã€‚å¦‚address 
         	{
 			for(i =0;i < strlen(szBuf);i++)
           		{              
-				if(isdigit(*(szBuf+i)))                      //´ÓszBuf×Ö·û´®ÖĞÕÒ³öÊı×Ö¡£
+				if(isdigit(*(szBuf+i)))                      //ä»szBufå­—ç¬¦ä¸²ä¸­æ‰¾å‡ºæ•°å­—ã€‚
                 		{
-                    			szNetwork = (char*)malloc(strlen(szBuf));  //ÎªszNetwork·ÖÅäÄÚ´æ
+                    			szNetwork = (char*)malloc(strlen(szBuf));  //ä¸ºszNetworkåˆ†é…å†…å­˜
                     			strcpy(szNetwork,szBuf+i);             
                     			szNetwork[strlen(szNetwork)-1] = '\0';
                     			fclose(fp);
@@ -184,7 +186,7 @@ void init_net_rsu()
 	}
 	pthread_detach(tNetwork_server_RSU);
 }
-static void* NetWork_server_thread_RSU(void*arg)//½ÓÊÕÌìÏßÊı¾İÏß³Ì
+static void* NetWork_server_thread_RSU(void*arg)//æ¥æ”¶å¤©çº¿æ•°æ®çº¿ç¨‹
 {
 	int i,j,temp;
 	const char *IPaddress;
@@ -207,15 +209,17 @@ static void* NetWork_server_thread_RSU(void*arg)//½ÓÊÕÌìÏßÊı¾İÏß³Ì
 	} else {
     	printf ("OK: Obtain Socket Despcritor sucessfully.\n");
 	}
-	IPaddress = getNetworkInfo("address");//»ñÈ¡ÅäÖÃÎÄ¼şÖĞµÄIPµØÖ·
-	IPport=getNetworkInfo("port");
+	IPaddress = getNetworkInfo("RSUIP");//è·å–é…ç½®æ–‡ä»¶ä¸­çš„IPåœ°å€
+	IPport=getNetworkInfo("RSUPort");
+//	IPaddress = StrRSUIP;//è·å–é…ç½®æ–‡ä»¶ä¸­çš„IPåœ°å€
+//	IPport=StrRSUPort;
 	port=atoi(IPport);
 	/* Fill the local socket address struct */
 	server_addr.sin_family = AF_INET;           		// Protocol Family
 	server_addr.sin_port = htons (port);         		// Port number
 	server_addr.sin_addr.s_addr  = inet_addr (IPaddress);  	// AutoFill local address
 	memset (server_addr.sin_zero,0,8);          		// Flush the rest of struct
-//ºîÁÖÈêĞ´µÄÕìÌı·şÎñÆ÷-ÌìÏßµÄÊı¾İ´úÂë
+//ä¾¯æ—æ±å†™çš„ä¾¦å¬æœåŠ¡å™¨-å¤©çº¿çš„æ•°æ®ä»£ç 
 	if (connect(sockfd_rsu, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1)
         {
 		printf("connect to server error!\n");
@@ -230,7 +234,7 @@ static void* NetWork_server_thread_RSU(void*arg)//½ÓÊÕÌìÏßÊı¾İÏß³Ì
 		}
 		else
 		{
-/*			printf("read data from the server:");//½ÓÊÕµ½B9Ö¡Êı¾İ£¬½âÎöµÚÊ®Ò»×Ö½Ú£¨ÌìÏßÊıÁ¿£©Ê®¶ş×Ö½Ú*4£¨ÌìÏß×´Ì¬£©				
+/*			printf("read data from the server:");//æ¥æ”¶åˆ°B9å¸§æ•°æ®ï¼Œè§£æç¬¬åä¸€å­—èŠ‚ï¼ˆå¤©çº¿æ•°é‡ï¼‰åäºŒå­—èŠ‚*4ï¼ˆå¤©çº¿çŠ¶æ€ï¼‰				
 			for(i=0;i<nlen;i++)
 			{
 				printf("%x-",buf[i]);
@@ -238,12 +242,12 @@ static void* NetWork_server_thread_RSU(void*arg)//½ÓÊÕÌìÏßÊı¾İÏß³Ì
 			printf("\n");*/
 			if(buf[8]==0xb9)
 			{	
-				stuRsuControl->ControlCount=buf[17]; 	//¿ØÖÆÆ÷ÊıÁ¿
+				stuRsuControl->ControlCount=buf[17]; 	//æ§åˆ¶å™¨æ•°é‡
 				
 				temp=stuRsuControl->ControlCount;
 				for(i=0;i<temp;i++)
-				{stuRsuControl->ControlStatusN[i]=buf[18+i];}		//¿ØÖÆÆ÷×´Ì¬
-				stuRsuControl->AntennaCount=buf[18+temp];	//ÌìÏßÊıÁ¿
+				{stuRsuControl->ControlStatusN[i]=buf[18+i];}		//æ§åˆ¶å™¨çŠ¶æ€
+				stuRsuControl->AntennaCount=buf[18+temp];	//å¤©çº¿æ•°é‡
 				for(j=0;j<stuRsuControl->AntennaCount;j++)
 				{
 					stuRsuControl->AntennaInfoN[j].Status=buf[19+temp+j*4];
@@ -281,5 +285,6 @@ static void* NetWork_server_thread_RSU(void*arg)//½ÓÊÕÌìÏßÊı¾İÏß³Ì
 		sleep(5);
 	}
 }	
-}// ½ÓÊÕÌìÏßÊı¾İ½áÊø
+}// æ¥æ”¶å¤©çº¿æ•°æ®ç»“æŸ
+
 

@@ -18,9 +18,8 @@ int DealComm(unsigned char *buf,unsigned short int len);
 int SetUpsStatusStruct(unsigned char *buf,unsigned short int len);
 int SetEnviStatusStruct(unsigned char *buf,unsigned short int len);
 int SetSpdStatusStruct(unsigned char *buf,unsigned short int len);
-int SetDevStatusStruct(unsigned char *buf,unsigned short int len);
-int SetDevInfoStatusStruct(unsigned char *buf,unsigned short int len);
 int SetRsuStatusStruct(unsigned char *buf,unsigned short int len);
+int SetAirCondStruct(unsigned char *buf,unsigned short int len);
 
 //向采集器发送写寄存器指令
 int SendCom1WriteReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT, UINT8 *pBuf);

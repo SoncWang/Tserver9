@@ -241,14 +241,24 @@ int HttpPostParm(string url,char *pParmbuf,int parmlen)
         */
         string strmemory = oDataChunk.memory;
         printf("%s\r\n",strmemory.c_str()) ;
+
+        curl_slist_free_all(pList);
+        curl_easy_cleanup(pCurl);
+       curl_global_cleanup();
+
+
         return true;
     }
+    else
+    {
+       curl_slist_free_all(pList);
+       curl_easy_cleanup(pCurl);
+       curl_global_cleanup();
+       return 0;
 
-    curl_slist_free_all(pList);
-    curl_easy_cleanup(pCurl);
-    curl_global_cleanup();
+    }
 
-    return 0;
+
 }
 
 

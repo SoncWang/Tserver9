@@ -5,36 +5,36 @@
 
 #define NETWORK_FILE "/opt/config"
 
-//***B9£¨ĞÄÌø°ü£©Êı¾İÖ¡½âÎö****
+//***B9ï¼ˆå¿ƒè·³åŒ…ï¼‰æ•°æ®å¸§è§£æ****
 typedef struct AntennaInfoN_n{
-			char Status;			//ÌìÏß×´Ì¬
-			char Power;			//ÌìÏß¹¦ÂÊ
-			char Channel;			//ÌìÏßĞÅµÀ
-			char Control_state;		//ÌìÏß¿ØÖÆ×´Ì¬
+			char Status;			//å¤©çº¿çŠ¶æ€
+			char Power;			//å¤©çº¿åŠŸç‡
+			char Channel;			//å¤©çº¿ä¿¡é“
+			char Control_state;		//å¤©çº¿æ§åˆ¶çŠ¶æ€
 }ANTENNAINFON_N;				
 typedef struct control_S{
-	int Control_datetime[7];//ÈÕÆÚÊ±¼ä
-	char ControlCount;	//¿ØÖÆÆ÷ÊıÁ¿
-	char ControlStatusN[4];	//¿ØÖÆÆ÷×´Ì¬
-	char AntennaCount;	//ÌìÏßÊıÁ¿
-	AntennaInfoN_n  AntennaInfoN[8];	//ÌìÏßÊıÁ¿
+	int Control_datetime[7];//æ—¥æœŸæ—¶é—´
+	char ControlCount;	//æ§åˆ¶å™¨æ•°é‡
+	char ControlStatusN[4];	//æ§åˆ¶å™¨çŠ¶æ€
+	char AntennaCount;	//å¤©çº¿æ•°é‡
+	AntennaInfoN_n  AntennaInfoN[8];	//å¤©çº¿æ•°é‡
 }RSUCONTROLER;
-//************B0£¨Éè±¸×´Ì¬£©Êı¾İÖ¡½âÎö******************
+//************B0ï¼ˆè®¾å¤‡çŠ¶æ€ï¼‰æ•°æ®å¸§è§£æ******************
 typedef struct PSAMInfoN_n{
  char Psam_ID[8];
 }PSAMINFON_N;
 typedef struct RSU_data_init{
-	char RSUManuID;		//Â·²àµ¥Ôª³§ÉÌ´úÂë
-	char RSUID[3];		//Â·²àµ¥Ôª±àºÅ
-	char RSUVersion[2];	//Â·²àµ¥ÔªÈí¼ş°æ±¾ºÅ
-	char ControlId;		//µ±Ç°¹¤×÷µÄÌìÏß¿ØÖÆºĞId
-	char PSAMCount;		//PSAMÊıÁ¿
-	PSAMInfoN_n PSAMInfoN[8];	//PSAMĞÅÏ¢
+	char RSUManuID;		//è·¯ä¾§å•å…ƒå‚å•†ä»£ç 
+	char RSUID[3];		//è·¯ä¾§å•å…ƒç¼–å·
+	char RSUVersion[2];	//è·¯ä¾§å•å…ƒè½¯ä»¶ç‰ˆæœ¬å·
+	char ControlId;		//å½“å‰å·¥ä½œçš„å¤©çº¿æ§åˆ¶ç›’Id
+	char PSAMCount;		//PSAMæ•°é‡
+	PSAMInfoN_n PSAMInfoN[8];	//PSAMä¿¡æ¯
 }RSU_DATA_INIT;
-//**********************D1£¨Éè±¸ÖØÆô£©Êı¾İÖ¡½âÎö***************
+//**********************D1ï¼ˆè®¾å¤‡é‡å¯ï¼‰æ•°æ®å¸§è§£æ***************
 typedef struct RSU_reset{
-	char AntennaCount;	//ÖØÆôµÄÌìÏßĞòºÅ
-	char RSUState;		//ÌìÏßÊÇ·ñÖØÆô×´Ì¬  0£ºÃ»ÓĞÖØÆô  1£ºÏµÍ³ÒÑ¾­ÖØÆô
+	char AntennaCount;	//é‡å¯çš„å¤©çº¿åºå·
+	char RSUState;		//å¤©çº¿æ˜¯å¦é‡å¯çŠ¶æ€  0ï¼šæ²¡æœ‰é‡å¯  1ï¼šç³»ç»Ÿå·²ç»é‡å¯
 }RSU_RESET;
 
 void init_net_rsu(void);
@@ -42,4 +42,5 @@ void send_RSU(char command,bool ReSend,char state,int num);
 
 
 #endif
+
 

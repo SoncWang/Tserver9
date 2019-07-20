@@ -24,6 +24,10 @@ typedef unsigned short      UINT16;
 typedef signed int      	INT32;
 typedef unsigned int      	UINT32;
 
+/*机柜类型定义*/
+#define HUAWEI						1
+#define LTKJ						2
+
 /*寄存器属性定义*/
 #define READONLY						0		/*只读寄存器*/
 #define WRITEONLY					1		/*只写寄存器*/
@@ -56,7 +60,7 @@ typedef unsigned int      	UINT32;
 
 /*环境数据寄存器*/
 #define ENVI_START_ADDR			300		/*环境数据寄存器起始地址*/
-#define ENVI_REG_MAX			15		/*环境数据寄存器数量，暂定为11*/
+#define ENVI_REG_MAX			29		/*环境数据寄存器数量，暂定为11*/
 
 /*装置信息寄存器*/
 #define DEVICEINFO_START_ADDR			900
@@ -64,7 +68,11 @@ typedef unsigned int      	UINT32;
 
 /*装置参数寄存器*/
 #define PARAMS_START_ADDR		1200		/*设备参数寄存器开始地址*/
-#define PARAMS_REG_MAX			25			/*本版本所支持的最大寄存器数*/
+#define PARAMS_REG_MAX			5			/*本版本所支持的最大寄存器数*/
+
+/*空调参数寄存器*/
+#define AIRCOND_START_ADDR		1220		/*设备参数寄存器开始地址*/
+#define AIRCOND_REG_MAX			5			/*本版本所支持的最大寄存器数*/
 
 /*遥控寄存器*/
 #define DO_START_ADDR					1500
@@ -80,34 +88,27 @@ typedef unsigned int      	UINT32;
 #define	FORCE_COIL				0x05           //设置继电器输出状态
 
 //遥控寄存器定义
-#define RSU1_PRECLOSE	1500		//RSU天线1遥合预置
-#define RSU1_CLOSE		1501		//RSU天线1遥合执行
-#define RSU1_PREOPEN	1502		//RSU天线1遥分预置
-#define RSU1_OPEN		1503		//RSU天线1遥分执行
-#define RSU2_PRECLOSE	1504		//RSU天线2遥合预置
-#define RSU2_CLOSE		1505		//RSU天线2遥合执行
-#define RSU2_PREOPEN	1506		//RSU天线2遥分预置
-#define RSU2_OPEN		1507		//RSU天线2遥分执行
-#define RSU3_PRECLOSE	1508		//RSU天线3遥合预置
-#define RSU3_CLOSE		1509		//RSU天线3遥合执行
-#define RSU3_PREOPEN	1510		//RSU天线3遥分预置
-#define RSU3_OPEN		1511		//RSU天线3遥分执行
-#define RSU4_PRECLOSE	1512		//RSU天线4遥合预置
-#define RSU4_CLOSE		1513		//RSU天线4遥合执行
-#define RSU4_PREOPEN	1514		//RSU天线4遥分预置
-#define RSU4_OPEN		1515		//RSU天线4遥分执行
-#define RSU5_PRECLOSE	1516		//RSU天线5遥合预置
-#define RSU5_CLOSE		1517		//RSU天线5遥合执行
-#define RSU5_PREOPEN	1518		//RSU天线5遥分预置
-#define RSU5_OPEN		1519		//RSU天线5遥分执行
-#define RSU6_PRECLOSE	1520		//RSU天线6遥合预置
-#define RSU6_CLOSE		1521		//RSU天线6遥合执行
-#define RSU6_PREOPEN	1522		//RSU天线6遥分预置
-#define RSU6_OPEN		1523		//RSU天线6遥分执行
+#define RSU1_REG			1500		//RSU天线1 0xFF00: 遥合;0xFF01: 遥分
+#define DOOR_DO_REG			1501 		//电子门锁 0xFF00: 关锁;0xFF01: 开锁
+#define AUTORECLOSURE_REG	1502		//自动重合闸0xFF00: 遥合;0xFF01: 遥分
+#define VPLATE1_REG			1503		//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+
+#define AIRCONDSET_REG			1220		//空调开关机寄存器1220
+#define AIRCOLDSTARTPOINT_REG 	1221		//空调制冷点//1221
+#define AIRCOLDLOOP_REG			1222		//空调制冷回差//1222
+#define AIRHOTSTARTPOINT_REG 	1223		//空调制热点//1223
+#define AIRHOTLOOP_REG			1224		//空调制热回差//1224
 
 #define SYSRESET		1548		//系统重启
-#define DOOR_UNLOCK		1549 		//电子门锁 开
-#define DOOR_LOCK		1550		//电子门锁 锁
+
+//遥控开关定义
+#define	ACT_HOLD		0           //保持状态
+#define	ACT_CLOSE		1           //分闸
+#define	ACT_OPEN		2           //合闸
+
+/*使能定义*/
+#define	SWITCH_ON		0xFF00           //合闸
+#define	SWITCH_OFF		0xFF01           //分闸
 
 typedef enum BAUDRATE
 {
@@ -118,10 +119,6 @@ typedef enum BAUDRATE
 	BAUDRATE_19200		=4,
 	BAUDRATE_115200		=5
 }BAUDRATE;
-
-/*使能定义*/
-#define	WRITE_ENABLE		0xFF00           //使能
-#define	WRITE_DISABLE		0x0000           //不使能
 
 /*寄存器对象定义*/
 typedef struct __Register__
@@ -142,7 +139,7 @@ typedef struct __Modbus_Map_Reg
 // 环境数据结构体
 typedef struct envi_struct
 {
-	UINT16 temp;	// 当前环境温度值300 ×10
+	INT16 temp;	// 当前环境温度值300 ×10
 	UINT16 moist;	// 当前环境湿度值301 ×10
 	UINT16 water_flag;	// 漏水302
 	UINT16 front_door_flag;			//前柜门开关状态303
@@ -153,10 +150,25 @@ typedef struct envi_struct
 	UINT16 Reserve2; 			//保留2 308
 	UINT16 Reserve3;			//保留1 309
 	UINT16 air_cond_status;		//空调状态310
-	UINT16 air_cond_temp_out;		//当前空调室外温度值311 ×10
-	UINT16 air_cond_temp_in;		//当前空调室内温度值312 ×10
-	UINT16 air_cond_hightemp_alarm;			//空调高温告警313
-	UINT16 air_cond_lowtemp_alarm;			//空调低温告警314
+	UINT16 air_cond_fan_in_status;			//空调内风机状态311
+	UINT16 air_cond_fan_out_status;			//空调外风机状态312
+	UINT16 air_cond_comp_status;			//空调压缩机状态313
+	UINT16 air_cond_heater_status;			//空调电加热状态314
+	UINT16 air_cond_fan_emgy_status;		//空调应急风机状态315
+	UINT16 air_cond_temp_out;		//当前空调室外温度值316 ×10
+	UINT16 air_cond_temp_in;		//当前空调室内温度值317 ×10
+	UINT16 air_cond_amp;					//当前空调电流值318 ×1000
+	UINT16 air_cond_volt;					//当前空调电压值319 ×1
+
+	UINT16 air_cond_hightemp_alarm;			//空调高温告警320
+	UINT16 air_cond_lowtemp_alarm;			//空调低温告警321
+	UINT16 air_cond_highmoist_alarm;		//空调高湿告警322
+	UINT16 air_cond_lowmoist_alarm;			//空调低湿告警323
+	UINT16 air_cond_infan_alarm;			//空调内风机故障324
+	UINT16 air_cond_outfan_alarm;			//空调外风机故障325
+	UINT16 air_cond_comp_alarm;				//空调压缩机故障326
+	UINT16 air_cond_heater_alarm;			//空调电加热故障327
+	UINT16 air_cond_emgyfan_alarm;			//空调应急风机故障328
 }ENVI_PARAMS;
 
 
@@ -172,6 +184,7 @@ typedef struct phase_struct
 //RSU天线数据结构体
 typedef struct rsu_struct
 {
+	UINT16 address;
 	RSU_PHASE_PARAMS phase[RSU_NUM];		// 暂时为6路RSU
 }RSU_PARAMS;
 
@@ -188,14 +201,14 @@ typedef struct ups_in_struct
 	UINT16 amp_Ain;			//交流输入相电流A      45
 	UINT16 amp_Bin;			//交流输入相电流B      46
 	UINT16 amp_Cin;			//交流输入相电流C      47
-/*	UINT16 fact_Ain;		// 功率因素
+	UINT16 fact_Ain;		// 功率因素
 	UINT16 fact_Bin;		// 功率因素
 	UINT16 fact_Cin;		// 功率因素
 
 	UINT16 bypass_voltA;	// 旁路电压A
 	UINT16 bypass_voltB;	// 旁路电压B
 	UINT16 bypass_voltC;	// 旁路电压C
-	UINT16 bypass_freq;	// 旁路频率*/
+	UINT16 bypass_freq;	// 旁路频率
 }UPS_IN_PARAMS;
 
 
@@ -213,17 +226,17 @@ typedef struct ups_out_struct
 
 /*	UINT16 fact_Aout;
 	UINT16 fact_Bout;
-	UINT16 fact_Cout;
+	UINT16 fact_Cout;*/
 	UINT16 kw_Aout;		// 有功
 	UINT16 kw_Bout;		// 有功
 	UINT16 kw_Cout;		// 有功
 	UINT16 kva_Aout;		// 视在
-	UINT16 kva_Bout;
-	UINT16 kva_Cout;
+	UINT16 kva_Bout;		// 视在
+	UINT16 kva_Cout;		// 视在
 
 	UINT16 load_Aout;		// 负载
 	UINT16 load_Bout;		// 负载
-	UINT16 load_Cout;		// 负载*/
+	UINT16 load_Cout;		// 负载
 }UPS_OUT_PARAMS;
 
 // USP子结构体--电池
@@ -232,7 +245,7 @@ typedef struct ups_bat_struct
 	UINT16 running_day;			// UPS运行时间 56
 	UINT16 battery_volt;		//UPS电池电压	57
 	UINT16 amp_charge;			//UPS充电电流 58
-//	UINT16 amp_discharge;		//UPS放电电流
+	UINT16 amp_discharge;		//UPS放电电流
 	UINT16 battery_left;		//UPS电池后备时间	59
 	UINT16 battery_tmp;			// 环境温度 60
 	UINT16 battery_capacity;	//电池当前容量 61
@@ -284,6 +297,14 @@ typedef struct ups_struct
 	UINT16 amp_Bin;			//交流输入相电流B      46 ×10
 	UINT16 amp_Cin;			//交流输入相电流C      47 ×10
 
+	UINT16 fact_Ain;		// 功率因素
+	UINT16 fact_Bin;		// 功率因素
+	UINT16 fact_Cin;		// 功率因素
+
+	UINT16 bypass_voltA;	// 旁路电压A
+	UINT16 bypass_voltB;	// 旁路电压B
+	UINT16 bypass_voltC;	// 旁路电压C
+	UINT16 bypass_freq;	// 旁路频率
 	//输出数据
 	UINT16 out_phase_num;		// 输出相数 48
 	UINT16 out_freq;			//UPS交流输出频率 49      ×100
@@ -294,10 +315,25 @@ typedef struct ups_struct
 	UINT16 amp_Bout;		//交流输出相电流B 54 ×10
 	UINT16 amp_Cout;		//交流输出相电流C 55 ×10
 
+/*	UINT16 fact_Aout;
+	UINT16 fact_Bout;
+	UINT16 fact_Cout;*/
+	UINT16 kw_Aout; 	// 有功
+	UINT16 kw_Bout; 	// 有功
+	UINT16 kw_Cout; 	// 有功
+	UINT16 kva_Aout;		// 视在
+	UINT16 kva_Bout;		// 视在
+	UINT16 kva_Cout;		// 视在
+
+	UINT16 load_Aout;		// 负载
+	UINT16 load_Bout;		// 负载
+	UINT16 load_Cout;		// 负载
+
 	//电池参数
 	UINT16 running_day; 		// UPS运行时间 56 天
 	UINT16 battery_volt;		//UPS电池电压	57 ×10
 	UINT16 amp_charge;			//UPS充电电流 58 ×100
+	UINT16 amp_discharge;		//UPS放电电流
 	UINT16 battery_left;		//UPS电池后备时间 59 ×10，分钟
 	UINT16 battery_tmp; 		// 环境温度 60 ×10
 	UINT16 battery_capacity;	//电池当前容量 61 ×100%
@@ -329,7 +365,6 @@ typedef struct ups_struct
 typedef struct spd_struct
 {
 	UINT16 status;	// 防雷器在线状态	90     0：正常 1：异常
-	UINT16 DI_status;	// 防雷器DI输入状态	91
 	UINT16 struck_times;	// 雷击次数	92 0~65535
 }SPD_PARAMS;
 
@@ -341,67 +376,74 @@ typedef struct device_params_struct	/*共384个字节*/
 	UINT16 BaudRate_2;	// 串口2波特率 1202
 	UINT16 BaudRate_3;	// 串口3波特率 1203
 	UINT16 BaudRate_4;	// 串口4波特率 1204
-
-	UINT16 Pre_Remote;		/*RSU天线遥控预置，0：退出，1：投入*/// 1205
-	UINT16 AutoSend;		/*自动上传是否投入*///1206
-	UINT16 Reserve[13];		//保留 1207~1219
-
-	UINT16 AirCondSet;		/*空调开机关机*///1220					1
-	UINT16 AirColdStartPoint;		/*空调制冷点*///1221				50
-	UINT16 AirColdLoop;		/*空调制冷回差*///1222					10
-	UINT16 AirHotStartPoint;		/*空调制热点*///1223				15
-	UINT16 AirHotLoop;		/*空调制热回差*///1224					10
 }DEVICE_PARAMS;
 
 
-//采集器设备信息结构体
-typedef  struct  _DeviceInfo_Struct      /*用于整块写命令时边界判断，例如防止32BIT数只写了16BIT*/
+//控制器参数结构体
+typedef struct vmctl_params_struct
 {
-   UINT16 deviceType[20];		//装置型号900~919
-   UINT16 softVersion;			//主程序版本号920
-   UINT16 protocolVersion;		//规约版本921
-   UINT16 softYear;				//年922
-   UINT16 softMonth;			//月923
-   UINT16 softDate;				//日924
-}DeviceInfoParams;
+    char CabinetType[6];            //机柜类型  1:华为；2:利通
+    //门架信息
+    char FlagNetRoadID[20];    //ETC 门架路网编号
+    char FlagRoadID [20];      //ETC 门架路段编号
+    char FlagID[20];            //ETC 门架编号
+    char PosId[20];             //ETC 门架序号
+    char Direction[20];         //行车方向
+    char DirDescription[50];    //行车方向说明
+
+    //参数设置
+    char HWServer[20];         //华为服务器IP地址
+    char ServerURL1[128];      //服务器1推送地址
+    char ServerURL2[128];      //服务器2推送地址
+    char ServerURL3[128];      //服务器3推送地址
+    char StationURL[128];      //控制器接收地址
+    char RSUIP[20];            //RSUIP地址
+    char RSUPort[20];          //RSU端口
+    char VehPlate1IP[20];      //识别仪1IP地址
+    char VehPlate1Port[20];    //识别仪1端口
+    char CAMIP[20];            //监控摄像头IP地址
+    char CAMPort[20];          //监控摄像头端口
+
+	char deviceType[20];		//设备型号900~919
+	char hardwareid[20];		//硬件ID
+	char softVersion[20]; 		//主程序版本号920
+	char softDate[20]; 			//版本日期
+}VMCONTROL_PARAM;
 
 //遥控寄存器
 typedef struct Remote_Control_struct	//
 {
-	UINT16 RSU1_PreClose;		//RSU天线1遥合预置 1500
-	UINT16 RSU1_Close;			//RSU天线1遥合执行 1501
-	UINT16 RSU1_PreOpen;		//RSU天线1遥分预置 1502
-	UINT16 RSU1_Open;			//RSU天线1遥分执行 1503
-	UINT16 RSU2_PreClose;		//RSU天线2遥合预置 1504
-	UINT16 RSU2_Close;			//RSU天线2遥合执行 1505
-	UINT16 RSU2_PreOpen;		//RSU天线2遥分预置 1506
-	UINT16 RSU2_Open;			//RSU天线2遥分执行 1507
-	UINT16 RSU3_PreClose;		//RSU天线3遥合预置 1508
-	UINT16 RSU3_Close;			//RSU天线3遥合执行 1509
-	UINT16 RSU3_PreOpen;		//RSU天线3遥分预置 1510
-	UINT16 RSU3_Open;			//RSU天线3遥分执行 1511
-	UINT16 RSU4_PreClose;		//RSU天线4遥合预置 1512
-	UINT16 RSU4_Close;			//RSU天线4遥合执行 1513
-	UINT16 RSU4_PreOpen;		//RSU天线4遥分预置 1514
-	UINT16 RSU4_Open;			//RSU天线4遥分执行 1515
-	UINT16 RSU5_PreClose;		//RSU天线5遥合预置 1516
-	UINT16 RSU5_Close;			//RSU天线5遥合执行 1517
-	UINT16 RSU5_PreOpen;		//RSU天线5遥分预置 1518
-	UINT16 RSU5_Open;			//RSU天线5遥分执行 1519
-	UINT16 RSU6_PreClose;		//RSU天线6遥合预置 1520
-	UINT16 RSU6_Close;			//RSU天线6遥合执行 1521
-	UINT16 RSU6_PreOpen;		//RSU天线6遥分预置 1522
-	UINT16 RSU6_Open;			//RSU天线6遥分执行 1523
+	UINT16 rsu1;				//1500 RSU天线1 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 door_do;				//1501 电子门锁 0xFF00: 关锁;0xFF01: 开锁
+	UINT16 autoreclosure;		//1502 自动重合闸0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate1;			//1503 车牌识别1 0xFF00: 遥合;0xFF01: 遥分
 
 	UINT16 SysReset;			//系统重启 1548
-	UINT16 Door1_UnLock;			//电子门锁开
-	UINT16 Door1_Lock;			//电子门锁关
-	UINT16 Door2_UnLock;			//电子门锁开
-	UINT16 Door2_Lock;			//电子门锁关
-	UINT16 Door3_UnLock;			//电子门锁开
-	UINT16 Door3_Lock;			//电子门锁关
+	UINT16 FrontDoor_UnLock;			//电子门锁开
+	UINT16 FrontDoor_Lock;			//电子门锁关
+	UINT16 BackDoor_UnLock;			//电子门锁开
+	UINT16 BackDoor_Lock;			//电子门锁关
+	UINT16 SideDoor_UnLock;			//电子门锁开
+	UINT16 SideDoor_Lock;			//电子门锁关
+	UINT16 AutoReclosure_Close;		//自动重合闸-合闸
+	UINT16 AutoReclosure_Open;		//自动重合闸-分闸
+
+	UINT16 aircondset;		//空调关机//1220					1
+	UINT16 aircoldstartpoint;		//空调制冷点//1221				50
+	UINT16 aircoldloop; 	//空调制冷回差//1222					10
+	UINT16 airhotstartpoint;		//空调制热点//1223				15
+	UINT16 airhotloop;		//空调制热回差//1224					10
 }REMOTE_CONTROL;
 
+//空调参数结构体
+typedef struct Air_Cond_struct	//
+{
+	UINT16 aircondset;		//空调关机//1220					1
+	UINT16 aircoldstartpoint;		//空调制冷点//1221 			50
+	UINT16 aircoldloop; 	//空调制冷回差//1222					10
+	UINT16 airhotstartpoint;		//空调制热点//1223 			15
+	UINT16 airhotloop;		//空调制热回差//1224					10
+}AIRCOND_PARAM;
 
 // ETC 门架自由流运行状态结构体
 typedef struct FlagRunStatus_struct
@@ -628,7 +670,6 @@ typedef struct FlagRunStatus_struct
 }FLAGRUNSTATUS;
 
 
-
 /*寄存器操作*/
 UINT8 Read_Register(UINT16 nStartRegNo, UINT16 nRegNum, UINT8 *pdatabuf, UINT8 *perr);
 UINT8 Write_Register(UINT16 nStartRegNo, INT16 nRegNum, const UINT8 *pdatabuf, UINT8 datalen, UINT8 *perr);
@@ -636,6 +677,8 @@ UINT8 Write_Register(UINT16 nStartRegNo, INT16 nRegNum, const UINT8 *pdatabuf, U
 extern UINT16  System_Reset;
 
 #endif
+
+
 
 
 

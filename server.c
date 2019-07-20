@@ -39,7 +39,7 @@
 #include "Protocol.h"
 #include "rs485server.h"
 
-using namespace std;//å¼??¥æ?´ä¸ª??ç©ºé??
+using namespace std;//å¯®??ãƒ¦?ç¿ é‡œ??ç»Œæ´ª??
 
 #define PORT 		5000       		// The port which is communicate with server
 #define BACKLOG 	10
@@ -53,111 +53,62 @@ int data_conamount;
 void* NetWork_server_thread(void *param);
 void Client_CmdProcess(int fd, char *cmdbuffer,void *arg);
 int NetSend(int s,char *pbuffer,int nsize);
-void WriteLog(char* str);
+void AirCondControl(UINT8* pRCtrl);
 void RemoteControl(UINT8* pRCtrl);
+extern void WriteLog(char* str);
 
 //extern void SendCom1QueryEvnReg();
-extern ENVI_PARAMS *stuEnvi_Param;		// »·¾³Êı¾İ½á¹¹Ìå
-extern UPS_PARAMS *stuUps_Param;		//USP½á¹¹Ìå µçÔ´Êı¾İ¼Ä´æÆ÷
-extern SPD_PARAMS *stuSpd_Param;		//·ÀÀ×Æ÷½á¹¹Ìå
-extern DEVICE_PARAMS *stuDev_Param;		//×°ÖÃ²ÎÊı¼Ä´æÆ÷
-extern DeviceInfoParams *stuDev_Info;	//²É¼¯Æ÷Éè±¸ĞÅÏ¢½á¹¹Ìå
-extern RSU_PARAMS *stuRSU_Param;		//RSUÌìÏßĞÅÏ¢½á¹¹Ìå
-extern REMOTE_CONTROL *stuRemote_Ctrl;	//Ò£¿Ø¼Ä´æÆ÷½á¹¹Ìå
+extern ENVI_PARAMS *stuEnvi_Param;		// ç¯å¢ƒæ•°æ®ç»“æ„ä½“
+extern UPS_PARAMS *stuUps_Param;		//USPç»“æ„ä½“ ç”µæºæ•°æ®å¯„å­˜å™¨
+extern SPD_PARAMS *stuSpd_Param;		//é˜²é›·å™¨ç»“æ„ä½“
+extern DEVICE_PARAMS *stuDev_Param;		//è£…ç½®å‚æ•°å¯„å­˜å™¨
+extern RSU_PARAMS *stuRSU_Param;		//RSUå¤©çº¿ä¿¡æ¯ç»“æ„ä½“
+extern REMOTE_CONTROL *stuRemote_Ctrl;	//é¥æ§å¯„å­˜å™¨ç»“æ„ä½“
+extern VMCONTROL_PARAM *stuVMCtl_Param;	//é‡‡é›†å™¨è®¾å¤‡ä¿¡æ¯ç»“æ„ä½“
+extern AIRCOND_PARAM *stuAirCondRead;		//è¯»ç©ºè°ƒçŠ¶æ€ç»“æ„ä½“
+extern AIRCOND_PARAM *stuAirCondWrite;		//å†™ç©ºè°ƒçŠ¶æ€ç»“æ„ä½“
+extern THUAWEIGantry HUAWEIDevValue;		//åä¸ºæœºæŸœçŠ¶æ€
 
-extern string StrID;
-extern string StrNET;
-extern string StrDHCP;
-extern string StrIP;
-extern string StrMask;
-extern string StrGateway;
-extern string StrDNS;
-extern string StrSERVER;
-extern string StrWIFIUSER;
-extern string StrWIFIKEY;
-extern string StrVersionNo ;
-extern string StrServerURL1;
-extern string StrServerURL2;
-extern string StrAlarmURL ;
+extern string StrID;			//ç¡¬ä»¶ID
+extern string StrdeviceType;	//è®¾å¤‡å‹å·
+extern string StrVersionNo;	//ä¸»ç¨‹åºç‰ˆæœ¬å·
+extern string StrSoftDate;	//ç‰ˆæœ¬æ—¥æœŸ
 
-int gRTCfd = -1;
+extern string StrIP;			//IPåœ°å€
+extern string StrMask;			//å­ç½‘æ©ç 
+extern string StrGateway;		//ç½‘å…³
+extern string StrDNS;			//DNSåœ°å€
+
+extern string StrHWServer;		//åä¸ºæœåŠ¡å™¨åœ°å€
+extern string StrServerURL1;	//æœåŠ¡ç«¯URL1
+extern string StrServerURL2;	//æœåŠ¡ç«¯URL2
+extern string StrServerURL3;	//æœåŠ¡ç«¯URL3
+extern string StrStationURL;	//è™šæ‹Ÿç«™ç«¯URL
+extern string StrRSUIP;	//RSUIPåœ°å€
+extern string StrRSUPort;	//RSUç«¯å£
+extern string StrVehPlate1IP;	//è¯†åˆ«ä»ª1IPåœ°å€
+extern string StrVehPlate1Port;	//è¯†åˆ«ä»ª1ç«¯å£
+extern string StrCAMIP;	//ç›‘æ§æ‘„åƒå¤´IPåœ°å€
+extern string StrCAMPort;	//ç›‘æ§æ‘„åƒå¤´ç«¯å£
+
+extern string StrCabinetType;		//æœºæŸœç±»å‹
+extern string StrFlagNetRoadID;	//ETC é—¨æ¶è·¯ç½‘ç¼–å·
+extern string StrFlagRoadID;		//ETC é—¨æ¶è·¯æ®µç¼–å·
+extern string StrFlagID;			//ETC é—¨æ¶ç¼–å·
+extern string StrPosId;			//ETC é—¨æ¶åºå·
+extern string StrDirection;		//è¡Œè½¦æ–¹å‘
+extern string StrDirDescription;	//è¡Œè½¦æ–¹å‘è¯´æ˜
 
 extern int Writeconfig(void);
-extern int Setconfig(string StrKEY,string StrSetconfig) ;
-extern int GetConfig(void);
-
-#define GETRTCTIME  0x90
-#define SETRTCTIME  0x91
-void setSystemTimer(void * data)
-{
-//	time_t  _tTime;
-//	memcpy((char *) &_tmTime, (char *)data, sizeof(struct tm));
-    char str[100];
-//	struct rtc_time setrtc_tm;
-//	memcpy((char *) &setrtc_tm, (char *) data,	sizeof(setrtc_tm));
-	sprintf(str,"date %s\n",data);
-	printf("setSystemTimer %s",str);
-	system(str);
-
-
-/*	struct rtc_time setrtc_tm;
-	struct rtc_time getrtc_tm;
-	char *rtcbuff;
-	time_t  sysTime;
-	//{
-	struct tm _tmTime;
-	time_t  _tTime;
-	struct timeval tv;
-	int rec;
-	int ret;
-	memcpy((char *) &_tmTime, (char *)data,	sizeof(struct tm));
-	_tTime=mktime(&_tmTime);
-	tv.tv_sec = (long)_tTime;
-    printf("the second: %ld",tv.tv_sec);
-    tv.tv_usec = 0;
-	rec = settimeofday(&tv,NULL);
-    if(rec <0 )
-    {
-        printf("settimeofday failed!\n");
-    }
-    else
-    {
-        printf("Set system time ok!\n");
-    }
-	memcpy((char *) &setrtc_tm, (char *) data,	sizeof(setrtc_tm));
-	ret = ioctl(gRTCfd, SETRTCTIME, &setrtc_tm);
-	if(ret < 0){
-		OSA_ERROR("RTC_SET_TIME\n");
-
-	}
-	//ret = ioctl(gRTCfd, GETRTCTIME, rtcbuff);
-	//if(ret < 0){
-		//OSA_ERROR("RTC_SET_TIME\n");
-
-	//}
-
-	//memcpy(&getrtc_tm,rtcbuff,sizeof(getrtc_tm));
-	//printf("year :%04d mouth:%02d day:%02d\r\n",getrtc_tm.tm_year,getrtc_tm.tm_mon,getrtc_tm.tm_mday);
-	//set_time(gRTCfd,&rtc_tm);
-	printf("NETCMD_DATETIME write\r\n");
-            //}*/
-}
-
-int rtc_init()
-{
-	gRTCfd = open("/dev/i2c_MCP79401",O_RDWR);//O_WRONLY);
-	if(gRTCfd < 0) {
-		printf("rtc_init() error!\n");
-	}
-	return gRTCfd;
-}
+extern int Setconfig(string StrKEY,string StrSetconfig);
+extern bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl);
 
 void SetIPinfo(IPInfo *ipInfo)
 {
-	StrIP=ipInfo->ip;				//IPµØÖ·
-	StrMask=ipInfo->submask;		//×ÓÍøÑÚÂë
-	StrGateway=ipInfo->gateway_addr;//Íø¹Ø
-	StrDNS=ipInfo->dns;				//DNSµØÖ·
+	StrIP=ipInfo->ip;				//IPåœ°å€
+	StrMask=ipInfo->submask;		//å­ç½‘æ©ç 
+	StrGateway=ipInfo->gateway_addr;//ç½‘å…³
+	StrDNS=ipInfo->dns;				//DNSåœ°å€
 
 	Setconfig("IP=",ipInfo->ip);
 	Setconfig("Mask=",ipInfo->submask);
@@ -175,10 +126,81 @@ void GetIPinfo(IPInfo *ipInfo)
 	sprintf(ipInfo->dns ,StrDNS.c_str());
 }
 
+void SetConfig(VMCONTROL_PARAM *vmctrl_param)
+{
+	StrHWServer=vmctrl_param->HWServer;				//åä¸ºæœåŠ¡å™¨åœ°å€
+	StrServerURL1=vmctrl_param->ServerURL1;		//
+	StrServerURL2=vmctrl_param->ServerURL2;//
+	StrServerURL3=vmctrl_param->ServerURL3;				//
+	StrStationURL=vmctrl_param->StationURL;		//
+	StrRSUIP=vmctrl_param->RSUIP;		//
+	StrRSUPort=vmctrl_param->RSUPort;		//
+	StrVehPlate1IP=vmctrl_param->VehPlate1IP;		//
+	StrVehPlate1Port=vmctrl_param->VehPlate1Port;		//
+	StrCAMIP=vmctrl_param->CAMIP;		//
+	StrCAMPort=vmctrl_param->CAMPort;		//
+
+	StrCabinetType=vmctrl_param->CabinetType;		//æœºæŸœç±»å‹
+	StrFlagNetRoadID=vmctrl_param->FlagNetRoadID; //ETC é—¨æ¶è·¯ç½‘ç¼–å·
+	StrFlagRoadID=vmctrl_param->FlagRoadID;		//ETC é—¨æ¶è·¯æ®µç¼–å·
+	StrFlagID=vmctrl_param->FlagID;			//ETC é—¨æ¶ç¼–å·
+	StrPosId=vmctrl_param->PosId; 		//ETC é—¨æ¶åºå·
+	StrDirection=vmctrl_param->Direction; 	//è¡Œè½¦æ–¹å‘
+	StrDirDescription=vmctrl_param->DirDescription;	//è¡Œè½¦æ–¹å‘è¯´æ˜
+
+	Setconfig("HWServer=",vmctrl_param->HWServer);		//åä¸ºæœåŠ¡å™¨åœ°å€
+	Setconfig("ServerURL1=",vmctrl_param->ServerURL1);
+	Setconfig("ServerURL2=",vmctrl_param->ServerURL2);
+	Setconfig("ServerURL3=",vmctrl_param->ServerURL3);
+	Setconfig("StationURL=",vmctrl_param->StationURL);
+	Setconfig("RSUIP=",vmctrl_param->RSUIP);
+	Setconfig("RSUPort=",vmctrl_param->RSUPort);
+	Setconfig("VehPlate1IP=",vmctrl_param->VehPlate1IP);
+	Setconfig("VehPlate1Port=",vmctrl_param->VehPlate1Port);
+	Setconfig("CAMIP=",vmctrl_param->CAMIP);
+	Setconfig("CAMPort=",vmctrl_param->CAMPort);
+
+	Setconfig("FlagNetRoadID=",vmctrl_param->FlagNetRoadID);
+	Setconfig("FlagRoadID=",vmctrl_param->FlagRoadID);
+	Setconfig("FlagID=",vmctrl_param->FlagID);
+	Setconfig("PosId=",vmctrl_param->PosId);
+	Setconfig("Direction=",vmctrl_param->Direction);
+	Setconfig("DirDescription=",vmctrl_param->DirDescription);
+
+	Writeconfig();
+}
+void GetConfig(VMCONTROL_PARAM *vmctrl_param)
+{
+	sprintf(vmctrl_param->HWServer ,StrHWServer.c_str());		//åä¸ºæœåŠ¡å™¨åœ°å€
+	sprintf(vmctrl_param->ServerURL1 ,StrServerURL1.c_str());
+	sprintf(vmctrl_param->ServerURL2 ,StrServerURL2.c_str());
+	sprintf(vmctrl_param->ServerURL3 ,StrServerURL3.c_str());
+	sprintf(vmctrl_param->StationURL ,StrStationURL.c_str());
+	sprintf(vmctrl_param->RSUIP ,StrRSUIP.c_str());
+	sprintf(vmctrl_param->RSUPort ,StrRSUPort.c_str());
+	sprintf(vmctrl_param->VehPlate1IP ,StrVehPlate1IP.c_str());
+	sprintf(vmctrl_param->VehPlate1Port ,StrVehPlate1Port.c_str());
+	sprintf(vmctrl_param->CAMIP ,StrCAMIP.c_str());
+	sprintf(vmctrl_param->CAMPort ,StrCAMPort.c_str());
+
+	sprintf(vmctrl_param->CabinetType ,StrCabinetType.c_str());//æœºæŸœç±»å‹
+	sprintf(vmctrl_param->FlagNetRoadID ,StrFlagNetRoadID.c_str());
+	sprintf(vmctrl_param->FlagRoadID ,StrFlagRoadID.c_str());
+	sprintf(vmctrl_param->FlagID ,StrFlagID.c_str());
+	sprintf(vmctrl_param->PosId ,StrPosId.c_str());
+	sprintf(vmctrl_param->Direction ,StrDirection.c_str());
+	sprintf(vmctrl_param->DirDescription ,StrDirDescription.c_str());
+
+	sprintf(vmctrl_param->deviceType,StrdeviceType.c_str());		//è®¾å¤‡å‹å·900~919
+	sprintf(vmctrl_param->hardwareid,StrID.c_str());		//ç¡¬ä»¶ID
+	sprintf(vmctrl_param->softVersion,StrVersionNo.c_str()); 		//ä¸»ç¨‹åºç‰ˆæœ¬å·920
+	sprintf(vmctrl_param->softDate,StrSoftDate.c_str()); 			//ç‰ˆæœ¬æ—¥æœŸ
+}
+
 void initServer()
 {
-	//»ñÈ¡RTCÊ±ÖÓ
-	gRTCfd=rtc_init();
+	//è·å–RTCæ—¶é’Ÿ
+//	gRTCfd=rtc_init();
 
 	pthread_t tNetwork_server;
 	if (pthread_create(&tNetwork_server, NULL, NetWork_server_thread,NULL))
@@ -230,6 +252,7 @@ void* NetWork_server_thread(void *param)
 	if( bind(sockfd, (struct sockaddr*)&server_addr, sizeof(struct sockaddr)) == -1 )
 	{
 	  	printf ("ERROR: Failed to bind Port %d.\n",PORT);
+		close(sockfd);
 		return (0);
 	} else {
     	printf("OK: Bind the Port %d sucessfully.\n",PORT);
@@ -239,6 +262,7 @@ void* NetWork_server_thread(void *param)
 	if(listen(sockfd,BACKLOG) == -1)
 	{
     	printf ("ERROR: Failed to listen Port %d.\n", PORT);
+		close(sockfd);
 		return (0);
 	} else {
     	printf ("OK: Listening the Port %d sucessfully.\n", PORT);
@@ -396,7 +420,7 @@ void* NetWork_server_thread(void *param)
 				printf("new connection client[%d] %s:%d\n", i,inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
 				if (newfd > maxsock)
 					maxsock = newfd;
-				//ÓĞĞÂ¿Í»§¶ËÁ¬½Ó£¬Ö÷¶¯·¢ÃÅ¼Ü×´Ì¬ĞÅÏ¢
+				//æœ‰æ–°å®¢æˆ·ç«¯è¿æ¥ï¼Œä¸»åŠ¨å‘é—¨æ¶çŠ¶æ€ä¿¡æ¯
 				memset(jsonPack,0,50*1024);
 				SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
 				printf("%s",jsonPack);
@@ -414,42 +438,48 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 
 	SocketPara *socketpara = (SocketPara *) arg;
 	IPInfo ipinfo;
+	VMCONTROL_PARAM vmctrl_param;
 	//SYSTEMTIME system_time;
-	char tmpStringData[100];
+	char tmpStringData[100],tmpstr[50];
 	struct rtc_time rtc_tm;
 	int ret;
+	char * jsonPack=(char *)malloc(JSON_LEN);
+	int jsonPackLen=0;
+	char * pRecvBuf=(char *)malloc(JSON_LEN);
 
 	unsigned char  regAddr;
 	unsigned short regValue;
 	int status;
 	if(pCMD->cmd!=NETCMD_PING)
-		printf("Client_CmdProcess cmd =%d \r\n",pCMD->cmd);
+	{
+		//printf("Client_CmdProcess cmd =%d \r\n",pCMD->cmd);
+		sprintf(tmpStringData,"Client_CmdProcess cmd =%d \r\n",pCMD->cmd);
+		printf(tmpStringData);
+//		WriteLog(tmpStringData);
+	}
 	switch (pCMD->cmd)
 	{
-		case NETCMD_CONTROLERID:
+		case NETCMD_CONTROLERID:		//6 ä¿ç•™
 			sprintf(tmpStringData,"LTKJ-CONTROLER-V1.0");
 			memcpy( (char *) pCMD->data,tmpStringData,strlen(tmpStringData));
 			pCMD->datalen = strlen(tmpStringData);
 
 			break;
-		case NETCMD_DATETIME:
+		case NETCMD_DATETIME: 			//1 è®¾ç½®æ—¥æœŸæ—¶é—´
 			if(pCMD->status==SFLAG_WRITE)
 			{
-				sprintf(tmpStringData,"date %s\n",pCMD->data);
+				memcpy(tmpstr,pCMD->data,pCMD->datalen);
+//				sprintf(tmpStringData,"date %s\n",tmpstr);	//A287
+				sprintf(tmpStringData,"date -s \"%s\"\n",tmpstr);		//IoT 9100
 				printf("setSystemTimer %s",tmpStringData);
-				system(tmpStringData);
-//  				  	system("reboot") ;
-//					setSystemTimer((void *)pCMD->data);
+				system(tmpStringData);		//è®¾ç½®æ—¥æœŸæ—¶é—´
+				system("hwclock -w");		//å†™å…¥ç¡¬æ—¶é’Ÿ
 				pCMD->datalen =  0;
 
 			}
-			else
-			{
-						pCMD->datalen = 0;
-			}
 			break;
 
-		case NETCMD_NETWORK:
+		case NETCMD_NETWORK: 			//2 è®¾ç½®ç½‘ç»œ
 			if(pCMD->status==SFLAG_READ)
 			{
 				printf("Get IP Addr\n");
@@ -462,140 +492,161 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				printf("Set IP Addr len=%d, %s\n",pCMD->datalen,pCMD->data);
 				memcpy((char *) &ipinfo, (char *) pCMD->data, pCMD->datalen);
 				SetIPinfo(&ipinfo);
-				//ÖØĞÂ¶ÁÉèÖÃÎÄ¼ş
+				//é‡æ–°è¯»è®¾ç½®æ–‡ä»¶
 				GetConfig();
 				pCMD->datalen = 0;
 //                system("reboot") ;
 			}
 			break;
-		case NETCMD_REBOOT:
+		case NETCMD_REBOOT: 			//4 é‡å¯è®¾å¤‡æŒ‡ä»¤
 			pCMD->datalen = 0;
 			printf("System Reboot\n");
 			system("reboot") ;
 			break;
 
-		case NETCMD_CONFIG_PARA:
-			printf("NETCMD_CONFIG_PARA param = %s length=%d \n",pCMD->data,pCMD->datalen);
-			pCMD->datalen = 0;
-			break;
-
-		case NETCMD_SEND_ENVI_PARAM:
+		case NETCMD_CONFIG_PARA: 		//7 è®¾ç½®å‚æ•°
 			if(pCMD->status==SFLAG_READ)
 			{
-				SendCom1ReadReg(0x01,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);//²éÑ¯»·¾³±äÁ¿¼Ä´æÆ÷
+				GetConfig(&vmctrl_param);
+				memcpy((char *) pCMD->data,(char *) &vmctrl_param,	sizeof(VMCONTROL_PARAM));
+				pCMD->datalen = sizeof(VMCONTROL_PARAM);
+				printf("NETCMD_CONFIG_PARA read param = %s length=%d \n",pCMD->data,pCMD->datalen);
+			}
+			else if(pCMD->status==SFLAG_WRITE)
+			{
+				printf("NETCMD_CONFIG_PARA write param = %s length=%d \n",pCMD->data,pCMD->datalen);
+				memcpy((char *) &vmctrl_param, (char *) pCMD->data, pCMD->datalen);
+				SetConfig(&vmctrl_param);
+				//é‡æ–°è¯»è®¾ç½®æ–‡ä»¶
+				GetConfig();
+				pCMD->datalen = 0;
+			}
+			break;
 
-/*				char * jsonPack=(char *)malloc(1024);
-				memset(jsonPack,0,1024);
-				int jsonPackLen=0;
+		case NETCMD_SEND_ENVI_PARAM: 			//9 ç¯å¢ƒå¯„å­˜å™¨å‚æ•°
+			if(pCMD->status==SFLAG_READ)
+			{
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
 				ENVI_PARAMS *pstrEnvPam=stuEnvi_Param;
-				pstrEnvPam->temp=256;pstrEnvPam->moist=88;pstrEnvPam->air_cond_status=1;pstrEnvPam->air_cond_temp_out=352;
 				jsonStrEvnWriter((char*)pstrEnvPam,jsonPack,&jsonPackLen);
-				NetSendParm(NETCMD_SEND_ENVI_PARAM,jsonPack,jsonPackLen);
-				free(jsonPack);*/
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
 			}
-			pCMD->datalen = 0;
 			break;
 
-		case NETCMD_SEND_UPS_PARAM:
+		case NETCMD_SEND_UPS_PARAM: 			//10 UPSå‚æ•°
 			if(pCMD->status==SFLAG_READ)
 			{
-				SendCom1ReadReg(0x01,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);//²éÑ¯UPS±äÁ¿¼Ä´æÆ÷
-
-/*				char * jsonPack=(char *)malloc(1024);
-				memset(jsonPack,0,1024);
-				int jsonPackLen=0;
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
 				UPS_PARAMS *pstrUpsPam=stuUps_Param;
-				pstrUpsPam->phase_num=1;pstrUpsPam->volt_Ain=220;pstrUpsPam->amp_Ain=2;pstrUpsPam->battery_tmp=25;
 				jsonStrUpsWriter((char*)pstrUpsPam,jsonPack,&jsonPackLen);
-				NetSendParm(NETCMD_SEND_UPS_PARAM,jsonPack,jsonPackLen);
-				free(jsonPack);*/
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
 			}
-			pCMD->datalen = 0;
 			break;
 
-		case NETCMD_SEND_SPD_PARAM:
+		case NETCMD_SEND_SPD_PARAM: 			//11 é˜²é›·å™¨å¯„å­˜å™¨å‚æ•°
 			if(pCMD->status==SFLAG_READ)
 			{
-				SendCom1ReadReg(0x01,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);//²éÑ¯SPD±äÁ¿¼Ä´æÆ÷
-
-/*				char * jsonPack=(char *)malloc(1024);
-				memset(jsonPack,0,1024);
-				int jsonPackLen=0;
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
 				SPD_PARAMS *pstrSpdPam=stuSpd_Param;
-				pstrSpdPam->status=1;pstrSpdPam->grd_res=10;pstrSpdPam->struck_times=20;
 				jsonStrSpdWriter((char*)pstrSpdPam,jsonPack,&jsonPackLen);
-				NetSendParm(NETCMD_SEND_SPD_PARAM,jsonPack,jsonPackLen);
-				free(jsonPack);*/
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
 			}
-			pCMD->datalen = 0;
 			break;
-		case NETCMD_SEND_DEV_PARAM:
+		case NETCMD_SEND_DEV_PARAM: 			//12 æ§åˆ¶å™¨å‚æ•°
 			if(pCMD->status==SFLAG_READ)
 			{
-				SendCom1ReadReg(0x01,READ_REGS,PARAMS_START_ADDR,PARAMS_REG_MAX);//²éÑ¯×°ÖÃ²ÎÊı¼Ä´æÆ÷
-
-/*				char * jsonPack=(char *)malloc(1024);
-				memset(jsonPack,0,1024);
+				GetConfig(&vmctrl_param);
+				memset(jsonPack,0,JSON_LEN);
 				int jsonPackLen=0;
-				DEVICE_PARAMS *pstrDevPam=stuDev_Param;
-				pstrDevPam->Address=1;pstrDevPam->BaudRate_1=3;pstrDevPam->BaudRate_2=2;pstrDevPam->Pre_Remote=1;
-				jsonStrDevWriter((char*)pstrDevPam,jsonPack,&jsonPackLen);
-				NetSendParm(NETCMD_SEND_SPD_PARAM,jsonPack,jsonPackLen);
-				free(jsonPack);*/
+				jsonStrVMCtlParamWriter((char*)&vmctrl_param,jsonPack,&jsonPackLen);
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
 			}
-			pCMD->datalen = 0;
+			else if(pCMD->status==SFLAG_WRITE)
+			{
+				printf("NETCMD_SEND_DEV_PARAM write param = %s length=%d \n",pCMD->data,pCMD->datalen);
+				memset(pRecvBuf,0,JSON_LEN);
+				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
+				jsonstrVmCtlParamReader(pRecvBuf,pCMD->datalen,(UINT8*)&vmctrl_param,(UINT8*)&ipinfo);//å°†jsonå­—ç¬¦ä¸²è½¬æ¢æˆç»“æ„ä½“
+				SetConfig(&vmctrl_param);
+				//é‡æ–°è¯»è®¾ç½®æ–‡ä»¶
+				GetConfig();
+				pCMD->datalen = 0;
+			}
 			break;
-		case NETCMD_SEND_DEV_INFO:
+		case NETCMD_SEND_AIR_PARAM: 			//13 ç©ºè°ƒå‚æ•°
 			if(pCMD->status==SFLAG_READ)
 			{
-//				SendCom1ReadReg(0x01,READ_REGS,DEVICEINFO_START_ADDR,DEVICEINFO_REG_MAX);//²éÑ¯×°ÖÃĞÅÏ¢¼Ä´æÆ÷
-
-				char * jsonPack=(char *)malloc(1024);
-				memset(jsonPack,0,1024);
-				int jsonPackLen=0;
-				DeviceInfoParams *pstrDevInfo=stuDev_Info;
-				char s[40];sprintf(s,"¹ã¶«ÀûÍ¨¿Æ¼¼ LTKJ-CONTR-101\0");
-				for(int i=0;i<20;i++) {pstrDevInfo->deviceType[i]=(s[2*i]<<8)|(s[2*i+1]&0xff);}pstrDevInfo->softVersion=1;pstrDevInfo->softVersion=1;pstrDevInfo->protocolVersion=1;
-				jsonStrDevInfoWriter((char*)pstrDevInfo,jsonPack,&jsonPackLen);
-				NetSendParm(NETCMD_SEND_DEV_INFO,jsonPack,jsonPackLen);
-				free(jsonPack);
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
+				AIRCOND_PARAM *pstuAirPam=stuAirCondRead;
+				jsonStrAirCondWriter((char*)pstuAirPam,jsonPack,&jsonPackLen);
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
 			}
+			else if(pCMD->status==SFLAG_WRITE)
+			{
+				printf("NETCMD_SEND_AIR_PARAM write param = %s length=%d \n",pCMD->data,pCMD->datalen);
+				memset(pRecvBuf,0,JSON_LEN);
+				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
+				AIRCOND_PARAM *pstuAirPam=stuAirCondWrite;
+				memset(pstuAirPam,0,sizeof(REMOTE_CONTROL));
+				jsonstrAirCondReader(pRecvBuf,pCMD->datalen,(UINT8 *)pstuAirPam);//å°†jsonå­—ç¬¦ä¸²è½¬æ¢æˆç»“æ„ä½“
+				AirCondControl((UINT8*)pstuAirPam);
+				pCMD->datalen = 0;
+			}
+			break;
+		case NETCMD_SEND_RSU_PARAM: 			//14 RSUå¤©çº¿å‚æ•°
+/*			if(pCMD->status==SFLAG_READ)
+			{
+				SendCom1ReadReg(0x01,READ_REGS,RSU_START_ADDR,RSU_REG_MAX);//æŸ¥è¯¢RSUå¤©çº¿å‚æ•°å¯„å­˜å™¨
+			}*/
 			pCMD->datalen = 0;
 			break;
-		case NETCMD_SEND_RSU_PARAM:
+		case NETCMD_FLAGRUNSTATUS: 			//17 é—¨æ¶è¿è¡ŒçŠ¶æ€
 			if(pCMD->status==SFLAG_READ)
 			{
-				SendCom1ReadReg(0x01,READ_REGS,RSU_START_ADDR,RSU_REG_MAX);//²éÑ¯RSUÌìÏß²ÎÊı¼Ä´æÆ÷
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
+				SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
 			}
-			pCMD->datalen = 0;
 			break;
-		case NETCMD_SET_DEV_PARAM:
+		case NETCMD_REMOTE_CONTROL: 			//18 é¥æ§è®¾å¤‡
 			if(pCMD->status==SFLAG_WRITE)
 			{
-				DEVICE_PARAMS *pstuDevPam=stuDev_Param;
-				UINT8 * pBuf=(UINT8 *)malloc(1024);
-				memset(pBuf,0,1024);
-				jsonstrDevReader((char *) pCMD->data,pCMD->datalen,(char *)pstuDevPam,pBuf);//½«json×Ö·û´®×ª»»³É½á¹¹Ìå
-				SendCom1WriteReg(0x01,PRESET_REGS,PARAMS_START_ADDR,PARAMS_REG_MAX,pBuf);//Ğ´×°ÖÃ²ÎÊı¼Ä´æÆ÷
-			}
-			pCMD->datalen = 0;
-			break;
-		case NETCMD_REMOTE_CONTROL: 			//Ò£¿ØÉè±¸
-			if(pCMD->status==SFLAG_WRITE)
-			{
+				memset(pRecvBuf,0,JSON_LEN);
+				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
 				REMOTE_CONTROL *pRCtrl=stuRemote_Ctrl;
 				memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
-				UINT8 * pBuf=(UINT8 *)malloc(1024);
-				memset(pBuf,0,1024);
-				jsonstrRCtrlReader((char *) pCMD->data,pCMD->datalen,(UINT8 *)pRCtrl);//½«json×Ö·û´®×ª»»³É½á¹¹Ìå
+				jsonstrRCtrlReader(pRecvBuf,pCMD->datalen,(UINT8 *)pRCtrl);//å°†jsonå­—ç¬¦ä¸²è½¬æ¢æˆç»“æ„ä½“
 				RemoteControl((UINT8*)pRCtrl);
+				pCMD->datalen = 0;
 			}
-			pCMD->datalen = 0;
+			break;
+		case NETCMD_HWCABINET_STATUS: 			//20  åä¸ºæœºæŸœçŠ¶æ€
+			if(pCMD->status==SFLAG_READ)
+			{
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
+				jsonStrHWCabinetWriter((char*)&HUAWEIDevValue,jsonPack,&jsonPackLen);
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
+			}
 			break;
 		default:
 			break;
 
 	}
+	free(jsonPack);
+	free(pRecvBuf);
  }
 
  int NetSend(int s,char *pbuffer,int nsize)
@@ -650,12 +701,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 return 0;
  }
 
- void WriteLog(char* str)
- {
-	 printf("%s\n",str);
- }
-
- int  NetSendParm(NETCMD_TYPE cmd,char *pBuf,int len)
+  int  NetSendParm(NETCMD_TYPE cmd,char *pBuf,int len)
   {
 	  int nsendlen;
 	  int i,nlen;
@@ -710,65 +756,67 @@ void RemoteControl(UINT8* pRCtrl)
 {
 	REMOTE_CONTROL *pstuRCtrl=(REMOTE_CONTROL *)pRCtrl;
 
-	if(pstuRCtrl->RSU1_PreClose==WRITE_ENABLE)			//RSUÌìÏß1Ò£ºÏÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_PRECLOSE,WRITE_ENABLE);usleep(2000);}//delay 2ms
-	if(pstuRCtrl->RSU1_Close==WRITE_ENABLE)						//RSUÌìÏß1Ò£ºÏÖ´ĞĞ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_CLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU1_PreOpen==WRITE_ENABLE)			//RSUÌìÏß1Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_PREOPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU1_Open==WRITE_ENABLE)						//RSUÌìÏß1Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_OPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU2_PreClose==WRITE_ENABLE)			//RSUÌìÏß2Ò£ºÏÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU2_PRECLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU2_Close==WRITE_ENABLE)						//RSUÌìÏß2Ò£ºÏÖ´ĞĞ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU2_CLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU2_PreOpen==WRITE_ENABLE)			//RSUÌìÏß2Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU2_PREOPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU2_Open==WRITE_ENABLE)						//RSUÌìÏß2Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU2_OPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU3_PreClose==WRITE_ENABLE)			//RSUÌìÏß3Ò£ºÏÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU3_PRECLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU3_Close==WRITE_ENABLE)						//RSUÌìÏß3Ò£ºÏÖ´ĞĞ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU3_CLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU3_PreOpen==WRITE_ENABLE)			//RSUÌìÏß3Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU3_PREOPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU3_Open==WRITE_ENABLE)						//RSUÌìÏß3Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU3_OPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU4_PreClose==WRITE_ENABLE)			//RSUÌìÏß4Ò£ºÏÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU4_PRECLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU4_Close==WRITE_ENABLE)						//RSUÌìÏß4Ò£ºÏÖ´ĞĞ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU4_CLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU4_PreOpen==WRITE_ENABLE)			//RSUÌìÏß4Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU4_PREOPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU4_Open==WRITE_ENABLE)						//RSUÌìÏß4Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU4_OPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU5_PreClose==WRITE_ENABLE)			//RSUÌìÏß5Ò£ºÏÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU5_PRECLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU5_Close==WRITE_ENABLE)						//RSUÌìÏß5Ò£ºÏÖ´ĞĞ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU5_CLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU5_PreOpen==WRITE_ENABLE)			//RSUÌìÏß5Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU5_PREOPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU5_Open==WRITE_ENABLE)						//RSUÌìÏß5Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU5_OPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU6_PreClose==WRITE_ENABLE)			//RSUÌìÏß6Ò£ºÏÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU6_PRECLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU6_Close==WRITE_ENABLE)						//RSUÌìÏß6Ò£ºÏÖ´ĞĞ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU6_CLOSE,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU6_PreOpen==WRITE_ENABLE)			//RSUÌìÏß6Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU6_PREOPEN,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->RSU6_Open==WRITE_ENABLE)						//RSUÌìÏß6Ò£·ÖÔ¤ÖÃ
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU6_OPEN,WRITE_ENABLE);usleep(2000);}
+	if(pstuRCtrl->rsu1==ACT_CLOSE)			//RSUå¤©çº¿1åˆ†é—¸
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+	if(pstuRCtrl->rsu1==ACT_OPEN)						//RSUå¤©çº¿1åˆé—¸
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_REG,SWITCH_ON);usleep(2000);}
+	if(pstuRCtrl->door_do==ACT_CLOSE)			// ç”µå­é—¨é”å…³é”
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,DOOR_DO_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+	if(pstuRCtrl->door_do==ACT_OPEN)						//ç”µå­é—¨é”å¼€é”
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,DOOR_DO_REG,SWITCH_ON);usleep(2000);}
+	if(pstuRCtrl->autoreclosure==ACT_CLOSE)			//è‡ªåŠ¨é‡åˆé—¸åˆ†é—¸
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,AUTORECLOSURE_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+	if(pstuRCtrl->autoreclosure==ACT_OPEN)						//è‡ªåŠ¨é‡åˆé—¸åˆé—¸
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,AUTORECLOSURE_REG,SWITCH_ON);usleep(2000);}
+	if(pstuRCtrl->vehplate1==ACT_CLOSE)			//è½¦ç‰Œè¯†åˆ«1åˆ†é—¸
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,VPLATE1_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+	if(pstuRCtrl->vehplate1==ACT_OPEN)						//è½¦ç‰Œè¯†åˆ«1åˆé—¸
+ 		{SendCom1RCtlReg(0x01,FORCE_COIL,VPLATE1_REG,SWITCH_ON);usleep(2000);}
 
-	if(pstuRCtrl->SysReset==WRITE_ENABLE)					//ÏµÍ³ÖØÆô 1548
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,SYSRESET,WRITE_ENABLE);usleep(2000);}
-	if(pstuRCtrl->Door1_UnLock==WRITE_ENABLE)					//¿ªËø
- 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_1,FORCE_COIL,DOOR_LOCK_REG,REMOTE_UNLOCK);usleep(2000);}
-	if(pstuRCtrl->Door1_Lock==WRITE_ENABLE)					//¹ØËø
- 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_1,FORCE_COIL,DOOR_LOCK_REG,REMOTE_LOCK);usleep(2000);}
-	if(pstuRCtrl->Door2_UnLock==WRITE_ENABLE)					//¿ªËø
- 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_2,FORCE_COIL,DOOR_LOCK_REG,REMOTE_UNLOCK);usleep(2000);}
-	if(pstuRCtrl->Door2_Lock==WRITE_ENABLE)					//¹ØËø
- 		{SendCom4RCtlReg(DOOR_LOCK_ADDR_2,FORCE_COIL,DOOR_LOCK_REG,REMOTE_LOCK);usleep(2000);}
+	if(pstuRCtrl->FrontDoor_UnLock==SWITCH_OFF)					//å¼€é”
+ 	{
+		ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
+		usleep(2000);
+	}
+	if(pstuRCtrl->FrontDoor_Lock==SWITCH_ON)					//å…³é”
+ 	{
+ 		ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
+		usleep(2000);
+	}
+	#if (LOCK_NUM >= 2)
+	if(pstuRCtrl->BackDoor_UnLock==SWITCH_OFF)					//å¼€é”
+ 	{
+ 		ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
+		usleep(2000);
+	}
+	if(pstuRCtrl->BackDoor_UnLock==SWITCH_ON)					//å…³é”
+ 	{
+ 		ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
+		usleep(2000);
+	}
+	#endif
+
+//	if(pstuRCtrl->SysReset==WRITE_ENABLE)					//ç³»ç»Ÿé‡å¯ 1548
+// 		{SendCom1RCtlReg(0x01,FORCE_COIL,SYSRESET,WRITE_ENABLE);usleep(2000);}
+}
+
+void AirCondControl(UINT8* pRCtrl)
+{
+	AIRCOND_PARAM *pstuRCtrl=(AIRCOND_PARAM *)pRCtrl;
+
+	if(pstuRCtrl->aircondset==ACT_CLOSE)			//ç©ºè°ƒå…³æœº//1220
+ 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCONDSET_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+	if(pstuRCtrl->aircondset==ACT_OPEN)						//ç©ºè°ƒå¼€æœº
+ 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCONDSET_REG,SWITCH_ON);usleep(2000);}
+	if(pstuRCtrl->aircoldstartpoint!=0)			// ç©ºè°ƒåˆ¶å†·ç‚¹//1221
+ 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCOLDSTARTPOINT_REG,pstuRCtrl->aircoldstartpoint);usleep(2000);}//delay 2ms
+	if(pstuRCtrl->aircoldloop!=0)						//ç©ºè°ƒåˆ¶å†·å›å·®//1222
+ 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCOLDLOOP_REG,pstuRCtrl->aircoldloop);usleep(2000);}
+	if(pstuRCtrl->airhotstartpoint!=0)						//ç©ºè°ƒåˆ¶çƒ­ç‚¹//1223
+ 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRHOTSTARTPOINT_REG,pstuRCtrl->airhotstartpoint);usleep(2000);}
+	if(pstuRCtrl->airhotloop!=0)						//ç©ºè°ƒåˆ¶çƒ­å›å·®//1224
+ 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRHOTLOOP_REG,pstuRCtrl->airhotloop);usleep(2000);}
+
 }
 
 void *LTKJ_DataPostthread(void *param)
@@ -787,7 +835,7 @@ void *LTKJ_DataPostthread(void *param)
 		printf("%s",jsonPack);
 		HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
 
-		sleep(10);
+		sleep(5);
 	}
 	free(jsonPack);
 	return 0 ;
@@ -814,9 +862,9 @@ void *XY_DataPostthread(void *param)
 		SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
 		printf("%s",jsonPack);
 		HttpPostParm(StrServerURL2,jsonPack,jsonPackLen);
-		NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);
+		NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
 
-		sleep(10);
+		sleep(5);
 	}
 	free(jsonPack);
 	return 0 ;
@@ -827,5 +875,6 @@ void init_XY_DataPost()
 	pthread_t m_XY_DataPostthread ;
 	pthread_create(&m_XY_DataPostthread,NULL,XY_DataPostthread,NULL);
 }
+
 
 

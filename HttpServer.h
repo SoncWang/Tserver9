@@ -2,7 +2,6 @@
 #define __HttpServer_H__
 
 
-
 int HttpInit(void);
 
 

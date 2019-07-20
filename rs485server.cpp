@@ -28,7 +28,8 @@ CComPort *mComPort4 = NULL;
 CMyCritical Com4Cri;
 CMyCritical Com4SendCri;
 
-UINT32  comm_flag=0;
+UINT32  comm_flag=0;	// 轮询标志
+UINT32  ctrl_flag=0;	// 写标志
 UINT8  WAIT_response_flag=0;
 UINT8 Recive_Flag = 0;			/* 接收标志*/
 
@@ -155,41 +156,83 @@ void *Locker_DataPollingthread(void *param)
 
 	while(1)
 	{
-		comm_flag |= LBIT(polling_cnt[polling_counter]);
-		polling_counter++;
-		if (polling_counter >= (sizeof(polling_cnt)/sizeof(UINT16)))
+		if (ctrl_flag > 0)
 		{
-			printf("\r\npoling over");
-			printf("0x%02x" ,polling_counter);printf("\r\n");
-			polling_counter = 0;
+			comm_flag = 0;
+		}
+		else
+		{
+			comm_flag |= LBIT(polling_cnt[polling_counter]);
+			polling_counter++;
+			if (polling_counter >= (sizeof(polling_cnt)/sizeof(UINT16)))
+			{
+				printf("\r\npoling over");
+				printf("0x%02x" ,polling_counter);printf("\r\n");
+				polling_counter = 0;
+			}
 		}
 
-		if (comm_flag &LBIT(LOCKER_1_STATUS))
+		// 如果没有收到回复数据,这里会一直进不来,要用带timeout的信号量
+		//if (!WAIT_response_flag)
 		{
-			comm_flag &= ~(LBIT(LOCKER_1_STATUS));
-			SendCom4ReadReg(DOOR_LOCK_ADDR_1,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
-			WAIT_response_flag = WAIT_LOCKER_1_MSG;
+			// 控制
+			if (ctrl_flag & LBIT(LOCKER_1_CTRL_UNLOCK))
+			{
+				ctrl_flag &= ~(LBIT(LOCKER_1_CTRL_UNLOCK));
+				WAIT_response_flag = WAIT_LOCKER_1_UNLOCK_RES;
+				SendCom4RCtlReg(lockerHw_Param[0]->address,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+			}
+			else if (ctrl_flag & LBIT(LOCKER_1_CTRL_LOCK))
+			{
+				ctrl_flag &= ~(LBIT(LOCKER_1_CTRL_LOCK));
+				WAIT_response_flag = WAIT_LOCKER_1_LOCK_RES;
+		 		SendCom4RCtlReg(lockerHw_Param[0]->address,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
+			}
+			#if (LOCK_NUM >= 2)
+			else if (ctrl_flag & LBIT(LOCKER_2_CTRL_UNLOCK))
+			{
+				ctrl_flag &= ~(LBIT(LOCKER_2_CTRL_UNLOCK));
+				WAIT_response_flag = WAIT_LOCKER_2_UNLOCK_RES;
+		 		SendCom4RCtlReg(lockerHw_Param[1]->address,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+			}
+			else if (ctrl_flag & LBIT(LOCKER_2_CTRL_LOCK))
+			{
+				ctrl_flag &= ~(LBIT(LOCKER_2_CTRL_LOCK));
+				WAIT_response_flag = WAIT_LOCKER_2_LOCK_RES;
+		 		SendCom4RCtlReg(lockerHw_Param[1]->address,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
+			}
+			#endif
+
+			// 轮询
+			else if (comm_flag &LBIT(LOCKER_1_STATUS))
+			{
+				comm_flag &= ~(LBIT(LOCKER_1_STATUS));
+				SendCom4ReadReg(lockerHw_Param[0]->address,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+				WAIT_response_flag = WAIT_LOCKER_1_MSG;
+			}
+			#if (LOCK_NUM >= 2)
+			else if (comm_flag &LBIT(LOCKER_2_STATUS))
+			{
+				comm_flag &= ~(LBIT(LOCKER_2_STATUS));
+				SendCom4ReadReg(lockerHw_Param[1]->address,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+				WAIT_response_flag = WAIT_LOCKER_2_MSG;
+			}
+			#endif
+			else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_1))
+			{
+				comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_1));
+				SendCom4ReadReg(stuRSU_Param[0]->address, READ_REGS, VA_REG, VA_DATA_NUM);
+				WAIT_response_flag = WAIT_VA_DATA_1_MSG;
+			}
+			#if (VA_METER_BD_NUM >=2)
+			else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_2))
+			{
+				comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_2));
+				SendCom4ReadReg(stuRSU_Param[1]->address, READ_REGS, VA_REG, VA_DATA_NUM);
+				WAIT_response_flag = WAIT_VA_DATA_2_MSG;
+			}
+			#endif
 		}
-		else if (comm_flag &LBIT(LOCKER_2_STATUS))
-		{
-			comm_flag &= ~(LBIT(LOCKER_2_STATUS));
-			SendCom4ReadReg(DOOR_LOCK_ADDR_2,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
-			WAIT_response_flag = WAIT_LOCKER_2_MSG;
-		}
-		else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_1))
-		{
-			comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_1));
-			SendCom4ReadReg(VA_STATION_ADDRESS_1, READ_REGS, VA_REG, VA_DATA_NUM);
-			WAIT_response_flag = WAIT_VA_DATA_1_MSG;
-		}
-		#if (VA_METER_BD_NUM >=2)
-		else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_2))
-		{
-			comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_2));
-			SendCom4ReadReg(VA_STATION_ADDRESS_2, READ_REGS, VA_REG, VA_DATA_NUM);
-			WAIT_response_flag = WAIT_VA_DATA_2_MSG;
-		}
-		#endif
 		usleep(INTERVAL_TIME);		// every 700ms sending
 	}
 	return 0 ;
@@ -275,7 +318,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 	if((len == (LOCKER_REG_NUM*2+5)))
 	{
 		addr = *(buf+0);		// the first byte is the addr.
-		if(addr == DOOR_LOCK_ADDR_1)
+		if(addr == lockerHw_Param[0]->address)
 		{
 			addr_base = 0;
 		}
@@ -330,6 +373,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 		{
 			if (card_read == locker_id[j])
 			{
+				ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK+addr_base*2);
 				SendCom4RCtlReg(addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
 				locker_opened[addr_base] =1;
 				last_card = card_read;
@@ -455,10 +499,7 @@ void *ComPort4Thread(void *param)
    unsigned char buf[256] ;
    while(1)
    {
-      len = read(mComPort4->fd, buf+buffPos, 256);
-
-	  if (len > 0)
-	  {
+      	len = read(mComPort4->fd, buf+buffPos, 256);
 	  	buffPos = buffPos+len;
 	  	if(buffPos<5) continue;
 
@@ -480,8 +521,8 @@ void *ComPort4Thread(void *param)
 
 	  	DealComm485(buf , buffPos);
 	  	buffPos=0;
-   	}
-      usleep(5000); //delay 5ms
+
+      	usleep(5000); //delay 5ms
    }
 
    return NULL ;
@@ -491,6 +532,7 @@ void rs485init(void)
 {
    mComPort4 = new CComPort();
 
+   /*there is only ttysp1 for RS485 now in A287*/
    mComPort4->fd = mComPort4->openSerial((char *)"/dev/ttymxc4",9600);
    printf("rs485 status");
    printf("0x%02x \r\n",mComPort4->fd);

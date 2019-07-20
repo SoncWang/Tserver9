@@ -1,13 +1,13 @@
 
 #include <stdio.h>
-#include <stdlib.h> 
-#include <unistd.h>  
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 #include <termios.h>
-#include <errno.h>   
-#include <limits.h> 
+#include <errno.h>
+#include <limits.h>
 #include <asm/ioctls.h>
 #include <time.h>
 #include <pthread.h>
@@ -17,51 +17,60 @@
 #include "comserver.h"
 #include "MyCritical.h"
 #include <string>
-#include <semaphore.h>  
+#include <semaphore.h>
 #include "Protocol.h"
 
 
-using namespace std;//å¼??¥æ?´ä¸ª??ç©ºé??
+using namespace std;//å¯??ãƒ?ç¿ é‡œ??ç»Œæ´ª??
 CMyCritical ConfigCri;
 
 string STRCONFIG = "";
 string STRWIFIWAP = "";
 
-string StrID;			//Ó²¼þID
-string StrstationID;	//ÐéÄâÕ¾±àºÅ
-string StrstationName;	//ÐéÄâÕ¾Ãû
-string StrNET;			//ÍøÂç·½Ê½
-string StrDHCP;			//ÊÇ·ñDHCP
-string StrIP;			//IPµØÖ·
-string StrMask;			//×ÓÍøÑÚÂë
-string StrGateway;		//Íø¹Ø
-string StrDNS;			//DNSµØÖ·
-string StrSERVER;		//·þÎñÆ÷µØÖ·
-string StrServerURL1;	//·þÎñ¶ËURL1
-string StrServerURL2;	//·þÎñ¶ËURL2
-string StrServerURL3;	//·þÎñ¶ËURL3
-string StrStationURL;	//ÐéÄâÕ¾¶ËURL
-string StrRSUIP;	//RSUIPµØÖ·
-string StrRSUPort;	//RSU¶Ë¿Ú
-string StrVehPlate1IP;	//Ê¶±ðÒÇ1IPµØÖ·
-string StrVehPlate1Port;	//Ê¶±ðÒÇ1¶Ë¿Ú
-string StrCAMIP;	//¼à¿ØÉãÏñÍ·IPµØÖ·
-string StrCAMPort;	//¼à¿ØÉãÏñÍ·¶Ë¿Ú
+string StrID;			//ç¡¬ä»¶ID
+string StrstationID;	//è™šæ‹Ÿç«™ç¼–å?
+string StrstationName;	//è™šæ‹Ÿç«™å
+string StrNET;			//ç½‘ç»œæ–¹å¼
+string StrDHCP;			//æ˜¯å¦DHCP
+string StrIP;			//IPåœ°å€
+string StrMask;			//å­ç½‘æŽ©ç 
+string StrGateway;		//ç½‘å…³
+string StrDNS;			//DNSåœ°å€
 
-string StrdeviceType="LTKJ-VMCTRL-101";	//Éè±¸ÐÍºÅ
-string StrVersionNo="V1.00.00" ;	//Ö÷³ÌÐò°æ±¾ºÅ
+string StrHWServer;		//åŽä¸ºæœåŠ¡å™¨åœ°å€
+string StrServerURL1;	//æœåŠ¡ç«¯URL1
+string StrServerURL2;	//æœåŠ¡ç«¯URL2
+string StrServerURL3;	//æœåŠ¡ç«¯URL3
+string StrStationURL;	//è™šæ‹Ÿç«™ç«¯URL
+string StrRSUIP;	//RSUIPåœ°å€
+string StrRSUPort;	//RSUç«¯å£
+string StrVehPlate1IP;	//è¯†åˆ«ä»?IPåœ°å€
+string StrVehPlate1Port;	//è¯†åˆ«ä»?ç«¯å£
+string StrCAMIP;	//ç›‘æŽ§æ‘„åƒå¤´IPåœ°å€
+string StrCAMPort;	//ç›‘æŽ§æ‘„åƒå¤´ç«¯å?
 
-string StrFlagNetRoadID="4420";	//ETC ÃÅ¼ÜÂ·Íø±àºÅ
-string StrFlagRoadID="52";		//ETC ÃÅ¼ÜÂ·¶Î±àºÅ
-string StrFlagID="4";			//ETC ÃÅ¼Ü±àºÅ
-string StrPosId="1";			//ETC ÃÅ¼ÜÐòºÅ
-string StrDirection="1";		//ÐÐ³µ·½Ïò
-string StrDirDescription="GuangZhou to ShenZhen";	//ÐÐ³µ·½ÏòËµÃ÷
+string StrdeviceType="LTKJ-VMCTRL-101";	//è®¾å¤‡åž‹å·
+string StrVersionNo="V1.00.00" ;	//ä¸»ç¨‹åºç‰ˆæœ¬å·
+string StrSoftDate="2019-07-01" ;	//ç‰ˆæœ¬æ—¥æœŸ
+
+string StrCabinetType;		//æœºæŸœç±»åž‹
+string StrFlagNetRoadID;	//ETC é—¨æž¶è·¯ç½‘ç¼–å·
+string StrFlagRoadID;		//ETC é—¨æž¶è·¯æ®µç¼–å·
+string StrFlagID;			//ETC é—¨æž¶ç¼–å·
+string StrPosId;			//ETC é—¨æž¶åºå·
+string StrDirection;		//è¡Œè½¦æ–¹å‘
+string StrDirDescription;	//è¡Œè½¦æ–¹å‘è¯´æ˜Ž
 
 
-string StrWIFIUSER;		//WIIFIÓÃ»§Ãû
-string StrWIFIKEY;		//WIIFIÃÜÂë
-//deviceType=LTKJ-VMCTL-101
+string StrWIFIUSER;		//WIIFIç”¨æˆ·å?
+string StrWIFIKEY;		//WIIFIå¯†ç 
+
+string StrAdrrLock1;	//ÃÅËø1µÄµØÖ·
+string StrAdrrLock2;	//ÃÅËø2µÄµØÖ·
+
+string StrAdrrVAMeter1;	//µçÑ¹µçÁ÷´«¸ÐÆ÷1µÄµØÖ·
+string StrAdrrVAMeter2;	//µçÑ¹µçÁ÷´«¸ÐÆ÷2µÄµØÖ·
+
 
 int Writeconfig(void);
 int Setconfig(string StrKEY,string StrSetconfig) ;
@@ -75,7 +84,7 @@ string getstring(string str,string strkey)
   lenpos = str.find(strkey) ;
   if(lenpos >= 0)
   {
-      str = str.substr(lenpos+strkey.length()) ; 
+      str = str.substr(lenpos+strkey.length()) ;
   }
   else
      return strget ;
@@ -83,12 +92,12 @@ string getstring(string str,string strkey)
   lenpos = str.find('\n') ;
   if(lenpos >= 0)
   {
-      str = str.substr(0,lenpos) ; 
+      str = str.substr(0,lenpos) ;
       strget = str ;
   }
   else
      return strget ;
-  
+
 
   return strget ;
 }
@@ -96,32 +105,53 @@ string getstring(string str,string strkey)
 
 int GetConfig(void)
 {
-    char strbuf[1501]; 
+    char strbuf[1501];
     memset(strbuf,0x00,1501) ;
 
-    char strwifibuf[1001]; 
+    char strwifibuf[1001];
     memset(strwifibuf,0x00,1001) ;
 
-    StrID  = "" ;			//Ó²¼þID
-	StrstationID  = "" ;	//ÐéÄâÕ¾±àºÅ
-	StrstationName  = "" ;	//ÐéÄâÕ¾Ãû
-    StrNET = "" ;			//ÍøÂç·½Ê½
-    StrDHCP = "";			//ÊÇ·ñDHCP
-    StrIP  = "" ;			//IPµØÖ·
-    StrMask = "" ;			//×ÓÍøÑÚÂë
-    StrGateway = "";		//Íø¹Ø
-    StrDNS = "";			//DNSµØÖ·
-    StrSERVER = "";			//·þÎñÆ÷µØÖ·
-	StrServerURL1 = "";		//·þÎñ¶ËURL1
-	StrServerURL2 = "";		//·þÎñ¶ËURL2
-//    StrAlarmURL = "";		//¸æ¾¯·þÎñÆ÷µØÖ·
-	StrStationURL = "";		//ÐéÄâÕ¾¶ËURL
-	StrdeviceType = "";		//Éè±¸ÐÍºÅ
-	StrVersionNo = "" ;		//Ö÷³ÌÐò°æ±¾ºÅ
-    StrWIFIUSER = "";		//WIIFIÓÃ»§Ãû
-    StrWIFIKEY = "" ;		//WIIFIÃÜÂë
-	StrRSUIP = "" ;			//RSU IP µØÖ·
-	StrRSUPort = "" ;		//RSU¶Ë¿Ú
+    StrID  = "" ;			//ç¡¬ä»¶ID
+	StrstationID  = "" ;	//è™šæ‹Ÿç«™ç¼–å?
+	StrstationName  = "" ;	//è™šæ‹Ÿç«™å
+
+	//å‚æ•°è®¾ç½®
+    StrNET = "" ;			//ç½‘ç»œæ–¹å¼
+    StrDHCP = "";			//æ˜¯å¦DHCP
+    StrIP  = "" ;			//IPåœ°å€
+    StrMask = "" ;			//å­ç½‘æŽ©ç 
+    StrGateway = "";		//ç½‘å…³
+    StrDNS = "";			//DNSåœ°å€
+    StrHWServer = "";		//åŽä¸ºæœåŠ¡å™¨åœ°å€
+	StrServerURL1 = "";		//æœåŠ¡ç«¯URL1
+	StrServerURL2 = "";		//æœåŠ¡ç«¯URL2
+	StrServerURL3 = "";		//æœåŠ¡ç«¯URL3
+	StrStationURL = "";		//è™šæ‹Ÿç«™ç«¯URL
+	StrRSUIP = "" ;			//RSU IP åœ°å€
+	StrRSUPort = "" ;		//RSUç«¯å£
+	StrVehPlate1IP = "";	//è¯†åˆ«ä»?IPåœ°å€
+	StrVehPlate1Port = "";	//è¯†åˆ«ä»?ç«¯å£
+	StrCAMIP = "";			//ç›‘æŽ§æ‘„åƒå¤´IPåœ°å€
+	StrCAMPort = "";		//ç›‘æŽ§æ‘„åƒå¤´ç«¯å?
+
+	StrCabinetType="";		//æœºæŸœç±»åž‹
+	//é—¨æž¶ä¿¡æ¯
+	StrFlagNetRoadID = "";	//ETC é—¨æž¶è·¯ç½‘ç¼–å·
+	StrFlagRoadID = "";		//ETC é—¨æž¶è·¯æ®µç¼–å·
+	StrFlagID = "";			//ETC é—¨æž¶ç¼–å·
+	StrPosId = "";			//ETC é—¨æž¶åºå·
+	StrDirection = "";		//è¡Œè½¦æ–¹å‘
+	StrDirDescription = "";	//è¡Œè½¦æ–¹å‘è¯´æ˜Ž
+
+//	StrdeviceType = "";		//è®¾å¤‡åž‹å·
+//	StrVersionNo = "" ;		//ä¸»ç¨‹åºç‰ˆæœ¬å·
+    StrWIFIUSER = "";		//WIIFIç”¨æˆ·å?
+    StrWIFIKEY = "" ;		//WIIFIå¯†ç 
+
+	StrAdrrLock1 = "" ;		//ÃÅËø1µØÖ·
+	StrAdrrLock2 = "" ;		//ÃÅËø2µØÖ·
+	StrAdrrVAMeter1 = "" ;	//µçÑ¹µçÁ÷´«¸ÐÆ÷1µØÖ·
+	StrAdrrVAMeter2 = "" ;	//µçÑ¹µçÁ÷´«¸ÐÆ÷2µØÖ·
 
     ConfigCri.Lock();
     //read config
@@ -136,33 +166,6 @@ int GetConfig(void)
     fclose(fdd);
 
 
-/*    FILE* fdwifi ;
-    if((fdwifi=fopen("/opt/wpa_supplicant.conf", "rb"))==NULL)
-    {
-        printf("read wpa_supplicant.conf erro\r\n");
-        ConfigCri.UnLock();
-        return 1;
-    }
-    fread(strwifibuf,1,1000,fdwifi);
-    fclose(fdwifi);*/
-
-/*    StrID  = "" ;			//Ó²¼þID
-	StrstationID  = "" ;	//ÐéÄâÕ¾±àºÅ
-	StrstationName  = "" ;	//ÐéÄâÕ¾Ãû
-    StrNET = "" ;			//ÍøÂç·½Ê½
-    StrDHCP = "";			//ÊÇ·ñDHCP
-    StrIP  = "" ;			//IPµØÖ·
-    StrMask = "" ;			//×ÓÍøÑÚÂë
-    StrGateway = "";		//Íø¹Ø
-    StrDNS = "";			//DNSµØÖ·
-    StrSERVER = "";			//·þÎñÆ÷µØÖ·
-	StrServerURL1 = "";		//·þÎñ¶ËURL1
-	StrServerURL2 = "";		//·þÎñ¶ËURL2
-    StrAlarmURL = "";		//¸æ¾¯·þÎñÆ÷µØÖ·
-	StrStationURL = "";		//ÐéÄâÕ¾¶ËURL
-	StrdeviceType = "";		//Éè±¸ÐÍºÅ
-	StrVersionNo = "" ;		//Ö÷³ÌÐò°æ±¾ºÅ*/
-    
     StrVersionNo = VERSIONNO ;
     printf("Version:%s\n",StrVersionNo.c_str()) ;
 
@@ -171,7 +174,7 @@ int GetConfig(void)
 
     printf("-----wpa----\n%s\n----end config----\n",strwifibuf) ;
     STRWIFIWAP = strwifibuf ;
-    
+
 
     string StrConfig = STRCONFIG ;
     string Strkey ;
@@ -197,8 +200,8 @@ int GetConfig(void)
     Strkey = "DNS=";
     StrDNS = getstring(StrConfig,Strkey) ;
 
-    Strkey = "SERVER=";
-    StrSERVER = getstring(StrConfig,Strkey) ;
+    Strkey = "HWServer=";
+    StrHWServer = getstring(StrConfig,Strkey) ;
 
     Strkey = "ServerURL1=";
     StrServerURL1 = getstring(StrConfig,Strkey) ;
@@ -206,14 +209,54 @@ int GetConfig(void)
     Strkey = "ServerURL2=";
     StrServerURL2 = getstring(StrConfig,Strkey) ;
 
-//    Strkey = "AlarmURL=";
-//    StrAlarmURL = getstring(StrConfig,Strkey) ;
+    Strkey = "ServerURL3=";
+    StrServerURL3 = getstring(StrConfig,Strkey) ;
 
-    Strkey = "address=";					//RSU IP µØÖ·
-    StrRSUIP = getstring(StrConfig,Strkey) ;
+    Strkey = "StationURL=";
+    StrStationURL = getstring(StrConfig,Strkey) ;//è™šæ‹Ÿç«™ç«¯URL
 
-    Strkey = "port=";						//RSU¶Ë¿Ú
-    StrRSUPort = getstring(StrConfig,Strkey) ;
+    Strkey = "RSUIP=";
+    StrRSUIP = getstring(StrConfig,Strkey) ;//RSU IP åœ°å€
+
+    Strkey = "RSUPort=";
+    StrRSUPort = getstring(StrConfig,Strkey) ;//RSUç«¯å£
+
+    Strkey = "VehPlate1IP=";
+    StrVehPlate1IP = getstring(StrConfig,Strkey) ;//è¯†åˆ«ä»?IPåœ°å€
+
+    Strkey = "VehPlate1Port=";
+    StrVehPlate1Port = getstring(StrConfig,Strkey) ;//è¯†åˆ«ä»?ç«¯å£
+
+    Strkey = "VehPlate1Port=";
+    StrVehPlate1Port = getstring(StrConfig,Strkey) ;//è¯†åˆ«ä»?ç«¯å£
+
+    Strkey = "CAMIP=";
+    StrCAMIP = getstring(StrConfig,Strkey) ;//ç›‘æŽ§æ‘„åƒå¤´IPåœ°å€
+
+    Strkey = "CAMPort=";
+    StrCAMPort = getstring(StrConfig,Strkey) ;//ç›‘æŽ§æ‘„åƒå¤´ç«¯å?
+
+    Strkey = "CabinetType=";
+    StrCabinetType = getstring(StrConfig,Strkey) ;//æœºæŸœç±»åž‹
+
+	//é—¨æž¶ä¿¡æ¯
+    Strkey = "FlagNetRoadID=";
+    StrFlagNetRoadID = getstring(StrConfig,Strkey) ;//ETC é—¨æž¶è·¯ç½‘ç¼–å·
+
+    Strkey = "FlagRoadID=";
+    StrFlagRoadID = getstring(StrConfig,Strkey) ;//ETC é—¨æž¶è·¯æ®µç¼–å·
+
+    Strkey = "FlagID=";
+    StrFlagID = getstring(StrConfig,Strkey) ;//ETC é—¨æž¶ç¼–å·
+
+    Strkey = "PosId=";
+    StrPosId = getstring(StrConfig,Strkey) ;//ETC é—¨æž¶åºå·
+
+    Strkey = "Direction=";
+    StrDirection = getstring(StrConfig,Strkey) ;//è¡Œè½¦æ–¹å‘
+
+    Strkey = "DirDescription=";
+    StrDirDescription = getstring(StrConfig,Strkey) ;//è¡Œè½¦æ–¹å‘è¯´æ˜Ž
 
 /*
     Strkey = "WIFIUSER=";
@@ -222,6 +265,14 @@ int GetConfig(void)
     Strkey = "WIFIKEY=";
     StrWIFIKEY = getstring(StrConfig,Strkey) ;
 */
+	Strkey = "LOCKADD1=";
+	StrAdrrLock1 = getstring(StrConfig,Strkey) ;//µç×ÓËø1µØÖ·ÅäÖÃ
+	Strkey = "LOCKADD2=";
+	StrAdrrLock2 = getstring(StrConfig,Strkey) ;//µç×ÓËø2µØÖ·ÅäÖÃ
+	Strkey = "VAMETERADDR1=";
+	StrAdrrVAMeter1 = getstring(StrConfig,Strkey) ;//µçÑ¹µçÁ÷´«¸ÐÆ÷1µØÖ·ÅäÖÃ
+	Strkey = "VAMETERADDR2=";
+	StrAdrrVAMeter2 = getstring(StrConfig,Strkey) ;//µçÑ¹µçÁ÷´«¸ÐÆ÷2µØÖ·ÅäÖÃ
 
     ConfigCri.UnLock();
     return 0 ;
@@ -231,10 +282,10 @@ int GetConfig(void)
 
 int Setconfig(string StrKEY,string StrSetconfig)
 {
-    string setconfig = ""; 
+    string setconfig = "";
     string strstart = "";
     string strend = "";
-    
+
     ConfigCri.Lock();
     setconfig =  STRCONFIG ;
 
@@ -242,14 +293,14 @@ int Setconfig(string StrKEY,string StrSetconfig)
     lenpos = setconfig.find(StrKEY) ;
     if(lenpos >= 0)
     {
-       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ; 
+       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ;
     }
     else
     {
        ConfigCri.UnLock();
        return 1 ;
     }
- 
+
     lenpos = setconfig.find('\n',lenpos) ;
     if(lenpos >= 0)
     {
@@ -278,24 +329,24 @@ int Writeconfig(void)
        ConfigCri.UnLock();
        return 1 ;
     }
-	
+
 //printf("setconfig=%s\r\n",setconfig.c_str() );
     int len = setconfig.length();
     fwrite(setconfig.c_str(),len, 1, fdd);
     fflush(fdd);
     fclose(fdd);
     ConfigCri.UnLock();
-    
+
     return 0 ;
 
 }
 
 int SetWificonfig(string StrKEY,string StrSetconfig)
 {
-    string setconfig = ""; 
+    string setconfig = "";
     string strstart = "";
     string strend = "";
-    
+
     ConfigCri.Lock();
     setconfig =  STRWIFIWAP ;
 
@@ -303,14 +354,14 @@ int SetWificonfig(string StrKEY,string StrSetconfig)
     lenpos = setconfig.find(StrKEY) ;
     if(lenpos >= 0)
     {
-       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ; 
+       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ;
     }
     else
     {
        ConfigCri.UnLock();
        return 1 ;
     }
- 
+
     lenpos = setconfig.find('\n',lenpos) ;
     if(lenpos >= 0)
     {
@@ -345,10 +396,11 @@ int WriteWificonfig(void)
     fflush(fdd);
     fclose(fdd);
     ConfigCri.UnLock();
-    
+
     return 0 ;
 
 }
+
 
 
 

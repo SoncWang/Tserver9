@@ -13,8 +13,12 @@
 #include "event2/util.h"
 #include "event2/listener.h"
 #include <pthread.h>
+#include "event2/http.h"
 
 #define BUF_MAX 1024*16
+#define JSON_LEN 10*1024
+
+extern bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout);
 
 //解析post请求数据
 void get_post_message(char *buf, struct evhttp_request *req)
@@ -41,6 +45,9 @@ void get_post_message(char *buf, struct evhttp_request *req)
 
 void http_handler_post_msg(struct evhttp_request *req,void *arg)
 {
+	char *jsonPack=(char*)malloc(JSON_LEN);
+	int jsonPackLen;
+	
     if(req == NULL)
     {
         printf("====line:%d,%s\n",__LINE__,"input param req is null.");
@@ -56,9 +63,14 @@ void http_handler_post_msg(struct evhttp_request *req,void *arg)
     }
     else
     {
-        printf("====line:%d,request data:%s",__LINE__,buf);
+        printf("====line:%d,request data:%s,len: %d\n",__LINE__,buf,strlen(buf));
     }
 
+	memset(jsonPack,0,JSON_LEN);
+	jsonPackLen=0;
+	jsonStrReader(buf,strlen(buf),jsonPack,&jsonPackLen);
+	printf("jsonPack len:%d out:%s\n",jsonPackLen,jsonPack);
+	
     //回响�?    
     struct evbuffer *retbuff = NULL;
     retbuff = evbuffer_new();
@@ -67,9 +79,11 @@ void http_handler_post_msg(struct evhttp_request *req,void *arg)
         printf("retbuff is null.");
         return;
     }
-    evbuffer_add_printf(retbuff,"Receive post request,Thanks for the request!");
+//    evbuffer_add_printf(retbuff,"Receive post request,Thanks for the request!");
+    evbuffer_add_printf(retbuff,jsonPack);
     evhttp_send_reply(req,HTTP_OK,"Client",retbuff);
     evbuffer_free(retbuff);
+	free(jsonPack);
 }
 
 void *HttpServerhread(void *param)

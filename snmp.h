@@ -13,91 +13,101 @@ int snmpInit(void);
 int snmpInit(void);
 int SendSnmpOid(string mSnmpOid);
 int snmptrapInit(void);
+void initHUAWEIGantry();
 
 #pragma pack(push, 1)
 typedef enum
 {
-   //ï®µç
-   hwAcbGroupBatVolt=1,                //µç³ØµçÑ¹
-   hwAcbGroupBatCurr=2,            //µç³ØµçÁ÷
-   hwAcbGroupTotalCapacity=3,                //µç³Ø×ÜÈİÁ¿
-   hwAcbGroupTotalRemainCapacity=4,               //µç³ØÊ£ÓàÈİÁ¿
-   hwAcbGroupBackupTime=5,              //µç³Ø±¸µçÊ±³¤
-   hwAcbGroupBatSoh=6,             //µç³Ø SOH
-   //¿ª¹ØµçÔ´
-   hwApOrAblVoltage=7,                //A/AB µçÑ¹
-   hwBpOrBclVoltage=8,                //B/BC µçÑ¹
-   hwCpOrCalVoltage=9,                //C/CA µçÑ¹
-   hwAphaseCurrent=10,               //A ÏàµçÁ÷
-   hwBphaseCurrent=11,              //B ÏàµçÁ÷
-   hwCphaseCurrent=12,             //C ÏàµçÁ÷
-   hwDcOutputVoltage=13,             //DC Êä³öµçÑ¹
-   hwDcOutputCurrent=14,               //DC Êä³öµçÁ÷
-   //»·¾³´«¸ĞÆ÷
-   hwEnvTemperature=15,              //»·¾³ÎÂ¶ÈÖµ
-   hwEnvHumidity=16,             //»·¾³Êª¶ÈÖµ
-   //Ö±Á÷¿Õµ÷
-	hwDcAirCtrlMode=17,			//¿Õµ÷¿ØÖÆÄ£Ê½
-	hwDcAirRunStatus=18,			//¿Õµ÷ÔËĞĞ×´Ì¬
-	hwDcAirCompressorRunStatus=19,		//¿Õµ÷Ñ¹Ëõ»úÔËĞĞ×´Ì¬
-	hwDcAirInnrFanSpeed=20,			//¿Õµ÷ÄÚ»ú×ªËÙ
-	hwDcAirOuterFanSpeed=21,			//¿Õµ÷Íâ·ç»ú×ªËÙ
-	hwDcAirCompressorRunTime=22,		//¿Õµ÷Ñ¹Ëõ»úÔËĞĞÊ±¼ä
-	hwDcAirEnterChannelTemp=23,		//¿Õµ÷»Ø·ç¿ÚÎÂ¶È
-	hwDcAirPowerOnTempPoint=24,		//¿Õµ÷¿ª»úÎÂ¶Èµã
-	hwDcAirPowerOffTempPoint=25		//¿Õµ÷¹Ø»úÎÂ¶Èµã
+   //é”‚ç”µ
+   hwAcbGroupBatVolt=1,                //ç”µæ± ç”µå‹
+   hwAcbGroupBatCurr=2,            //ç”µæ± ç”µæµ
+   hwAcbGroupTotalCapacity=3,                //ç”µæ± æ€»å®¹é‡
+   hwAcbGroupTotalRemainCapacity=4,               //ç”µæ± å‰©ä½™å®¹é‡
+   hwAcbGroupBackupTime=5,              //ç”µæ± å¤‡ç”µæ—¶é•¿
+   hwAcbGroupBatSoh=6,             //ç”µæ±  SOH
+   //å¼€å…³ç”µæº
+   hwApOrAblVoltage=7,                //A/AB ç”µå‹
+   hwBpOrBclVoltage=8,                //B/BC ç”µå‹
+   hwCpOrCalVoltage=9,                //C/CA ç”µå‹
+   hwAphaseCurrent=10,               //A ç›¸ç”µæµ
+   hwBphaseCurrent=11,              //B ç›¸ç”µæµ
+   hwCphaseCurrent=12,             //C ç›¸ç”µæµ
+   hwDcOutputVoltage=13,             //DC è¾“å‡ºç”µå‹
+   hwDcOutputCurrent=14,               //DC è¾“å‡ºç”µæµ
+   //ç¯å¢ƒä¼ æ„Ÿå™¨
+   hwEnvTemperature=15,              //ç¯å¢ƒæ¸©åº¦å€¼
+   hwEnvHumidity=16,             //ç¯å¢ƒæ¹¿åº¦å€¼
+   //ç›´æµç©ºè°ƒ
+	hwDcAirCtrlMode=17,			//ç©ºè°ƒæ§åˆ¶æ¨¡å¼
+	hwDcAirRunStatus=18,			//ç©ºè°ƒè¿è¡ŒçŠ¶æ€
+	hwDcAirCompressorRunStatus=19,		//ç©ºè°ƒå‹ç¼©æœºè¿è¡ŒçŠ¶æ€
+	hwDcAirInnrFanSpeed=20,			//ç©ºè°ƒå†…æœºè½¬é€Ÿ
+	hwDcAirOuterFanSpeed=21,			//ç©ºè°ƒå¤–é£æœºè½¬é€Ÿ
+	hwDcAirCompressorRunTime=22,		//ç©ºè°ƒå‹ç¼©æœºè¿è¡Œæ—¶é—´
+	hwDcAirEnterChannelTemp=23,		//ç©ºè°ƒå›é£å£æ¸©åº¦
+	hwDcAirPowerOnTempPoint=24,		//ç©ºè°ƒå¼€æœºæ¸©åº¦ç‚¹
+	hwDcAirPowerOffTempPoint=25		//ç©ºè°ƒå…³æœºæ¸©åº¦ç‚¹
 }EM_HUAWEIGantry;
 
 typedef struct
 {
-   //ï®µç
-   string strhwAcbGroupBatVolt;                //µç³ØµçÑ¹ "51.1"
-   string strhwAcbGroupBatCurr;            //µç³ØµçÁ÷
-   string strhwAcbGroupTotalCapacity;                //µç³Ø×ÜÈİÁ¿
-   string strhwAcbGroupTotalRemainCapacity;               //µç³ØÊ£ÓàÈİÁ¿
-   string strhwAcbGroupBackupTime;              //µç³Ø±¸µçÊ±³¤
-   string strhwAcbGroupBatSoh;             //µç³Ø SOH
-   //¿ª¹ØµçÔ´
-   string strhwApOrAblVoltage;                //A/AB µçÑ¹
-   string strhwBpOrBclVoltage;                //B/BC µçÑ¹
-   string strhwCpOrCalVoltage;                //C/CA µçÑ¹
-   string strhwAphaseCurrent;               //A ÏàµçÁ÷
-   string strhwBphaseCurrent;              //B ÏàµçÁ÷
-   string strhwCphaseCurrent;             //C ÏàµçÁ÷
-   string strhwDcOutputVoltage;             //DC Êä³öµçÑ¹
-   string strhwDcOutputCurrent;               //DC Êä³öµçÁ÷
-   //»·¾³´«¸ĞÆ÷
-   string strhwEnvTemperature;              //»·¾³ÎÂ¶ÈÖµ
-   string strhwEnvHumidity;            //»·¾³Êª¶ÈÖµ
-   //Ö±Á÷¿Õµ÷
-	string strhwDcAirCtrlMode;			//¿Õµ÷¿ØÖÆÄ£Ê½
-	string strhwDcAirRunStatus;			//¿Õµ÷ÔËĞĞ×´Ì¬
-	string strhwDcAirCompressorRunStatus;		//¿Õµ÷Ñ¹Ëõ»úÔËĞĞ×´Ì¬
-	string strhwDcAirInnrFanSpeed;			//¿Õµ÷ÄÚ»ú×ªËÙ
-	string strhwDcAirOuterFanSpeed;			//¿Õµ÷Íâ·ç»ú×ªËÙ
-	string strhwDcAirCompressorRunTime;		//¿Õµ÷Ñ¹Ëõ»úÔËĞĞÊ±¼ä
-	string strhwDcAirEnterChannelTemp;		//¿Õµ÷»Ø·ç¿ÚÎÂ¶È
-	string strhwDcAirPowerOnTempPoint;		//¿Õµ÷¿ª»úÎÂ¶Èµã
-	string strhwDcAirPowerOffTempPoint;		//¿Õµ÷¹Ø»úÎÂ¶Èµã
+   //é”‚ç”µ
+   string strhwAcbGroupBatVolt;                //ç”µæ± ç”µå‹ "51.1"
+   string strhwAcbGroupBatCurr;            //ç”µæ± ç”µæµ
+   string strhwAcbGroupTotalCapacity;                //ç”µæ± æ€»å®¹é‡
+   string strhwAcbGroupTotalRemainCapacity;               //ç”µæ± å‰©ä½™å®¹é‡
+   string strhwAcbGroupBackupTime;              //ç”µæ± å¤‡ç”µæ—¶é•¿
+   string strhwAcbGroupBatSoh;             //ç”µæ±  SOH
+   //å¼€å…³ç”µæº
+   string strhwApOrAblVoltage;                //A/AB ç”µå‹
+   string strhwBpOrBclVoltage;                //B/BC ç”µå‹
+   string strhwCpOrCalVoltage;                //C/CA ç”µå‹
+   string strhwAphaseCurrent;               //A ç›¸ç”µæµ
+   string strhwBphaseCurrent;              //B ç›¸ç”µæµ
+   string strhwCphaseCurrent;             //C ç›¸ç”µæµ
+   string strhwDcOutputVoltage;             //DC è¾“å‡ºç”µå‹
+   string strhwDcOutputCurrent;               //DC è¾“å‡ºç”µæµ
+   //ç¯å¢ƒä¼ æ„Ÿå™¨
+   string strhwEnvTemperature;              //ç¯å¢ƒæ¸©åº¦å€¼
+   string strhwEnvHumidity;            //ç¯å¢ƒæ¹¿åº¦å€¼
+   //ç›´æµç©ºè°ƒ
+	string strhwDcAirCtrlMode;			//ç©ºè°ƒæ§åˆ¶æ¨¡å¼
+	string strhwDcAirRunStatus;			//ç©ºè°ƒè¿è¡ŒçŠ¶æ€
+	string strhwDcAirCompressorRunStatus;		//ç©ºè°ƒå‹ç¼©æœºè¿è¡ŒçŠ¶æ€
+	string strhwDcAirInnrFanSpeed;			//ç©ºè°ƒå†…æœºè½¬é€Ÿ
+	string strhwDcAirOuterFanSpeed;			//ç©ºè°ƒå¤–é£æœºè½¬é€Ÿ
+	string strhwDcAirCompressorRunTime;		//ç©ºè°ƒå‹ç¼©æœºè¿è¡Œæ—¶é—´
+	string strhwDcAirEnterChannelTemp;		//ç©ºè°ƒå›é£å£æ¸©åº¦
+	string strhwDcAirPowerOnTempPoint;		//ç©ºè°ƒå¼€æœºæ¸©åº¦ç‚¹
+	string strhwDcAirPowerOffTempPoint;		//ç©ºè°ƒå…³æœºæ¸©åº¦ç‚¹
 }THUAWEIGantry;
 
 typedef struct
 {
-	string hwEnvTempAlarmTraps;		//¸ßÎÂ/µÍÎÂ¸æ¾¯
-	string hwEnvTempAlarmResume;	//¸ßÎÂ/µÍÎÂ¸æ¾¯»Ö¸´
-	string hwEnvHumiAlarmTraps;		//¸ßÊª/µÍÊª¸æ¾¯
-	string hwEnvHumiAlarmResume;	//¸ßÊª/µÍÊª¸æ¾¯»Ö¸´
-	string hwSpareDigitalAlarmTraps;	//ÊäÈë¸É½Óµã¸æ¾¯
-	string hwSpareDigitalAlarmResume;	//ÊäÈë¸É½Óµã¸æ¾¯»Ö¸´
-	string hwDoorAlarmTraps;		//ÃÅ½û¸æ¾¯
-	string hwDoorAlarmResume;		//ÃÅ½û¸æ¾¯»Ö¸´
-	string hwWaterAlarmTraps;		//Ë®½ş¸æ¾¯
-	string hwWaterAlarmResume;		//Ë®½ş¸æ¾¯»Ö¸´
-	string hwSmokeAlarmTraps;		//ÑÌ¸Ğ¸æ¾¯
-	string hwSmokeAlarmResume;		//ÑÌ¸Ğ¸æ¾¯»Ö¸´
+	string hwEnvTempAlarmTraps;		//é«˜æ¸©/ä½æ¸©å‘Šè­¦
+	string hwEnvTempAlarmResume;	//é«˜æ¸©/ä½æ¸©å‘Šè­¦æ¢å¤
+	string hwEnvHumiAlarmTraps;		//é«˜æ¹¿/ä½æ¹¿å‘Šè­¦
+	string hwEnvHumiAlarmResume;	//é«˜æ¹¿/ä½æ¹¿å‘Šè­¦æ¢å¤
+	string hwSpareDigitalAlarmTraps;	//è¾“å…¥å¹²æ¥ç‚¹å‘Šè­¦
+	string hwSpareDigitalAlarmResume;	//è¾“å…¥å¹²æ¥ç‚¹å‘Šè­¦æ¢å¤
+	string hwDoorAlarmTraps;		//é—¨ç¦å‘Šè­¦
+	string hwDoorAlarmResume;		//é—¨ç¦å‘Šè­¦æ¢å¤
+	string hwWaterAlarmTraps;		//æ°´æµ¸å‘Šè­¦
+	string hwWaterAlarmResume;		//æ°´æµ¸å‘Šè­¦æ¢å¤
+	string hwSmokeAlarmTraps;		//çƒŸæ„Ÿå‘Šè­¦
+	string hwSmokeAlarmResume;		//çƒŸæ„Ÿå‘Šè­¦æ¢å¤
+
+	string hwair_cond_infan_alarm;	//ç©ºè°ƒå†…é£æœºæ•…éšœ
+	string hwair_cond_outfan_alarm;	//ç©ºè°ƒå¤–é£æœºæ•…éšœ
+	string hwair_cond_comp_alarm;	//ç©ºè°ƒå‹ç¼©æœºæ•…éšœ
+	string hwair_cond_return_port_sensor_alarm;	//ç©ºè°ƒå›é£å£ä¼ æ„Ÿå™¨æ•…éšœ
+	string hwair_cond_evap_freezing_alarm;		//ç©ºè°ƒè’¸å‘å™¨å†»ç»“
+	string hwair_cond_freq_high_press_alarm;	//ç©ºè°ƒé¢‘ç¹é«˜å‹åŠ›
+	string hwair_cond_comm_fail_alarm;			//ç©ºè°ƒé€šä¿¡å¤±è´¥å‘Šè­¦
 }THUAWEIALARM;
 
 #pragma pack(pop)
 
 #endif
+
 

@@ -25,15 +25,15 @@
 
 
 using namespace std;//寮曞叆鏁翠釜鍚嶇┖闂?
-CComPort *mComPort1 = NULL ;   //Stm32
-CComPort *mComPort2 = NULL ;   //
+CComPort *mComPort1 = NULL ;   //
+CComPort *mComPort2 = NULL ;   //Stm32
 CComPort *mComPort3 = NULL ;   //
 
 CMyCritical Com1Cri;
 CMyCritical Com2Cri;
 CMyCritical Com3Cri;
 
-CMyCritical Com3SendCri;
+CMyCritical Com2SendCri;
 
 extern sem_t httpsem;  
 extern string Sendhttp ;
@@ -50,15 +50,15 @@ extern ENVI_PARAMS *stuEnvi_Param;		// 环境数据结构体
 extern UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
 extern SPD_PARAMS *stuSpd_Param;		//防雷器结构体
 extern DEVICE_PARAMS *stuDev_Param;		//装置参数寄存器
-extern DeviceInfoParams *stuDev_Info;	//采集器设备信息结构体
 extern RSU_PARAMS *stuRSU_Param;		//RSU天线信息结构体
+extern AIRCOND_PARAM *stuAirCondRead;	//读空调状态结构体
 
 char LastSendBuf[256];
 int LastSendLen=0;
 
 
 //To Stm32
-void *ComPort1Thread(void *param)
+void *ComPort2Thread(void *param)
 {
    param = NULL;
    int buffPos=0;
@@ -66,7 +66,7 @@ void *ComPort1Thread(void *param)
    unsigned char buf[256] ;
    while(1)
    {
-      len = read(mComPort1->fd, buf+buffPos, 256) ;
+      len = read(mComPort2->fd, buf+buffPos, 256) ;
 	  buffPos = buffPos+len;
 	  if(buffPos<5) continue;
 	  
@@ -74,14 +74,14 @@ void *ComPort1Thread(void *param)
 	  unsigned short int CRC = CRC16(buf,buffPos-2) ;
 	  if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
 		{
-		  printf("CRC error\r\n");
+//		  printf("CRC error\r\n");
  		  if(buffPos>=256) buffPos=0;
 		  
 		  continue ;
 	  	}
 	  
-      printf("com1 len=%d\r\n",buffPos) ;
-	  int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+//      printf("com1 len=%d\r\n",buffPos) ;
+//	  int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
 	  DealComm(buf , buffPos);
       
@@ -94,23 +94,52 @@ void *ComPort1Thread(void *param)
 }
 
 
+void *ComPortGetDataThread(void *param)
+{
+	while(1)
+	{
+	printf("ComPortGetDataThread\r\n");
+		//9 查询环境变量寄存器
+		SendCom1ReadReg(0x01,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);
+		usleep(5000);//delay 5ms
+		//10 查询UPS变量寄存器
+		SendCom1ReadReg(0x01,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);
+		usleep(5000);//delay 5ms
+		//11 查询SPD变量寄存器
+		SendCom1ReadReg(0x01,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);
+		usleep(5000);//delay 5ms
+		//13 查询空调参数寄存器
+		SendCom1ReadReg(0x01,READ_REGS,AIRCOND_START_ADDR,AIRCOND_REG_MAX);
+	  	sleep(5);//delay 5s
+	}
+	return 0 ;
+}
+
 
 void cominit(void)
 {
    //SetSystemTime("2017-08-30 17:03:00");
-   mComPort1 = new CComPort();
+   mComPort2 = new CComPort();
    
-   mComPort1->fd = mComPort1->openSerial((char *)"/dev/ttymxc3",115200) ;//To Stm32
+//   mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttySP2",115200) ;//287 To Stm32
+   mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttymxc3",115200) ;//9100 To Stm32
+   if(mComPort2->fd>0)
+   	printf("ComPort2 open secess! %d\r\n",mComPort2->fd);
+   else
+	   printf("ComPort2 open fail! %d\r\n",mComPort2->fd);
+   
+   pthread_t m_ComPort2Thread ;
+   pthread_create(&m_ComPort2Thread,NULL,ComPort2Thread,NULL);
 
-   pthread_t m_ComPort1Thread ;
-   pthread_create(&m_ComPort1Thread,NULL,ComPort1Thread,NULL);
+   pthread_t m_ComPortGetDataThread ;
+   pthread_create(&m_ComPortGetDataThread,NULL,ComPortGetDataThread,NULL);
 }
  
 
 //发送读数据寄存器 ADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + REFS_COUNT_H + MBUS_REFS_COUNT_L + CRC(2) 
 int SendCom1ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 {
-    Com3SendCri.Lock();
+    Com2SendCri.Lock();
     UINT8 i,j,bytSend[8]={0x00,0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00};
     
     int len=8;
@@ -126,14 +155,14 @@ int SendCom1ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
     bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC高位
     bytSend[len-1] =  CRC&0x00FF;           //CRC低位
     
-	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 	
-	mComPort1->SendBuf(bytSend,len);
+	mComPort2->SendBuf(bytSend,len);
 	
 	memcpy(LastSendBuf,bytSend,len);
 	LastSendLen=len;
 	
-    Com3SendCri.UnLock();
+    Com2SendCri.UnLock();
 	usleep(5000);//delay 5ms
 	return 0 ;
 }
@@ -141,7 +170,7 @@ int SendCom1ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 //发送写数据寄存器 ADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + REFS_COUNT_H + MBUS_REFS_COUNT_L + DATA + CRC(2) 
 int SendCom1WriteReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT, UINT8 *pBuf)
 {
-    Com3SendCri.Lock();
+    Com2SendCri.Lock();
     UINT8 i,j;
 	UINT8 *bytSend;
 
@@ -162,15 +191,15 @@ int SendCom1WriteReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT
     bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC高位
     bytSend[len-1] =  CRC&0x00FF;           //CRC低位
     
-	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 	
-	mComPort1->SendBuf(bytSend,len);
+	mComPort2->SendBuf(bytSend,len);
 	
 	memcpy(LastSendBuf,bytSend,len);
 	LastSendLen=len;
 	free(bytSend);
 	
-    Com3SendCri.UnLock();
+    Com2SendCri.UnLock();
 	usleep(5000);//delay 5ms
 	return 0 ;
 }
@@ -178,7 +207,7 @@ int SendCom1WriteReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT
 //发送写遥控寄存器 ADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + MBUS_OPT_CODE_H + MBUS_OPT_CODE_L + CRC(2) 
 int SendCom1RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
 {
-    Com3SendCri.Lock();
+    Com2SendCri.Lock();
     UINT8 i,j,bytSend[8]={0x00,0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00};
     
     int len=8;
@@ -195,14 +224,14 @@ int SendCom1RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
     bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC高位
     bytSend[len-1] =  CRC&0x00FF;           //CRC低位
     
-	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 	
-	mComPort1->SendBuf(bytSend,len);
+	mComPort2->SendBuf(bytSend,len);
 	
 	memcpy(LastSendBuf,bytSend,len);
 	LastSendLen=len;
 	
-    Com3SendCri.UnLock();
+    Com2SendCri.UnLock();
 	usleep(5000);//delay 5ms
 	return 0 ;
 }
@@ -214,7 +243,6 @@ int DealComm(unsigned char *buf,unsigned short int len)
 	UPS_PARAMS *pstuUpsPam=stuUps_Param;		//USP结构体 电源数据寄存器
 	SPD_PARAMS *pstuSpdPam=stuSpd_Param;		//防雷器结构体
 	DEVICE_PARAMS *pstuDevPam=stuDev_Param;		//装置参数寄存器
-	DeviceInfoParams *pstuDevInfo=stuDev_Info;	//采集器设备信息结构体
 	RSU_PARAMS *pstuRsuInfo=stuRSU_Param;		//RSU天线信息结构体
 	
 
@@ -231,37 +259,23 @@ int DealComm(unsigned char *buf,unsigned short int len)
 	{
 		switch(RegAddr)
 		{
-	      case ENVI_START_ADDR:      //环境数据寄存器
+	      case ENVI_START_ADDR:      //9 环境数据寄存器
 	          SetEnviStatusStruct(buf,len);
-			  jsonStrEvnWriter((char*)pstuEnvPam,jsonPack,&jsonPackLen);
-			  NetSendParm(NETCMD_SEND_ENVI_PARAM,jsonPack,jsonPackLen);
-//			  HttpPostParm(jsonPack,jsonPackLen);
 	          break ;
-	      case DEVICEINFO_START_ADDR:      //装置信息寄存器
-	          SetDevInfoStatusStruct(buf,len);
-			  jsonStrDevInfoWriter((char*)pstuDevInfo,jsonPack,&jsonPackLen);
-			  NetSendParm(NETCMD_SEND_DEV_INFO,jsonPack,jsonPackLen);
-	          break ;
-		  case UPS_START_ADDR: 	  //UPS数据寄存器
+		  case UPS_START_ADDR: 	  //10 UPS数据寄存器
 	          SetUpsStatusStruct(buf,len);
-			  jsonStrUpsWriter((char*)pstuUpsPam,jsonPack,&jsonPackLen);
-			  NetSendParm(NETCMD_SEND_UPS_PARAM,jsonPack,jsonPackLen);
 			  break ;
-		  case SPD_START_ADDR:	  //防雷器数据寄存器
+		  case SPD_START_ADDR:	  //11 防雷器数据寄存器
 			  SetSpdStatusStruct(buf,len);
-			  jsonStrSpdWriter((char*)pstuSpdPam,jsonPack,&jsonPackLen);
-			  NetSendParm(NETCMD_SEND_SPD_PARAM,jsonPack,jsonPackLen);
 			  break ;
-		  case PARAMS_START_ADDR:	  //装置参数寄存器
-			  SetDevStatusStruct(buf,len);
-			  jsonStrDevWriter((char*)pstuDevPam,jsonPack,&jsonPackLen);
-			  NetSendParm(NETCMD_SEND_DEV_PARAM,jsonPack,jsonPackLen);
+		  case AIRCOND_START_ADDR:	   //13 空调参数寄存器
+			  SetAirCondStruct(buf,len);
 			  break ;
-		  case RSU_START_ADDR:	   //RSU天线参数寄存器
+		  case RSU_START_ADDR:	 //14 RSU天线参数寄存器
 			  SetRsuStatusStruct(buf,len);
-			  jsonStrRsuWriter((char*)pstuRsuInfo,jsonPack,&jsonPackLen);
-			  NetSendParm(NETCMD_SEND_RSU_PARAM,jsonPack,jsonPackLen);
-			  break ;
+//			jsonStrRsuWriter((char*)pstuRsuInfo,jsonPack,&jsonPackLen);
+//			NetSendParm(NETCMD_SEND_RSU_PARAM,jsonPack,jsonPackLen);
+			break ;
 	      default:
 	          return 1 ;
 	          break ;
@@ -306,8 +320,8 @@ int SetEnviStatusStruct(unsigned char *buf,unsigned short int len)
    RegCount = buf[2];
    
    int bp=3;
-   stuEnvi_Param->moist=buf[bp]<<8 | buf[bp+1];bp+=2;// 当前环境湿度值301
    stuEnvi_Param->temp=buf[bp]<<8 | buf[bp+1];bp+=2;// 当前环境温度值300
+   stuEnvi_Param->moist=buf[bp]<<8 | buf[bp+1];bp+=2;// 当前环境湿度值301
    stuEnvi_Param->water_flag=buf[bp]<<8 | buf[bp+1];bp+=2;// 漏水302
    stuEnvi_Param->front_door_flag=buf[bp]<<8 | buf[bp+1];bp+=2;//前柜门开关状态303
    stuEnvi_Param->back_door_flag=buf[bp]<<8 | buf[bp+1];bp+=2;//后柜门开关状态304
@@ -317,10 +331,26 @@ int SetEnviStatusStruct(unsigned char *buf,unsigned short int len)
    stuEnvi_Param->Reserve2=buf[bp]<<8 | buf[bp+1];bp+=2;		//保留2 308
    stuEnvi_Param->Reserve3=buf[bp]<<8 | buf[bp+1];bp+=2;		//保留3 309
    stuEnvi_Param->air_cond_status=buf[bp]<<8 | buf[bp+1];bp+=2;//空调状态310
-   stuEnvi_Param->air_cond_temp_out=buf[bp]<<8 | buf[bp+1];bp+=2;//当前空调室外温度值311
-   stuEnvi_Param->air_cond_temp_in=buf[bp]<<8 | buf[bp+1];bp+=2;//当前空调室内温度值312
-   stuEnvi_Param->air_cond_hightemp_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调高温告警313
-   stuEnvi_Param->air_cond_lowtemp_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调低温告警314
+   stuEnvi_Param->air_cond_fan_in_status=buf[bp]<<8 | buf[bp+1];bp+=2;//空调内风机状态311
+   stuEnvi_Param->air_cond_fan_out_status=buf[bp]<<8 | buf[bp+1];bp+=2;//空调外风机状态312
+   stuEnvi_Param->air_cond_comp_status=buf[bp]<<8 | buf[bp+1];bp+=2;//空调压缩机状态313
+   stuEnvi_Param->air_cond_heater_status=buf[bp]<<8 | buf[bp+1];bp+=2;//空调电加热状态314
+   stuEnvi_Param->air_cond_fan_emgy_status=buf[bp]<<8 | buf[bp+1];bp+=2;//空调应急风机状态315
+   stuEnvi_Param->air_cond_temp_out=buf[bp]<<8 | buf[bp+1];bp+=2;//当前空调室外温度值316 ×10
+   stuEnvi_Param->air_cond_temp_in=buf[bp]<<8 | buf[bp+1];bp+=2;//当前空调室内温度值317 ×10
+   stuEnvi_Param->air_cond_amp=buf[bp]<<8 | buf[bp+1];bp+=2;//当前空调电流值318 ×1000
+   stuEnvi_Param->air_cond_volt=buf[bp]<<8 | buf[bp+1];bp+=2;//当前空调电压值319 ×1
+
+   //告警
+   stuEnvi_Param->air_cond_hightemp_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调高温告警320
+   stuEnvi_Param->air_cond_lowtemp_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调低温告警321
+   stuEnvi_Param->air_cond_highmoist_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调高湿告警322
+   stuEnvi_Param->air_cond_lowmoist_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调低湿告警323
+   stuEnvi_Param->air_cond_infan_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调内风机故障324
+   stuEnvi_Param->air_cond_outfan_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调外风机故障325
+   stuEnvi_Param->air_cond_comp_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调压缩机故障326
+   stuEnvi_Param->air_cond_heater_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调电加热故障327
+   stuEnvi_Param->air_cond_emgyfan_alarm=buf[bp]<<8 | buf[bp+1];bp+=2;//空调应急风机故障328
    
    return 0;
 }
@@ -396,37 +426,10 @@ int SetSpdStatusStruct(unsigned char *buf,unsigned short int len)
    
    int bp=3;
    stuSpd_Param->status=buf[bp]<<8 | buf[bp+1];bp+=2;// 防雷器在线状态
-   stuSpd_Param->DI_status=buf[bp]<<8 | buf[bp+1];bp+=2;// 防雷器DI输入状态	91
    stuSpd_Param->struck_times=buf[bp]<<8 | buf[bp+1];bp+=2;//雷击次数
    
    return 0;
 };	 
-
-int SetDevStatusStruct(unsigned char *buf,unsigned short int len)
-{
-   unsigned char MBusAddr , MBusFunc;
-   MBusAddr = buf[0];
-   MBusFunc = buf[1];
-   unsigned char RegCount;
-   RegCount = buf[2];
-   
-   int bp=3;
-   stuDev_Param->Address=buf[bp]<<8 | buf[bp+1];bp+=2;// 终端设备地址设置
-   stuDev_Param->BaudRate_1=buf[bp]<<8 | buf[bp+1];bp+=2;// 串口1波特率
-   stuDev_Param->BaudRate_2=buf[bp]<<8 | buf[bp+1];bp+=2;// 串口2波特率
-   stuDev_Param->BaudRate_3=buf[bp]<<8 | buf[bp+1];bp+=2;// 串口3波特率
-   stuDev_Param->BaudRate_4=buf[bp]<<8 | buf[bp+1];bp+=2;// 串口4波特率
-   stuDev_Param->Pre_Remote=buf[bp]<<8 | buf[bp+1];bp+=2;//RSU天线遥控预置，0：退出，1：投入
-   stuDev_Param->AutoSend=buf[bp]<<8 | buf[bp+1];bp+=2;// 自动上传是否投入
-   memcpy(&stuDev_Param->Reserve[0],&buf[bp],13*2);bp+=(13*2);	   //保留 1207~1219
-   stuDev_Param->AirCondSet=buf[bp]<<8 | buf[bp+1];bp+=2;// 空调开机关机
-   stuDev_Param->AirColdStartPoint=buf[bp]<<8 | buf[bp+1];bp+=2;//空调制冷点
-   stuDev_Param->AirColdLoop=buf[bp]<<8 | buf[bp+1];bp+=2;// 空调制冷回差
-   stuDev_Param->AirHotStartPoint=buf[bp]<<8 | buf[bp+1];bp+=2;// 空调制冷点
-   stuDev_Param->AirHotLoop=buf[bp]<<8 | buf[bp+1];bp+=2;//空调制冷回差
-   
-   return 0;
-}
 
 int SetRsuStatusStruct(unsigned char *buf,unsigned short int len)
 {
@@ -447,27 +450,21 @@ int SetRsuStatusStruct(unsigned char *buf,unsigned short int len)
    return 0;
 }
 
-int SetDevInfoStatusStruct(unsigned char *buf,unsigned short int len)
+int SetAirCondStruct(unsigned char *buf,unsigned short int len)
 {
-   unsigned char MBusAddr , MBusFunc;
-   MBusAddr = buf[0];
-   MBusFunc = buf[1];
-   unsigned char RegCount;
-   RegCount = buf[2];
-   
-   int i;
-   int bp=3;
-   for(i=0;i<20;i++)
-   {
-	   stuDev_Info->deviceType[i]=(buf[2*i+bp]<<8)|(buf[2*i+1+bp]&0xff);//装置型号
-   }
-   bp=3+20*2;
-   stuDev_Info->softVersion=buf[bp]<<8 | buf[bp+1];bp+=2;//主程序版本号
-   stuDev_Info->protocolVersion=buf[bp]<<8 | buf[bp+1];bp+=2;//规约版本
-   stuDev_Info->softYear=buf[bp]<<8 | buf[bp+1];bp+=2;
-   stuDev_Info->softMonth=buf[bp]<<8 | buf[bp+1];bp+=2;
-   stuDev_Info->softDate=buf[bp]<<8 | buf[bp+1];bp+=2;
-   
-   return 0;
+	unsigned char MBusAddr , MBusFunc;
+	MBusAddr = buf[0];
+	MBusFunc = buf[1];
+	unsigned char RegCount;
+	RegCount = buf[2];
+	
+	int bp=3;
+	stuAirCondRead->aircondset=buf[bp]<<8 | buf[bp+1];bp+=2;//空调关机//1220	
+	stuAirCondRead->aircoldstartpoint=buf[bp]<<8 | buf[bp+1];bp+=2;//空调制冷点//1221 			50
+	stuAirCondRead->aircoldloop=buf[bp]<<8 | buf[bp+1];bp+=2;//空调制冷回差//1222					10
+	stuAirCondRead->airhotstartpoint=buf[bp]<<8 | buf[bp+1];bp+=2;//空调制热点//1223 			15
+	stuAirCondRead->airhotloop=buf[bp]<<8 | buf[bp+1];bp+=2;//空调制热回差//1224					10
+	
+	return 0;
 }
 

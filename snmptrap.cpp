@@ -10,7 +10,7 @@ using namespace std;
 int      netsnmp_running = 1;
 
 extern string StrServerURL1;
-THUAWEIALARM HUAWEIDevAlarm;		//��Ϊ����澯
+THUAWEIALARM HUAWEIDevAlarm;		//华为机柜告警
 extern void SetjsonTableStr(char* table, char *json, int *lenr);
 extern int HttpPostParm(string url,char *pParmbuf,int parmlen);
 
@@ -27,11 +27,11 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 	char * jsonPack=(char *)malloc(50*1024);
     printf("We got a trap:\n");
     struct variable_list *vars;
- /*   for(vars = pdu->variables; vars; vars = vars->next_variable)
+    for(vars = pdu->variables; vars; vars = vars->next_variable)
     {
         print_variable(vars->name, vars->name_length, vars);
     }
-*/
+
          for(vars = pdu->variables; vars; vars = vars->next_variable) {
             if (vars->type == ASN_OCTET_STR) {
 /*
@@ -64,7 +64,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
                      Strgetid = oidbuf;
                      Stroid = Stroid + Strgetid;
                  }
-//                 printf("%s\r\n",Stroid.c_str()) ;
+                 printf("%s\r\n",Stroid.c_str()) ;
                  if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.31") == 0)
                  {
  				   	  printf("Door open alarm!\r\n\n\n\n");
@@ -77,11 +77,6 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 					 HUAWEIDevAlarm.hwDoorAlarmTraps="0";
 					 HUAWEIDevAlarm.hwDoorAlarmResume="0";
                  }
-				 
-/*				 memset(jsonPack,0,50*1024);
-				 SetjsonFlagRunAlarmStr(jsonPack,&jsonPackLen);
-				 printf("%s",jsonPack);
-				 HttpPostParm(StrAlarmURL,jsonPack,jsonPackLen);*/
 				 
 				 memset(jsonPack,0,50*1024);
 				 SetjsonTableStr("flagrunstatusalarm",jsonPack,&jsonPackLen);
@@ -363,34 +358,37 @@ void *snmptrapthread(void *param)
 
 void initHUAWEIALARM()
 {
-	HUAWEIDevAlarm.hwEnvTempAlarmTraps="0";		//����/���¸澯
-	HUAWEIDevAlarm.hwEnvTempAlarmResume="0";	//����/���¸澯�ָ�
-	HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";		//��ʪ/��ʪ�澯
-	HUAWEIDevAlarm.hwEnvHumiAlarmResume="0";	//��ʪ/��ʪ�澯�ָ�
-	HUAWEIDevAlarm.hwSpareDigitalAlarmTraps="0";	//����ɽӵ�澯
-	HUAWEIDevAlarm.hwSpareDigitalAlarmResume="0";	//����ɽӵ�澯�ָ�
-	HUAWEIDevAlarm.hwDoorAlarmTraps="0";		//�Ž��澯
-	HUAWEIDevAlarm.hwDoorAlarmResume="0";		//�Ž��澯�ָ�
-	HUAWEIDevAlarm.hwWaterAlarmTraps="0";		//ˮ���澯
-	HUAWEIDevAlarm.hwWaterAlarmResume="0";		//ˮ���澯�ָ�
-	HUAWEIDevAlarm.hwSmokeAlarmTraps="0";		//�̸и澯
-	HUAWEIDevAlarm.hwSmokeAlarmResume="0";		//�̸и澯�ָ�
+	HUAWEIDevAlarm.hwEnvTempAlarmTraps="0";		//高温/低温告警
+	HUAWEIDevAlarm.hwEnvTempAlarmResume="0";	//高温/低温告警恢复
+	HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";		//高湿/低湿告警
+	HUAWEIDevAlarm.hwEnvHumiAlarmResume="0";	//高湿/低湿告警恢复
+	HUAWEIDevAlarm.hwSpareDigitalAlarmTraps="0";	//输入干接点告警
+	HUAWEIDevAlarm.hwSpareDigitalAlarmResume="0";	//输入干接点告警恢复
+	HUAWEIDevAlarm.hwDoorAlarmTraps="0";		//门禁告警
+	HUAWEIDevAlarm.hwDoorAlarmResume="0";		//门禁告警恢复
+	HUAWEIDevAlarm.hwWaterAlarmTraps="0";		//水浸告警
+	HUAWEIDevAlarm.hwWaterAlarmResume="0";		//水浸告警恢复
+	HUAWEIDevAlarm.hwSmokeAlarmTraps="0";		//烟感告警
+	HUAWEIDevAlarm.hwSmokeAlarmResume="0";		//烟感告警恢复
+	HUAWEIDevAlarm.hwair_cond_infan_alarm="0";		//空调内风机故障
+	HUAWEIDevAlarm.hwair_cond_outfan_alarm="0";		//空调外风机故障
+	HUAWEIDevAlarm.hwair_cond_comp_alarm="0";		//空调压缩机故障
+	HUAWEIDevAlarm.hwair_cond_return_port_sensor_alarm="0";		//空调回风口传感器故障
+	HUAWEIDevAlarm.hwair_cond_evap_freezing_alarm="0";		//空调蒸发器冻结
+	HUAWEIDevAlarm.hwair_cond_freq_high_press_alarm="0";		//空调频繁高压力
+	HUAWEIDevAlarm.hwair_cond_comm_fail_alarm="0";		//空调通信失败告警
 }
-
-
 
 
 int snmptrapInit(void)
 {
-	initHUAWEIALARM();
-
    pthread_t m_snmptrapthread ;
    pthread_create(&m_snmptrapthread,NULL,snmptrapthread,NULL);
 
-//	HUAWEIDevAlarm.hwDoorAlarmTraps="0";
    return 0 ;
 
 }
+
 
 
 

@@ -21,7 +21,9 @@ const char *our_v3_passphrase = "The Net-SNMP Demo Password";
 pthread_mutex_t snmpoidMutex ;   
 vector<string> vecSnmp;
 THUAWEIGantry HUAWEIDevValue;
-//extern THUAWEIGantry *stuHUAWEIDevValue;//»ªÎª»ú¹ñ×´Ì¬
+extern void initHUAWEIALARM();
+extern string StrCabinetType;
+extern string StrHWServer;		//åä¸ºæœåŠ¡å™¨åœ°å€
 
 void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGantry)
 {
@@ -31,176 +33,176 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
    memset(mbuf,0,50);
    switch(mIntHUAWEIGantry)
    {
-   //ï®µç
-   case hwAcbGroupBatVolt:               //µç³ØµçÑ¹
+   //é”‚ç”µ
+   case hwAcbGroupBatVolt:               //ç”µæ± ç”µå‹
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatVolt = mbuf ;
-       printf("µç³ØµçÑ¹:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatVolt).c_str());
+       printf("ç”µæ± ç”µå‹:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatVolt).c_str());
        break;
-   case hwAcbGroupBatCurr:            //µç³ØµçÁ÷
+   case hwAcbGroupBatCurr:            //ç”µæ± ç”µæµ
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatCurr = mbuf ;
-       printf("µç³ØµçÁ÷:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatCurr).c_str());
+       printf("ç”µæ± ç”µæµ:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatCurr).c_str());
        break;
-   case hwAcbGroupTotalCapacity:                //µç³Ø×ÜÈİÁ¿
+   case hwAcbGroupTotalCapacity:                //ç”µæ± æ€»å®¹é‡
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupTotalCapacity = mbuf ;
-       printf("µç³Ø×ÜÈİÁ¿:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalCapacity).c_str());
+       printf("ç”µæ± æ€»å®¹é‡:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalCapacity).c_str());
        break ;
-   case hwAcbGroupTotalRemainCapacity:               //µç³ØÊ£ÓàÈİÁ¿
+   case hwAcbGroupTotalRemainCapacity:               //ç”µæ± å‰©ä½™å®¹é‡
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity = mbuf ;
-       printf("µç³ØÊ£ÓàÈİÁ¿:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity).c_str());
+       printf("ç”µæ± å‰©ä½™å®¹é‡:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity).c_str());
        break;
-   case hwAcbGroupBackupTime:              //µç³Ø±¸µçÊ±³¤
+   case hwAcbGroupBackupTime:              //ç”µæ± å¤‡ç”µæ—¶é•¿
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBackupTime = mbuf ;
-       printf("µç³Ø±¸µçÊ±³¤:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBackupTime).c_str());
+       printf("ç”µæ± å¤‡ç”µæ—¶é•¿:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBackupTime).c_str());
        break;
-   case hwAcbGroupBatSoh:             //µç³Ø SOH
+   case hwAcbGroupBatSoh:             //ç”µæ±  SOH
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatSoh = mbuf ;
-       printf("µç³Ø SOH:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatSoh).c_str());
+       printf("ç”µæ±  SOH:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatSoh).c_str());
        break;
-   //¿ª¹ØµçÔ´
-   case hwApOrAblVoltage:                //A/AB µçÑ¹
+   //å¼€å…³ç”µæº
+   case hwApOrAblVoltage:                //A/AB ç”µå‹
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwApOrAblVoltage = mbuf ;
-       printf("A/AB µçÑ¹:%s\r\n",(HUAWEIDevValue.strhwApOrAblVoltage).c_str());
+       printf("A/AB ç”µå‹:%s\r\n",(HUAWEIDevValue.strhwApOrAblVoltage).c_str());
         break;
-   case hwBpOrBclVoltage:                //B/BC µçÑ¹
+   case hwBpOrBclVoltage:                //B/BC ç”µå‹
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwBpOrBclVoltage = mbuf ;
-       printf("B/BC µçÑ¹:%s\r\n",(HUAWEIDevValue.strhwBpOrBclVoltage).c_str());
+       printf("B/BC ç”µå‹:%s\r\n",(HUAWEIDevValue.strhwBpOrBclVoltage).c_str());
        break;
-   case hwCpOrCalVoltage:                //C/CA µçÑ¹
+   case hwCpOrCalVoltage:                //C/CA ç”µå‹
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwCpOrCalVoltage = mbuf ;
-       printf("C/CA µçÑ¹:%s\r\n",(HUAWEIDevValue.strhwCpOrCalVoltage).c_str());
+       printf("C/CA ç”µå‹:%s\r\n",(HUAWEIDevValue.strhwCpOrCalVoltage).c_str());
        break;
-   case hwAphaseCurrent:               //A ÏàµçÁ÷
+   case hwAphaseCurrent:               //A ç›¸ç”µæµ
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
 	       sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAphaseCurrent = mbuf ;
-       printf("A ÏàµçÁ÷:%s\r\n",(HUAWEIDevValue.strhwAphaseCurrent).c_str());
+       printf("A ç›¸ç”µæµ:%s\r\n",(HUAWEIDevValue.strhwAphaseCurrent).c_str());
        break;
-   case hwBphaseCurrent:              //B ÏàµçÁ÷
+   case hwBphaseCurrent:              //B ç›¸ç”µæµ
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwBphaseCurrent = mbuf ;
-       printf("B ÏàµçÁ÷:%s\r\n",(HUAWEIDevValue.strhwBphaseCurrent).c_str());
+       printf("B ç›¸ç”µæµ:%s\r\n",(HUAWEIDevValue.strhwBphaseCurrent).c_str());
        break;
-   case hwCphaseCurrent:             //C ÏàµçÁ÷
+   case hwCphaseCurrent:             //C ç›¸ç”µæµ
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwCphaseCurrent = mbuf ;
-       printf("C ÏàµçÁ÷:%s\r\n",(HUAWEIDevValue.strhwCphaseCurrent).c_str());
+       printf("C ç›¸ç”µæµ:%s\r\n",(HUAWEIDevValue.strhwCphaseCurrent).c_str());
        break;
-   case hwDcOutputVoltage:             //DC Êä³öµçÑ¹
+   case hwDcOutputVoltage:             //DC è¾“å‡ºç”µå‹
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwDcOutputVoltage = mbuf ;
-       printf("DC Êä³öµçÑ¹:%s\r\n",(HUAWEIDevValue.strhwDcOutputVoltage).c_str());
+       printf("DC è¾“å‡ºç”µå‹:%s\r\n",(HUAWEIDevValue.strhwDcOutputVoltage).c_str());
        break;
-   case hwDcOutputCurrent:               //DC Êä³öµçÁ÷
+   case hwDcOutputCurrent:               //DC è¾“å‡ºç”µæµ
 	   if(mIntegerValue==0x7FFFFFFF)
 		   sprintf(mbuf,"0") ;
 	   else    
        	   sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwDcOutputCurrent = mbuf ;
-       printf("DC Êä³öµçÁ÷:%s\r\n",(HUAWEIDevValue.strhwDcOutputCurrent).c_str());
+       printf("DC è¾“å‡ºç”µæµ:%s\r\n",(HUAWEIDevValue.strhwDcOutputCurrent).c_str());
        break;
-   //»·¾³´«¸ĞÆ÷
-   case hwEnvTemperature:              //»·¾³ÎÂ¶ÈÖµ
+   //ç¯å¢ƒä¼ æ„Ÿå™¨
+   case hwEnvTemperature:              //ç¯å¢ƒæ¸©åº¦å€¼
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwEnvTemperature = mbuf ;
-       printf("»·¾³ÎÂ¶ÈÖµ:%s\r\n",(HUAWEIDevValue.strhwEnvTemperature).c_str());
+       printf("ç¯å¢ƒæ¸©åº¦å€¼:%s\r\n",(HUAWEIDevValue.strhwEnvTemperature).c_str());
        break;
-   case hwEnvHumidity:             //»·¾³Êª¶ÈÖµ
+   case hwEnvHumidity:             //ç¯å¢ƒæ¹¿åº¦å€¼
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwEnvHumidity = mbuf ;
-       printf("»·¾³Êª¶ÈÖµ:%s\r\n",(HUAWEIDevValue.strhwEnvHumidity).c_str());
+       printf("ç¯å¢ƒæ¹¿åº¦å€¼:%s\r\n",(HUAWEIDevValue.strhwEnvHumidity).c_str());
        break;
-   //Ö±Á÷¿Õµ÷
-   case hwDcAirCtrlMode:             //¿Õµ÷¿ØÖÆÄ£Ê½
+   //ç›´æµç©ºè°ƒ
+   case hwDcAirCtrlMode:             //ç©ºè°ƒæ§åˆ¶æ¨¡å¼
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirCtrlMode = mbuf ;
-       printf("¿Õµ÷¿ØÖÆÄ£Ê½:%s\r\n",(HUAWEIDevValue.strhwDcAirCtrlMode).c_str());
+       printf("ç©ºè°ƒæ§åˆ¶æ¨¡å¼:%s\r\n",(HUAWEIDevValue.strhwDcAirCtrlMode).c_str());
        break;
-   case hwDcAirRunStatus:             //¿Õµ÷ÔËĞĞ×´Ì¬
+   case hwDcAirRunStatus:             //ç©ºè°ƒè¿è¡ŒçŠ¶æ€
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirRunStatus = mbuf ;
-       printf("¿Õµ÷ÔËĞĞ×´Ì¬:%s\r\n",(HUAWEIDevValue.strhwDcAirRunStatus).c_str());
+       printf("ç©ºè°ƒè¿è¡ŒçŠ¶æ€:%s\r\n",(HUAWEIDevValue.strhwDcAirRunStatus).c_str());
        break;
-   case hwDcAirCompressorRunStatus:             //¿Õµ÷Ñ¹Ëõ»úÔËĞĞ×´Ì¬
+   case hwDcAirCompressorRunStatus:             //ç©ºè°ƒå‹ç¼©æœºè¿è¡ŒçŠ¶æ€
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirCompressorRunStatus = mbuf ;
-       printf("¿Õµ÷Ñ¹Ëõ»úÔËĞĞ×´Ì¬:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunStatus).c_str());
+       printf("ç©ºè°ƒå‹ç¼©æœºè¿è¡ŒçŠ¶æ€:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunStatus).c_str());
        break;
-   case hwDcAirInnrFanSpeed:             //¿Õµ÷ÄÚ»ú×ªËÙ
+   case hwDcAirInnrFanSpeed:             //ç©ºè°ƒå†…æœºè½¬é€Ÿ
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirInnrFanSpeed = mbuf ;
-       printf("¿Õµ÷ÄÚ»ú×ªËÙ:%s\r\n",(HUAWEIDevValue.strhwDcAirInnrFanSpeed).c_str());
+       printf("ç©ºè°ƒå†…æœºè½¬é€Ÿ:%s\r\n",(HUAWEIDevValue.strhwDcAirInnrFanSpeed).c_str());
        break;
-   case hwDcAirOuterFanSpeed:             //¿Õµ÷Íâ·ç»ú×ªËÙ
+   case hwDcAirOuterFanSpeed:             //ç©ºè°ƒå¤–é£æœºè½¬é€Ÿ
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirOuterFanSpeed = mbuf ;
-       printf("¿Õµ÷Íâ·ç»ú×ªËÙ:%s\r\n",(HUAWEIDevValue.strhwDcAirOuterFanSpeed).c_str());
+       printf("ç©ºè°ƒå¤–é£æœºè½¬é€Ÿ:%s\r\n",(HUAWEIDevValue.strhwDcAirOuterFanSpeed).c_str());
        break;
-   case hwDcAirCompressorRunTime:             //¿Õµ÷Ñ¹Ëõ»úÔËĞĞÊ±¼ä
+   case hwDcAirCompressorRunTime:             //ç©ºè°ƒå‹ç¼©æœºè¿è¡Œæ—¶é—´
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirCompressorRunTime = mbuf ;
-       printf("¿Õµ÷Ñ¹Ëõ»úÔËĞĞÊ±¼ä:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunTime).c_str());
+       printf("ç©ºè°ƒå‹ç¼©æœºè¿è¡Œæ—¶é—´:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunTime).c_str());
        break;
-   case hwDcAirEnterChannelTemp:             //¿Õµ÷»Ø·ç¿ÚÎÂ¶È
+   case hwDcAirEnterChannelTemp:             //ç©ºè°ƒå›é£å£æ¸©åº¦
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirEnterChannelTemp = mbuf ;
-       printf("¿Õµ÷»Ø·ç¿ÚÎÂ¶È:%s\r\n",(HUAWEIDevValue.strhwDcAirEnterChannelTemp).c_str());
+       printf("ç©ºè°ƒå›é£å£æ¸©åº¦:%s\r\n",(HUAWEIDevValue.strhwDcAirEnterChannelTemp).c_str());
        break;
-   case hwDcAirPowerOnTempPoint:             //¿Õµ÷¿ª»úÎÂ¶Èµã
+   case hwDcAirPowerOnTempPoint:             //ç©ºè°ƒå¼€æœºæ¸©åº¦ç‚¹
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirPowerOnTempPoint = mbuf ;
-       printf("¿Õµ÷¿ª»úÎÂ¶Èµã:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOnTempPoint).c_str());
+       printf("ç©ºè°ƒå¼€æœºæ¸©åº¦ç‚¹:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOnTempPoint).c_str());
        break;
-   case hwDcAirPowerOffTempPoint:             //¿Õµ÷¹Ø»úÎÂ¶Èµã
+   case hwDcAirPowerOffTempPoint:             //ç©ºè°ƒå…³æœºæ¸©åº¦ç‚¹
 	   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirPowerOffTempPoint = mbuf ;
-       printf("¿Õµ÷¹Ø»úÎÂ¶Èµã:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOffTempPoint).c_str());
+       printf("ç©ºè°ƒå…³æœºæ¸©åº¦ç‚¹:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOffTempPoint).c_str());
        break;
    default:
        break;
@@ -231,7 +233,7 @@ void *snmpthread(void *param)
   string strsnmpget,strip,strcommunity,stroid,strHUAWEIGantry;
   while(1)
   {
-    //»ñÈ¡Êı¾İ ip;community;oid
+    //è·å–æ•°æ® ip;community;oid
     pthread_mutex_lock(&snmpoidMutex);
     vecSnmpSize = vecSnmp.size();
     if(vecSnmpSize <= 0)
@@ -243,7 +245,7 @@ void *snmpthread(void *param)
 
       vector<string>::iterator fistSnmp = vecSnmp.begin();
       strsnmpget = *fistSnmp ;
-//      cout<<strsnmpget<<endl;
+      cout<<strsnmpget<<endl;
       vecSnmp.erase(fistSnmp);
     pthread_mutex_unlock(&snmpoidMutex);
 
@@ -317,23 +319,23 @@ void *snmpthread(void *param)
           /*
            * SUCCESS: Print the result variables
           */
-/*         for(vars = response->variables; vars; vars = vars->next_variable)
+         for(vars = response->variables; vars; vars = vars->next_variable)
          {
            print_variable(vars->name, vars->name_length, vars);     
-         }*/
+         }
          /* manipuate the information ourselves */
          for(vars = response->variables; vars; vars = vars->next_variable) {
             if (vars->type == ASN_OCTET_STR) {
 	       char *sp = (char *)malloc(1 + vars->val_len);
 	       memcpy(sp, vars->val.string, vars->val_len);
 	       sp[vars->val_len] = '/0';
-//               printf("value #%d is a string: %s/n", count++, sp);
+               printf("value #%d is a string: %s/n", count++, sp);
 	       free(sp);
 	    }
             else
             {
               unsigned int IntegerValue = *(vars->val.integer) ;
-//              printf("value #%d is a integer: %d\n", count++, IntegerValue);
+              printf("value #%d is a integer: %d\n", count++, IntegerValue);
               //printf("value #%d is NOT a string! Ack!/n", count++);
               UpdataHUAWEIGantry(IntegerValue,(EM_HUAWEIGantry)IntHUAWEIGantry);
               
@@ -365,6 +367,7 @@ void *snmpthread(void *param)
 
   }
 
+  printf("snmpthread exit.\t\r");
   return (0);
 
 } 
@@ -386,108 +389,108 @@ int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry)
 
    switch(mEM_HUAWEIGantry)
    {
-   //ï®µç
-   case hwAcbGroupBatVolt:               //µç³ØµçÑ¹
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.5.96;" + strsend + ";";
+   //é”‚ç”µ
+   case hwAcbGroupBatVolt:               //ç”µæ± ç”µå‹
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.5.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwAcbGroupBatCurr:            //µç³ØµçÁ÷
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.6.96;" + strsend + ";";
+   case hwAcbGroupBatCurr:            //ç”µæ± ç”µæµ
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.6.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwAcbGroupTotalCapacity:                //µç³Ø×ÜÈİÁ¿
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.7.96;" + strsend + ";";
+   case hwAcbGroupTotalCapacity:                //ç”µæ± æ€»å®¹é‡
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.7.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break ;
-   case hwAcbGroupTotalRemainCapacity:               //µç³ØÊ£ÓàÈİÁ¿
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.8.96;" + strsend + ";";
+   case hwAcbGroupTotalRemainCapacity:               //ç”µæ± å‰©ä½™å®¹é‡
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.8.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwAcbGroupBackupTime:              //µç³Ø±¸µçÊ±³¤
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.11.96;" + strsend + ";";
+   case hwAcbGroupBackupTime:              //ç”µæ± å¤‡ç”µæ—¶é•¿
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.11.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwAcbGroupBatSoh:             //µç³Ø SOH
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.13.96;" + strsend + ";";
+   case hwAcbGroupBatSoh:             //ç”µæ±  SOH
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.13.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   //¿ª¹ØµçÔ´
-   case hwApOrAblVoltage:                //A/AB µçÑ¹
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.4.1;" + strsend + ";";
+   //å¼€å…³ç”µæº
+   case hwApOrAblVoltage:                //A/AB ç”µå‹
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
         break;
-   case hwBpOrBclVoltage:                //B/BC µçÑ¹
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.5.1;" + strsend + ";";
+   case hwBpOrBclVoltage:                //B/BC ç”µå‹
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.5.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwCpOrCalVoltage:                //C/CA µçÑ¹
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.6.1;" + strsend + ";";
+   case hwCpOrCalVoltage:                //C/CA ç”µå‹
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.6.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwAphaseCurrent:               //A ÏàµçÁ÷
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.7.1;" + strsend + ";";
+   case hwAphaseCurrent:               //A ç›¸ç”µæµ
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.7.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwBphaseCurrent:              //B ÏàµçÁ÷
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.8.1;" + strsend + ";";
+   case hwBphaseCurrent:              //B ç›¸ç”µæµ
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.8.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwCphaseCurrent:             //C ÏàµçÁ÷
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.9.1;" + strsend + ";";
+   case hwCphaseCurrent:             //C ç›¸ç”µæµ
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.9.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcOutputVoltage:             //DC Êä³öµçÑ¹
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.4.1;" + strsend + ";";
+   case hwDcOutputVoltage:             //DC è¾“å‡ºç”µå‹
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcOutputCurrent:               //DC Êä³öµçÁ÷
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.5.1;" + strsend + ";";
+   case hwDcOutputCurrent:               //DC è¾“å‡ºç”µæµ
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.5.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   //»·¾³´«¸ĞÆ÷
-   case hwEnvTemperature:              //»·¾³ÎÂ¶ÈÖµ
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.4.1;" + strsend + ";";
+   //ç¯å¢ƒä¼ æ„Ÿå™¨
+   case hwEnvTemperature:              //ç¯å¢ƒæ¸©åº¦å€¼
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwEnvHumidity:             //»·¾³Êª¶ÈÖµ
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.4.1;" + strsend + ";";
+   case hwEnvHumidity:             //ç¯å¢ƒæ¹¿åº¦å€¼
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   //Ö±Á÷¿Õµ÷
-   case hwDcAirCtrlMode:             //¿Õµ÷¿ØÖÆÄ£Ê½
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.4.1;" + strsend + ";";
+   //ç›´æµç©ºè°ƒ
+   case hwDcAirCtrlMode:             //ç©ºè°ƒæ§åˆ¶æ¨¡å¼
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirRunStatus:             //¿Õµ÷ÔËĞĞ×´Ì¬
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.6.1;" + strsend + ";";
+   case hwDcAirRunStatus:             //ç©ºè°ƒè¿è¡ŒçŠ¶æ€
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.6.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirCompressorRunStatus:             //¿Õµ÷Ñ¹Ëõ»úÔËĞĞ×´Ì¬
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.7.1;" + strsend + ";";
+   case hwDcAirCompressorRunStatus:             //ç©ºè°ƒå‹ç¼©æœºè¿è¡ŒçŠ¶æ€
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.7.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirInnrFanSpeed:             //¿Õµ÷ÄÚ»ú×ªËÙ
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.8.1;" + strsend + ";";
+   case hwDcAirInnrFanSpeed:             //ç©ºè°ƒå†…æœºè½¬é€Ÿ
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.8.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirOuterFanSpeed:             //¿Õµ÷Íâ·ç»ú×ªËÙ
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.9.1;" + strsend + ";";
+   case hwDcAirOuterFanSpeed:             //ç©ºè°ƒå¤–é£æœºè½¬é€Ÿ
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.9.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirCompressorRunTime:             //¿Õµ÷Ñ¹Ëõ»úÔËĞĞÊ±¼ä
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.10.1;" + strsend + ";";
+   case hwDcAirCompressorRunTime:             //ç©ºè°ƒå‹ç¼©æœºè¿è¡Œæ—¶é—´
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.10.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirEnterChannelTemp:             //¿Õµ÷»Ø·ç¿ÚÎÂ¶È
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.13.1;" + strsend + ";";
+   case hwDcAirEnterChannelTemp:             //ç©ºè°ƒå›é£å£æ¸©åº¦
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.13.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirPowerOnTempPoint:             //¿Õµ÷¿ª»úÎÂ¶Èµã
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.14.1;" + strsend + ";";
+   case hwDcAirPowerOnTempPoint:             //ç©ºè°ƒå¼€æœºæ¸©åº¦ç‚¹
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.14.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
-   case hwDcAirPowerOffTempPoint:             //¿Õµ÷¹Ø»úÎÂ¶Èµã
-       strsend = "128.8.82.233;a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.15.1;" + strsend + ";";
+   case hwDcAirPowerOffTempPoint:             //ç©ºè°ƒå…³æœºæ¸©åº¦ç‚¹
+       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.15.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    default:
@@ -504,61 +507,73 @@ void *Sendsnmpthread(void *param)
 
    while(1)
    {
-	   sleep(60);
-     for(int i=1;i<=HWGANTRY_COUNT;i++)
-     SendHUAWEIsnmp((EM_HUAWEIGantry)i);
+		initHUAWEIGantry();
+		
+		for(int i=1;i<=HWGANTRY_COUNT;i++)
+		{
+			printf("SendHUAWEIsnmp %d\n",i);
+			SendHUAWEIsnmp((EM_HUAWEIGantry)i);
+		}
+		sleep(1);
    }
+   printf("Sendsnmpthread exit\t\n");
    return 0 ;
 }
 
 void initHUAWEIGantry()
 {
-   //ï®µç
-   HUAWEIDevValue.strhwAcbGroupBatVolt="0";                //µç³ØµçÑ¹ "51.1"
-   HUAWEIDevValue.strhwAcbGroupBatCurr="0";            //µç³ØµçÁ÷
-   HUAWEIDevValue.strhwAcbGroupTotalCapacity="0";                //µç³Ø×ÜÈİÁ¿
-   HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity="0";               //µç³ØÊ£ÓàÈİÁ¿
-   HUAWEIDevValue.strhwAcbGroupBackupTime="0";              //µç³Ø±¸µçÊ±³¤
-   HUAWEIDevValue.strhwAcbGroupBatSoh="0";             //µç³Ø SOH
-   //¿ª¹ØµçÔ´
-   HUAWEIDevValue.strhwApOrAblVoltage="0";                //A/AB µçÑ¹
-   HUAWEIDevValue.strhwBpOrBclVoltage="0";                //B/BC µçÑ¹
-   HUAWEIDevValue.strhwCpOrCalVoltage="0";                //C/CA µçÑ¹
-   HUAWEIDevValue.strhwAphaseCurrent="0";               //A ÏàµçÁ÷
-   HUAWEIDevValue.strhwBphaseCurrent="0";              //B ÏàµçÁ÷
-   HUAWEIDevValue.strhwCphaseCurrent="0";             //C ÏàµçÁ÷
-   HUAWEIDevValue.strhwDcOutputVoltage="0";             //DC Êä³öµçÑ¹
-   HUAWEIDevValue.strhwDcOutputCurrent="0";               //DC Êä³öµçÁ÷
-   //»·¾³´«¸ĞÆ÷
-   HUAWEIDevValue.strhwEnvTemperature="0";              //»·¾³ÎÂ¶ÈÖµ
-   HUAWEIDevValue.strhwEnvHumidity="0";            //»·¾³Êª¶ÈÖµ
-   //Ö±Á÷¿Õµ÷
-	HUAWEIDevValue.strhwDcAirCtrlMode="0";			//¿Õµ÷¿ØÖÆÄ£Ê½
-	HUAWEIDevValue.strhwDcAirRunStatus="0";			//¿Õµ÷ÔËĞĞ×´Ì¬
-	HUAWEIDevValue.strhwDcAirCompressorRunStatus="0";		//¿Õµ÷Ñ¹Ëõ»úÔËĞĞ×´Ì¬
-	HUAWEIDevValue.strhwDcAirInnrFanSpeed="0";			//¿Õµ÷ÄÚ»ú×ªËÙ
-	HUAWEIDevValue.strhwDcAirOuterFanSpeed="0";			//¿Õµ÷Íâ·ç»ú×ªËÙ
-	HUAWEIDevValue.strhwDcAirCompressorRunTime="0";		//¿Õµ÷Ñ¹Ëõ»úÔËĞĞÊ±¼ä
-	HUAWEIDevValue.strhwDcAirEnterChannelTemp="0";		//¿Õµ÷»Ø·ç¿ÚÎÂ¶È
-	HUAWEIDevValue.strhwDcAirPowerOnTempPoint="0";		//¿Õµ÷¿ª»úÎÂ¶Èµã
-	HUAWEIDevValue.strhwDcAirPowerOffTempPoint="0";		//¿Õµ÷¹Ø»úÎÂ¶Èµã
+   //é”‚ç”µ
+   HUAWEIDevValue.strhwAcbGroupBatVolt="0";                //ç”µæ± ç”µå‹ "51.1"
+   HUAWEIDevValue.strhwAcbGroupBatCurr="0";            //ç”µæ± ç”µæµ
+   HUAWEIDevValue.strhwAcbGroupTotalCapacity="0";                //ç”µæ± æ€»å®¹é‡
+   HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity="0";               //ç”µæ± å‰©ä½™å®¹é‡
+   HUAWEIDevValue.strhwAcbGroupBackupTime="0";              //ç”µæ± å¤‡ç”µæ—¶é•¿
+   HUAWEIDevValue.strhwAcbGroupBatSoh="0";             //ç”µæ±  SOH
+   //å¼€å…³ç”µæº
+   HUAWEIDevValue.strhwApOrAblVoltage="0";                //A/AB ç”µå‹
+   HUAWEIDevValue.strhwBpOrBclVoltage="0";                //B/BC ç”µå‹
+   HUAWEIDevValue.strhwCpOrCalVoltage="0";                //C/CA ç”µå‹
+   HUAWEIDevValue.strhwAphaseCurrent="0";               //A ç›¸ç”µæµ
+   HUAWEIDevValue.strhwBphaseCurrent="0";              //B ç›¸ç”µæµ
+   HUAWEIDevValue.strhwCphaseCurrent="0";             //C ç›¸ç”µæµ
+   HUAWEIDevValue.strhwDcOutputVoltage="0";             //DC è¾“å‡ºç”µå‹
+   HUAWEIDevValue.strhwDcOutputCurrent="0";               //DC è¾“å‡ºç”µæµ
+   //ç¯å¢ƒä¼ æ„Ÿå™¨
+   HUAWEIDevValue.strhwEnvTemperature="32767";              //ç¯å¢ƒæ¸©åº¦å€¼
+   HUAWEIDevValue.strhwEnvHumidity="32767";            //ç¯å¢ƒæ¹¿åº¦å€¼
+   //ç›´æµç©ºè°ƒ
+	HUAWEIDevValue.strhwDcAirCtrlMode="255";			//ç©ºè°ƒæ§åˆ¶æ¨¡å¼
+	HUAWEIDevValue.strhwDcAirRunStatus="255";			//ç©ºè°ƒè¿è¡ŒçŠ¶æ€
+	HUAWEIDevValue.strhwDcAirCompressorRunStatus="255";		//ç©ºè°ƒå‹ç¼©æœºè¿è¡ŒçŠ¶æ€
+	HUAWEIDevValue.strhwDcAirInnrFanSpeed="0";			//ç©ºè°ƒå†…æœºè½¬é€Ÿ
+	HUAWEIDevValue.strhwDcAirOuterFanSpeed="0";			//ç©ºè°ƒå¤–é£æœºè½¬é€Ÿ
+	HUAWEIDevValue.strhwDcAirCompressorRunTime="0";		//ç©ºè°ƒå‹ç¼©æœºè¿è¡Œæ—¶é—´
+	HUAWEIDevValue.strhwDcAirEnterChannelTemp="0";		//ç©ºè°ƒå›é£å£æ¸©åº¦
+	HUAWEIDevValue.strhwDcAirPowerOnTempPoint="0";		//ç©ºè°ƒå¼€æœºæ¸©åº¦ç‚¹
+	HUAWEIDevValue.strhwDcAirPowerOffTempPoint="0";		//ç©ºè°ƒå…³æœºæ¸©åº¦ç‚¹
 }
 
 int snmpInit(void)
 {
    initHUAWEIGantry();
-   
-   pthread_mutex_init(&snmpoidMutex,NULL);
-   pthread_t m_snmpthread ;
-   pthread_create(&m_snmpthread,NULL,snmpthread,NULL);
+   initHUAWEIALARM();
 
-   pthread_t m_Sendsnmpthread ;
-   pthread_create(&m_Sendsnmpthread,NULL,Sendsnmpthread,NULL);
+   if(StrCabinetType=="1")		//æœºæŸœç±»å‹æ˜¯åä¸º
+   	{
+	   pthread_mutex_init(&snmpoidMutex,NULL);
+	   
+   	   snmptrapInit();
+	   
+	   pthread_t m_Sendsnmpthread ;
+	   pthread_create(&m_Sendsnmpthread,NULL,Sendsnmpthread,NULL);
 
-   snmptrapInit();
+	   pthread_t m_snmpthread ;
+	   pthread_create(&m_snmpthread,NULL,snmpthread,NULL);
+   	}
    return 0 ;
 
 }
+
 
 
 
