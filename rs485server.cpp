@@ -152,6 +152,7 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 void *Locker_DataPollingthread(void *param)
 {
 	param = NULL;
+	int i;
 	static UINT16 polling_counter = 0;
 
 	while(1)
@@ -175,8 +176,34 @@ void *Locker_DataPollingthread(void *param)
 		// 如果没有收到回复数据,这里会一直进不来,要用带timeout的信号量
 		//if (!WAIT_response_flag)
 		{
-			// 控制
-			if (ctrl_flag & LBIT(LOCKER_1_CTRL_UNLOCK))
+			// 控制,优先处理DO
+			if (ctrl_flag & (LBIT(POWER_1_CTRL_CLOSE) |LBIT(POWER_1_CTRL_OPEN) |LBIT(POWER_2_CTRL_CLOSE) |LBIT(POWER_2_CTRL_OPEN)
+						|LBIT(POWER_3_CTRL_CLOSE) |LBIT(POWER_3_CTRL_OPEN) |LBIT(POWER_4_CTRL_CLOSE) |LBIT(POWER_4_CTRL_OPEN)
+						|LBIT(POWER_5_CTRL_CLOSE) |LBIT(POWER_5_CTRL_OPEN) |LBIT(POWER_6_CTRL_CLOSE) |LBIT(POWER_6_CTRL_OPEN)
+						|LBIT(POWER_7_CTRL_CLOSE) |LBIT(POWER_7_CTRL_OPEN) |LBIT(POWER_8_CTRL_CLOSE) |LBIT(POWER_8_CTRL_OPEN)
+						|LBIT(POWER_9_CTRL_CLOSE) |LBIT(POWER_9_CTRL_OPEN) |LBIT(POWER_10_CTRL_CLOSE) |LBIT(POWER_10_CTRL_OPEN)
+						|LBIT(POWER_11_CTRL_CLOSE) |LBIT(POWER_11_CTRL_OPEN) |LBIT(POWER_12_CTRL_CLOSE) |LBIT(POWER_12_CTRL_OPEN))
+				)
+			{
+				for(i=0; i<12; i++)
+				{
+					if (ctrl_flag & (LBIT(POWER_1_CTRL_CLOSE+2*i)))
+					{
+						ctrl_flag &= ~(LBIT(POWER_1_CTRL_CLOSE+2*i));
+						WAIT_response_flag = WAIT_POWER_1_CTRL_CLOSE_RES+2*i;
+						SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,VPLATE1_REG+i,SWITCH_OFF);
+						break;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
+					}
+					else if (ctrl_flag & (LBIT(POWER_1_CTRL_OPEN+2*i)))
+					{
+						ctrl_flag &= ~(LBIT(POWER_1_CTRL_OPEN+2*i));
+						WAIT_response_flag = WAIT_POWER_1_CTRL_OPEN_RES+2*i;
+						SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,VPLATE1_REG+i,SWITCH_ON);
+						break;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
+					}
+				}
+			}
+			else if (ctrl_flag & LBIT(LOCKER_1_CTRL_UNLOCK))
 			{
 				ctrl_flag &= ~(LBIT(LOCKER_1_CTRL_UNLOCK));
 				WAIT_response_flag = WAIT_LOCKER_1_UNLOCK_RES;

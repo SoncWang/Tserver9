@@ -754,42 +754,54 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 
 void RemoteControl(UINT8* pRCtrl)
 {
+	int i,j;
 	REMOTE_CONTROL *pstuRCtrl=(REMOTE_CONTROL *)pRCtrl;
-
-	if(pstuRCtrl->rsu1==ACT_CLOSE)			//RSU天线1分闸
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+	/*	if(pstuRCtrl->rsu1==ACT_CLOSE)			//RSU天线1分闸
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,RSU1_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
 	if(pstuRCtrl->rsu1==ACT_OPEN)						//RSU天线1合闸
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,RSU1_REG,SWITCH_ON);usleep(2000);}
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,RSU1_REG,SWITCH_ON);usleep(2000);}
 	if(pstuRCtrl->door_do==ACT_CLOSE)			// 电子门锁关锁
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,DOOR_DO_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,DOOR_DO_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
 	if(pstuRCtrl->door_do==ACT_OPEN)						//电子门锁开锁
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,DOOR_DO_REG,SWITCH_ON);usleep(2000);}
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,DOOR_DO_REG,SWITCH_ON);usleep(2000);}
 	if(pstuRCtrl->autoreclosure==ACT_CLOSE)			//自动重合闸分闸
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,AUTORECLOSURE_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,AUTORECLOSURE_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
 	if(pstuRCtrl->autoreclosure==ACT_OPEN)						//自动重合闸合闸
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,AUTORECLOSURE_REG,SWITCH_ON);usleep(2000);}
-	if(pstuRCtrl->vehplate1==ACT_CLOSE)			//车牌识别1分闸
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,VPLATE1_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
-	if(pstuRCtrl->vehplate1==ACT_OPEN)						//车牌识别1合闸
- 		{SendCom1RCtlReg(0x01,FORCE_COIL,VPLATE1_REG,SWITCH_ON);usleep(2000);}
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,AUTORECLOSURE_REG,SWITCH_ON);usleep(2000);}*/
 
-	if(pstuRCtrl->FrontDoor_UnLock==SWITCH_OFF)					//开锁
+	for(i=0;i<12;i++,j++)
+	{
+		if(pstuRCtrl->vehplate[i]==ACT_CLOSE)			//车牌识别1分闸
+		{
+			ctrl_flag |= LBIT(POWER_1_CTRL_CLOSE+2*i);
+			usleep(2000);
+		}
+	 	//{SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,j,SWITCH_OFF);usleep(2000);}//delay 2ms
+		if(pstuRCtrl->vehplate[i]==ACT_OPEN)						//车牌识别1合闸
+		{
+			ctrl_flag |= LBIT(POWER_1_CTRL_OPEN+2*i);
+			usleep(2000);
+		}
+	 	//{SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,j,SWITCH_ON);usleep(2000);}
+	}
+
+	if(pstuRCtrl->FrontDoorCtrl==SWITCH_OFF)					//开锁
  	{
 		ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
 		usleep(2000);
 	}
-	if(pstuRCtrl->FrontDoor_Lock==SWITCH_ON)					//关锁
+	if(pstuRCtrl->FrontDoorCtrl==SWITCH_ON)					//关锁
  	{
  		ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
 		usleep(2000);
 	}
 	#if (LOCK_NUM >= 2)
-	if(pstuRCtrl->BackDoor_UnLock==SWITCH_OFF)					//开锁
+	if(pstuRCtrl->BackDoorCtrl==SWITCH_OFF)					//开锁
  	{
  		ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
 		usleep(2000);
 	}
-	if(pstuRCtrl->BackDoor_UnLock==SWITCH_ON)					//关锁
+	if(pstuRCtrl->BackDoorCtrl==SWITCH_ON)					//关锁
  	{
  		ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
 		usleep(2000);

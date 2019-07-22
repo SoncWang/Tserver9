@@ -40,6 +40,8 @@ typedef unsigned int      	UINT32;
 #define DATA_ERR						0x03		/*数据错误*/
 #define OPERATION_ERR				0x04		/*无效操作*/
 
+/*电源控制器地址*/
+#define POWER_CTRL_ADDR			71		/*电源控制器地址*/
 
 /*SPARK01装置寄存器的范围*/
 /*实时数据寄存器*/
@@ -87,11 +89,25 @@ typedef unsigned int      	UINT32;
 #define	PRESET_REGS			0x10                   //写寄存器
 #define	FORCE_COIL				0x05           //设置继电器输出状态
 
-//遥控寄存器定义
+//遥控寄存器定义 老控制板
 #define RSU1_REG			1500		//RSU天线1 0xFF00: 遥合;0xFF01: 遥分
 #define DOOR_DO_REG			1501 		//电子门锁 0xFF00: 关锁;0xFF01: 开锁
 #define AUTORECLOSURE_REG	1502		//自动重合闸0xFF00: 遥合;0xFF01: 遥分
-#define VPLATE1_REG			1503		//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+//#define VPLATE1_REG			1503		//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+
+//遥控寄存器定义 新12DO控制板
+#define VPLATE1_REG			1500		//车牌识别1 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE2_REG			1501		//车牌识别2 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE3_REG			1502		//车牌识别3 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE4_REG			1503		//车牌识别4 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE5_REG			1504		//车牌识别5 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE6_REG			1505		//车牌识别6 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE7_REG			1506		//车牌识别7 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE8_REG			1507		//车牌识别8 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE9_REG			1508		//车牌识别9 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE10_REG			1509		//车牌识别10 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE11_REG			1510		//车牌识别11 0xFF00: 遥合; 0xFF01: 遥分
+#define VPLATE12_REG			1511		//车牌识别12 0xFF00: 遥合; 0xFF01: 遥分
 
 #define AIRCONDSET_REG			1220		//空调开关机寄存器1220
 #define AIRCOLDSTARTPOINT_REG 	1221		//空调制冷点//1221
@@ -109,6 +125,10 @@ typedef unsigned int      	UINT32;
 /*使能定义*/
 #define	SWITCH_ON		0xFF00           //合闸
 #define	SWITCH_OFF		0xFF01           //分闸
+
+//门锁开关定义
+#define	ACT_LOCK		1           //关锁
+#define	ACT_UNLOCK		2           //开锁
 
 typedef enum BAUDRATE
 {
@@ -416,15 +436,24 @@ typedef struct Remote_Control_struct	//
 	UINT16 rsu1;				//1500 RSU天线1 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 door_do;				//1501 电子门锁 0xFF00: 关锁;0xFF01: 开锁
 	UINT16 autoreclosure;		//1502 自动重合闸0xFF00: 遥合;0xFF01: 遥分
-	UINT16 vehplate1;			//1503 车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+
+	UINT16 vehplate[12];			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+/*	UINT16 vehplate2;			//车牌识别2 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate3;			//车牌识别3 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate4;			//车牌识别4 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate5;			//车牌识别5 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate6;			//车牌识别6 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate7;			//车牌识别7 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate8;			//车牌识别8 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate9;			//车牌识别9 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate10;			//车牌识别10 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate11;			//车牌识别11 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate12;			//车牌识别12 0xFF00: 遥合;0xFF01: 遥分*/
 
 	UINT16 SysReset;			//系统重启 1548
-	UINT16 FrontDoor_UnLock;			//电子门锁开
-	UINT16 FrontDoor_Lock;			//电子门锁关
-	UINT16 BackDoor_UnLock;			//电子门锁开
-	UINT16 BackDoor_Lock;			//电子门锁关
-	UINT16 SideDoor_UnLock;			//电子门锁开
-	UINT16 SideDoor_Lock;			//电子门锁关
+	UINT16 FrontDoorCtrl;			//前门电子门锁 0：保持 1：关锁：2：开锁
+	UINT16 BackDoorCtrl;			//后门电子门锁0：保持 1：关锁：2：开锁
+	UINT16 SideDoorCtrl;			//侧门电子门锁0：保持 1：关锁：2：开锁
 	UINT16 AutoReclosure_Close;		//自动重合闸-合闸
 	UINT16 AutoReclosure_Open;		//自动重合闸-分闸
 
@@ -677,6 +706,8 @@ UINT8 Write_Register(UINT16 nStartRegNo, INT16 nRegNum, const UINT8 *pdatabuf, U
 extern UINT16  System_Reset;
 
 #endif
+
+
 
 
 
