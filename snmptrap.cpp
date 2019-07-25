@@ -10,9 +10,11 @@ using namespace std;
 int      netsnmp_running = 1;
 
 extern string StrServerURL1;
-THUAWEIALARM HUAWEIDevAlarm;		//华为机柜告警
+extern THUAWEIALARM HUAWEIDevAlarm;		//华为机柜告警
 extern void SetjsonTableStr(char* table, char *json, int *lenr);
 extern int HttpPostParm(string url,char *pParmbuf,int parmlen);
+extern void myprintf(char* str);
+extern void WriteLog(char* str);
 
 /************************************************************************
 ** 
@@ -25,75 +27,135 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 	int i ;
 	int jsonPackLen=0;
 	char * jsonPack=(char *)malloc(50*1024);
-    printf("We got a trap:\n");
+	char str[256];
+    WriteLog("We got a trap:\n");
     struct variable_list *vars;
     for(vars = pdu->variables; vars; vars = vars->next_variable)
     {
         print_variable(vars->name, vars->name_length, vars);
     }
 
-         for(vars = pdu->variables; vars; vars = vars->next_variable) {
-            if (vars->type == ASN_OCTET_STR) {
-/*
-	       char *sp = (char *)malloc(1 + vars->val_len);
-	       memcpy(sp, vars->val.string, vars->val_len);
-	       sp[vars->val_len] = '/0';
-               printf("value #%d is a string: %s/n", count++, sp);
-	       free(sp);
-*/
-	    }
-            else if(vars->type == ASN_OBJECT_ID)
-            {
-/*
-                 printf("value #%d is a oid: ", count++);
-                 for(i=0; i<vars->name_length; i++)
-                 {
-                     if(*(vars->name_loc+i) == 0)
-                         break;
-                     printf(".%d", *(vars->name_loc+i));
-                 }
-                 printf(" and value is ");
-                 */
-                 char oidbuf[20] ;
-                 string Stroid,Strgetid;
-                 Stroid = "";
-                 for(i=0; i<(vars->val_len/sizeof(int)); i++)
-                 {
-                     memset(oidbuf,0,20);
-                     sprintf(oidbuf,".%d", *(vars->val.objid+i));
-                     Strgetid = oidbuf;
-                     Stroid = Stroid + Strgetid;
-                 }
-                 printf("%s\r\n",Stroid.c_str()) ;
-                 if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.31") == 0)
-                 {
- 				   	  printf("Door open alarm!\r\n\n\n\n");
-                 	  HUAWEIDevAlarm.hwDoorAlarmTraps="1";
-                 	  HUAWEIDevAlarm.hwDoorAlarmResume="0";
-                 }
-                 else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.32") == 0)
-                 {
-                     printf("Door close restore!\r\n\n\n\n");
-					 HUAWEIDevAlarm.hwDoorAlarmTraps="0";
-					 HUAWEIDevAlarm.hwDoorAlarmResume="0";
-                 }
-				 
-				 memset(jsonPack,0,50*1024);
-				 SetjsonTableStr("flagrunstatusalarm",jsonPack,&jsonPackLen);
-				 printf("%s",jsonPack);
-				 HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
-	  		 	 NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
-            
-                 
-            }
-            else
-            {
-/*
-              unsigned int IntegerValue = *(vars->val.integer) ;
-              printf("value #%d is a integer: %d\n", count++, IntegerValue);
-  */            
-            }
-         }
+	for(vars = pdu->variables; vars; vars = vars->next_variable) 
+	{
+		if (vars->type == ASN_OCTET_STR) 
+		{
+			char *sp = (char *)malloc(1 + vars->val_len);
+			memcpy(sp, vars->val.string, vars->val_len);
+			sp[vars->val_len] = '\0';
+			printf("value #%d is a string: %s\n", count, sp);
+			free(sp);
+		}
+		else if(vars->type == ASN_OBJECT_ID)
+		{
+
+			printf("value #%d is a oid: ", count);
+			for(i=0; i<vars->name_length; i++)
+			{
+				if(*(vars->name_loc+i) == 0)
+					break;
+				printf(".%d", *(vars->name_loc+i));
+			}
+			printf(" and value is ");
+
+			char oidbuf[20] ;
+			string Stroid,Strgetid;
+			Stroid = "";
+			for(i=0; i<(vars->val_len/sizeof(int)); i++)
+			{
+				memset(oidbuf,0,20);
+				sprintf(oidbuf,".%d", *(vars->val.objid+i));
+				Strgetid = oidbuf;
+				Stroid = Stroid + Strgetid;
+			}
+			printf("%s\r\n",Stroid.c_str()) ;
+			if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.25") == 0)//高温告警
+			{
+				WriteLog("Env Temp Alarm!\r\n");
+				HUAWEIDevAlarm.hwEnvTempAlarmTraps="1";
+				HUAWEIDevAlarm.hwEnvTempAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.26") == 0)//高温告警恢复
+			{
+				WriteLog("Env Temp Alarm restore!\r\n");
+				HUAWEIDevAlarm.hwEnvTempAlarmTraps="0";
+				HUAWEIDevAlarm.hwEnvTempAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.27") == 0)//高湿告警
+			{
+				WriteLog("Env Humi alarm!\r\n");
+				HUAWEIDevAlarm.hwEnvHumiAlarmTraps="1";
+				HUAWEIDevAlarm.hwEnvHumiAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.28") == 0)//高湿告警恢复
+			{
+				WriteLog("Env Humi restore!\r\n");
+				HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";
+				HUAWEIDevAlarm.hwEnvHumiAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.31") == 0)//门禁告警
+			{
+				WriteLog("Door open alarm!\r\n");
+				HUAWEIDevAlarm.hwDoorAlarmTraps="1";
+				HUAWEIDevAlarm.hwDoorAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.32") == 0)//门禁告警恢复
+			{
+				WriteLog("Door close restore!\r\n");
+				HUAWEIDevAlarm.hwDoorAlarmTraps="0";
+				HUAWEIDevAlarm.hwDoorAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.33") == 0)//水浸告警
+			{
+				WriteLog("Water Alarm!\r\n");
+				HUAWEIDevAlarm.hwWaterAlarmTraps="1";
+				HUAWEIDevAlarm.hwWaterAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.34") == 0)//水浸告警恢复
+			{
+				WriteLog("Water Alarm restore!\r\n");
+				HUAWEIDevAlarm.hwWaterAlarmTraps="0";
+				HUAWEIDevAlarm.hwWaterAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.35") == 0)//烟雾告警
+			{
+				WriteLog("Smoke Alarm!\r\n");
+				HUAWEIDevAlarm.hwSmokeAlarmTraps="1";
+				HUAWEIDevAlarm.hwSmokeAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.36") == 0)//烟雾告警恢复
+			{
+				WriteLog("Smoke Alarm restore!\r\n");
+				HUAWEIDevAlarm.hwSmokeAlarmTraps="0";
+				HUAWEIDevAlarm.hwSmokeAlarmResume="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.57") == 0)//防雷器告警
+			{
+				WriteLog("AC Spd Alarm!\r\n");
+				HUAWEIDevAlarm.hwACSpdAlarmTraps="1";
+				HUAWEIDevAlarm.hwACSpdAlarmResumeTraps="0";
+			}
+			else if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.58") == 0)//防雷器告警恢复
+			{
+				WriteLog("AC Spd Alarm restore!\r\n");
+				HUAWEIDevAlarm.hwACSpdAlarmTraps="0";
+				HUAWEIDevAlarm.hwACSpdAlarmResumeTraps="0";
+			}
+			 
+			memset(jsonPack,0,50*1024);
+			SetjsonTableStr("flagrunstatusalarm",jsonPack,&jsonPackLen);
+			//printf("%s",jsonPack);
+			HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
+			NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
+
+		     
+		}
+		else
+		{
+			unsigned int IntegerValue = *(vars->val.integer) ;
+			printf("value #%d is a integer: %d\n", count, IntegerValue);
+		}
+		count++;
+	}
 
 	free(jsonPack);
 

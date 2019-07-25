@@ -6,12 +6,12 @@
 #include "./src/jsonPackage.h"
 #include "HttpPost.h"
 
-#define LBIT(i)	(1UL<<(i))	// “™◊¢“‚32Œª∆ΩÃ®LONG“≤ «32Œª
+#define LBIT(i)	(1UL<<(i))	// Ë¶ÅÊ≥®ÊÑè32‰ΩçÂπ≥Âè∞LONG‰πüÊòØ32‰Ωç
 
 #define LOCK_NUM			2
 #define VA_METER_BD_NUM		2
 
-#define CARD_NUM		5	// ‘› ±Œ™5’≈ø®
+#define CARD_NUM		5	// ÊöÇÊó∂‰∏∫5Âº†Âç°
 
 #if (LOCK_NUM >= 1)
 #define DOOR_LOCK_ADDR_1		91			// address of the LOCKER
@@ -31,19 +31,19 @@
 /*Status reading definition*/
 #define DOOR_STATUS_REG			0x1000 		// status reading
 #define LOCKER_ID_LENTH			10		// it only use 10 bytes from the ID card.
-#define LOCKER_REG_NUM			9		// 4+5(◊÷)
-#define FRAME_HEAD_NUM 			3		/*∂¡ ˝æ› ±∑µªÿ÷°”––ß ˝æ›«∞ ˝æ›∏ˆ ˝*/
+#define LOCKER_REG_NUM			9		// 4+5(Â≠ó)
+#define FRAME_HEAD_NUM 			3		/*ËØªÊï∞ÊçÆÊó∂ËøîÂõûÂ∏ßÊúâÊïàÊï∞ÊçÆÂâçÊï∞ÊçÆ‰∏™Êï∞*/
 
 #define INTERVAL_TIME		450000	// 500ms
 
 /*VOLT-AMP sampling definition*/
-#define REAL_DATA_NUM			42  	/*–Ë µ ±∏¸–¬ ˝æ›≥§∂»£¨0x69-0x40*/
+#define REAL_DATA_NUM			42  	/*ÈúÄÂÆûÊó∂Êõ¥Êñ∞Êï∞ÊçÆÈïøÂ∫¶Ôºå0x69-0x40*/
 #define VA_STATION_ADDRESS_1	80
 #define VA_STATION_ADDRESS_2	81
 #define VA_REG					0x40
 #define VA_DATA_NUM				42
 
-//œ˚œ¢µ»¥˝√∂æŸ
+//Ê∂àÊÅØÁ≠âÂæÖÊûö‰∏æ
 typedef enum
 {
 	WAIT_NONE = 0,
@@ -86,14 +86,14 @@ typedef enum
 }WAIT_MSG_LIST;
 
 
-/*Ω·ππ¡™∫œ…˘√˜∂Ã’˚–Õ*/
+/*ÁªìÊûÑËÅîÂêàÂ£∞ÊòéÁü≠Êï¥Âûã*/
 typedef union int_union
 {
 	UINT16 i;
 	UINT8 b[2];
 }INTEGER_UNION;
 
-/*Ω·ππ¡™∫œ…˘√˜≥§’˚–Õ*/
+/*ÁªìÊûÑËÅîÂêàÂ£∞ÊòéÈïøÊï¥Âûã*/
 typedef union long_union
 {
 	UINT32 i;
@@ -112,7 +112,7 @@ typedef struct locker_struct
 	UINT8 id[96];
 }LOCKER_HW_PARAMS;
 
-//485¬÷—Ø¿‡–Õ√∂æŸ,ø…¿©’π
+//485ËΩÆËØ¢Á±ªÂûãÊûö‰∏æ,ÂèØÊâ©Â±ï
 typedef enum
 {
 	#if (LOCK_NUM >= 1)
@@ -150,8 +150,8 @@ typedef enum
 	LOCKER_2_CTRL_LOCK,
 	#endif
 
-	POWER_1_CTRL_CLOSE,		//4,∑÷’¢
-	POWER_1_CTRL_OPEN,		// ∫œ’¢
+	POWER_1_CTRL_CLOSE,		//4,ÂàÜÈó∏
+	POWER_1_CTRL_OPEN,		// ÂêàÈó∏
 	POWER_2_CTRL_CLOSE,
 	POWER_2_CTRL_OPEN,
 	POWER_3_CTRL_CLOSE,
@@ -179,7 +179,7 @@ typedef enum
 	ROMOTE_CTRL_NUM			//28
 }REMOTE_CTRL_LIST;
 
-extern UINT32  ctrl_flag;	// –¥±Í÷æ
+extern UINT32  ctrl_flag;	// ÂÜôÊ†áÂøó
 
 
 
@@ -192,3 +192,4 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len);
 
 
 #endif
+

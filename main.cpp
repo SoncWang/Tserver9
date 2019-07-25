@@ -2,7 +2,7 @@
 #include <linux/watchdog.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <unistd.h>  
 #include <sys/ioctl.h>
 #include <string>
 #include <sys/time.h>
@@ -10,7 +10,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include "rs485server.h"
+
 #include "main.h"
+
+#define WDT "/dev/watchdog"
 
 using namespace std;
 
@@ -22,11 +25,13 @@ VMCONTROL_PARAM *stuVMCtl_Param;	//采集器设备信息结构体
 RSU_PARAMS *stuRSU_Param[VA_METER_BD_NUM];		//RSU天线信息结构体
 REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
 FLAGRUNSTATUS *stuFlagRunStatus;//门架自由流运行状态结构体
-//THUAWEIGantry *stuHUAWEIDevValue;//华为机柜状态
+THUAWEIGantry HUAWEIDevValue;//华为机柜状态
+THUAWEIALARM HUAWEIDevAlarm;		//华为机柜告警
+THUAWEIGantry *stuHUAWEIDevValue;//华为机柜状态
 RSUCONTROLER *stuRsuControl;	//RSU控制器状态
 AIRCOND_PARAM *stuAirCondRead;		//读空调状态结构体
 AIRCOND_PARAM *stuAirCondWrite;		//写空调状态结构体
-LOCKER_HW_PARAMS *lockerHw_Param[LOCK_NUM];
+LOCKER_HW_PARAMS *lockerHw_Param[LOCK_NUM];	//门锁状态结构体
 
 extern string StrServerURL1;	//服务端URL1
 extern string StrServerURL2;	//服务端URL2
@@ -36,6 +41,8 @@ extern string StrAdrrLock2;	//门锁2的地址
 extern string StrAdrrVAMeter1;	//电压电流传感器1的地址
 extern string StrAdrrVAMeter2;	//电压电流传感器2的地址
 
+extern void initHUAWEIGantry();
+extern void initHUAWEIALARM();
 
 /*char gIpAddr[20];
 HANDLE g_hCamera;
@@ -46,25 +53,27 @@ void MYCameraJpegCallBackFunc(char * pBuffer,int size,IMAGE_CAPTURE_INFO *pImage
 void MYCameraEventCallBackFunc(CAMERA_STATE cEvent,DWORD nContext);*/
 void WriteLog(char* str);
 
-int wdt_fd = -1;
+int WDTfd = -1;
 
 void WatchDogInit(void)
 {
-   // int wdt_fd = -1;
+    //int WDTfd = -1;
     int timeout;
 
-    wdt_fd = open("/dev/watchdog", O_WRONLY);
-    if (wdt_fd == -1)
+    WDTfd = open(WDT, O_WRONLY);
+    if (WDTfd == -1)
     {
-        printf("fail to open /dev/watchdog!\n");
+        printf("fail to open "WDT "!\n");
     }
-    printf("/dev/watchdog is opened!\n");
+    printf(WDT " is opened!\n");
 
     timeout = 60;
-    ioctl(wdt_fd, WDIOC_SETTIMEOUT, &timeout);
+    ioctl(WDTfd, WDIOC_SETTIMEOUT, &timeout);
 
-    ioctl(wdt_fd, WDIOC_GETTIMEOUT, &timeout);
+    ioctl(WDTfd, WDIOC_GETTIMEOUT, &timeout);
     printf("The timeout was is %d seconds\n", timeout);
+    write(WDTfd, "\0", 1);
+
 }
 
 //定时中断处理
@@ -81,18 +90,21 @@ void InitTimer(void)
      //设置时间间隔为10秒
      interval.tv_sec = 10;
 	 interval.tv_usec =0;
-
+      
      timer.it_interval = interval;
      timer.it_value = interval;
-
+      
      setitimer(ITIMER_VIRTUAL, &timer, NULL);//让它产生SIGVTALRM信号
-
+      
      //为SIGVTALRM注册信号处理函数
      signal(SIGALRM, sig_handler);
 }
 
 int main(void)
 {
+	//初始化看门狗
+    WatchDogInit();
+
 	char ch;
     int loop=0;
 	char str[100];
@@ -100,10 +112,10 @@ int main(void)
 	REMOTE_CONTROL *pRCtrl;
 	int jsonPackLen=0;
 	FLAGRUNSTATUS *pFlagRunStatus;
-
+	
 	//读设置文件
 	GetConfig();
-
+	
 	// 环境数据结构体
 	stuEnvi_Param = (ENVI_PARAMS*)malloc(sizeof(ENVI_PARAMS));
 	InitStuEnvi_Param(stuEnvi_Param);
@@ -117,18 +129,18 @@ int main(void)
 	stuDev_Param = (DEVICE_PARAMS*)malloc(sizeof(DEVICE_PARAMS));
 	memset(stuDev_Param,0,sizeof(DEVICE_PARAMS));
 	//控制器参数结构体
-	stuVMCtl_Param = (VMCONTROL_PARAM*)malloc(sizeof(VMCONTROL_PARAM));
+	stuVMCtl_Param = (VMCONTROL_PARAM*)malloc(sizeof(VMCONTROL_PARAM)); 
 	memset(stuVMCtl_Param,0,sizeof(VMCONTROL_PARAM));
 	//RSU天线信息结构体
 	stuRSU_Param[0] = (RSU_PARAMS*)malloc(sizeof(RSU_PARAMS));
 	memset(stuRSU_Param[0],0,sizeof(RSU_PARAMS));
 	stuRSU_Param[0]->address = atoi(StrAdrrVAMeter1.c_str());
 
-	#if (VA_METER_BD_NUM >= 2)
+#if (VA_METER_BD_NUM >= 2)
 	stuRSU_Param[1] = (RSU_PARAMS*)malloc(sizeof(RSU_PARAMS));
 	memset(stuRSU_Param[1],0,sizeof(RSU_PARAMS));
 	stuRSU_Param[1]->address = atoi(StrAdrrVAMeter2.c_str());
-	#endif
+#endif
 	//遥控寄存器结构体
 	stuRemote_Ctrl = (REMOTE_CONTROL*)malloc(sizeof(REMOTE_CONTROL));
 	memset(stuRemote_Ctrl,0,sizeof(REMOTE_CONTROL));
@@ -136,8 +148,10 @@ int main(void)
 	stuFlagRunStatus = (FLAGRUNSTATUS*)malloc(sizeof(FLAGRUNSTATUS));
 	memset(stuFlagRunStatus,0,sizeof(FLAGRUNSTATUS));
 	//华为机柜状态结构体
-//	stuHUAWEIDevValue = (THUAWEIGantry*)malloc(sizeof(THUAWEIGantry));
-//	memset(stuHUAWEIDevValue,0,sizeof(THUAWEIGantry));
+	stuHUAWEIDevValue = &HUAWEIDevValue;
+	initHUAWEIGantry();
+	initHUAWEIALARM();
+	
 	///RSU控制器状态
 	stuRsuControl = (RSUCONTROLER*)malloc(sizeof(RSUCONTROLER));
 	memset(stuRsuControl,0,sizeof(RSUCONTROLER));
@@ -152,13 +166,12 @@ int main(void)
 	memset(lockerHw_Param[0],0,sizeof(LOCKER_HW_PARAMS));
 	lockerHw_Param[0]->address = atoi(StrAdrrLock1.c_str());
 
-	#if (LOCK_NUM >= 2)
+#if (LOCK_NUM >= 2)
 	lockerHw_Param[1] = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
 	memset(lockerHw_Param[1],0,sizeof(LOCKER_HW_PARAMS));
 	lockerHw_Param[1]->address = atoi(StrAdrrLock2.c_str());
-	#endif
+#endif
 
-	//system("hwclock 鈥搒");  //鍐欏埌纭椂閽?
 	//初始化串口
 	cominit();
 	rs485init();
@@ -167,127 +180,34 @@ int main(void)
 
 	//初始化http服务端
 	HttpInit();
+	usleep(500000); //delay 500ms
 
 	//初始化服务器线程
 	initServer();
-
-//    WatchDogInit();
-
-	//初始化宇视摄像机
-//	IpcamInit();
-
-	//初始化定时器
-//	InitTimer();
-
+	usleep(500000); //delay 500ms
+	
 	//初始化RSU
-	//init_net_rsu();
-
+	init_net_rsu();
+	usleep(500000); //delay 500ms
+	
 	//初始化RSU
 	snmpInit();
+	usleep(100000); //delay 100ms
 
 	//初始化利通定时推送线程
 	init_LTKJ_DataPost();
+	usleep(100000); //delay 100ms
 
 	//初始化新粤定时推送线程
 	init_XY_DataPost();
+	usleep(100000); //delay 100ms
 
-
-/*    while(1)
+    while(1)
     {
-		usleep(5000);//delay 5ms
-	}*/
-	printf("输入提示 : \n 'v' 发送版本号\n 'e' 查询环境参数\n 'u' 查询UPS参数\n 's' 查询防雷器参数\n ");
-	printf("'d' 查询装置参数\n 'i' 查询装置信息\n 'r' 查询RSU天线参数\n 'c' 电子门锁关\n 'o' 电子门锁开\n ");
-	printf("'h' 推送门架运行状态\n 't' RSU下发数据\n 'q' 退出\n");
-    while('q' != (ch = getchar()))
-    {
-        switch(ch)
-        {
-//        case 't' :  //触发抓拍
-//			TrigerImage(g_hCamera);
-//			break;
-        case 'v' :  //发送字符串
-			sprintf(str,"MySendMessage! 广东利通科技投资有限公司：%d\n",loop/10);
-			printf(str);
-			MySendMessage(str);
+       write(WDTfd, "\0", 1);
+       sleep(5);
+    }
 
-			break;
-		case 'e' :	//查询环境变量寄存器
-			//SendCom1QueryEvnReg();
-			SendCom1ReadReg(0x01,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);
-			break;
-		case 'u' :	//查询UPS变量寄存器
-			SendCom1ReadReg(0x01,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);
-			break;
-		case 's' :	//查询SPD变量寄存器
-			SendCom1ReadReg(0x01,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);
-			break;
-		case 'd' :	//查询装置参数寄存器
-			SendCom1ReadReg(0x01,READ_REGS,PARAMS_START_ADDR,PARAMS_REG_MAX);
-			break;
-		case 'i' :	//查询装置信息寄存器
-			SendCom1ReadReg(0x01,READ_REGS,DEVICEINFO_START_ADDR,DEVICEINFO_REG_MAX);
-			break;
-		case 'r' :	//查询RSU天线参数寄存器
-			SendCom1ReadReg(0x01,READ_REGS,RSU_START_ADDR,RSU_REG_MAX);
-			break;
-		case 'c' :	//遥控寄存器 锁门
-/*			memset(jsonPack,0,1024);
-			pRCtrl=stuRemote_Ctrl;
-//			pRCtrl->Door_Lock=0xFF00;  //电子门锁关
-//			pRCtrl->Door_UnLock=0x0000;  //电子门锁开
-			pRCtrl->RSU1_Close=0xFF00;  //RSU天线1遥合执行
-			pRCtrl->RSU1_Open=0x0000;  //RSU天线1遥分执行
-			jsonStrRemoteCtrlWriter((char*)pRCtrl,jsonPack,&jsonPackLen);
-			NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);*/
-			break;
-		case 'o' :	//遥控寄存器 开门
-/*			memset(jsonPack,0,1024);
-			pRCtrl=stuRemote_Ctrl;
-//			pRCtrl->Door_Lock=0x0000;  //电子门锁关
-//			pRCtrl->Door_UnLock=0xFF00;  //电子门锁开
-			pRCtrl->RSU1_Close=0x0000;  //RSU天线1遥合执行
-			pRCtrl->RSU1_Open=0xFF00;  //RSU天线1遥分执行
-			jsonStrRemoteCtrlWriter((char*)pRCtrl,jsonPack,&jsonPackLen);
-			NetSendParm(NETCMD_REMOTE_CONTROL,jsonPack,jsonPackLen);*/
-			break;
-		case 'h' :	//推送门架运行状态
-			memset(jsonPack,0,50*1024);
-			SetjsonTableStr("flagrunstatus",jsonPack,&jsonPackLen);
-//			SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
-			printf("%s",jsonPack);
-			HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
-			NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
-			break;
-		case 't' :	//RSU下发数据C0帧
-			send_RSU(0xC4,0 ,1,1);
-			break;
-
-		case 'y' :	//测试开锁
-			ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
-			//SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
-			break;
-		case 'z' :	//测试锁
-			ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
-			//SendCom4RCtlReg(DOOR_LOCK_ADDR_1,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
-			break;
-		#if (LOCK_NUM >= 2)
-		case 'a' :	//测试开锁
-			ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
-			//SendCom4RCtlReg(DOOR_LOCK_ADDR_2,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
-			break;
-		case 'b' :	//测试锁
-			ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
-			//SendCom4RCtlReg(DOOR_LOCK_ADDR_2,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
-			break;
-		#endif
-		case 'q' : //退出
-			break;
-		}
-	}
-//	ReleaseCamera(g_hCamera);
-	Net_close();
-	free(jsonPack);
 	return 0;
 }
 
@@ -364,7 +284,7 @@ void InitStuEnvi_Param(ENVI_PARAMS *pParam)
 	pParam->air_cond_temp_in=0x7fff;		//当前空调室内温度值317 ×10
 	pParam->air_cond_amp=0x7fff;					//当前空调电流值318 ×1000
 	pParam->air_cond_volt=0x7fff;					//当前空调电压值319 ×1
-
+	
 	pParam->air_cond_hightemp_alarm=0x7fff;			//空调高温告警320
 	pParam->air_cond_lowtemp_alarm=0x7fff;			//空调低温告警321
 	pParam->air_cond_highmoist_alarm=0x7fff;		//空调高湿告警322
@@ -422,7 +342,7 @@ void InitStuUPS_Param(UPS_PARAMS *pParam)
 	pParam->load_Aout=0x7fff;		// 负载
 	pParam->load_Bout=0x7fff;		// 负载
 	pParam->load_Cout=0x7fff;		// 负载
-
+	
 	//电池参数
 	pParam->running_day=0x7fff; 		// UPS运行时间 56 天
 	pParam->battery_volt=0x7fff;		//UPS电池电压	57 ×10
@@ -463,26 +383,44 @@ void WriteLog(char* str)
 	 exePath="logs";
 	 if(access(exePath.c_str(),0) == -1)
 	 	mkdir(exePath.c_str(),0755);
-
+	 
 	 time_t nSeconds;
 	 struct tm * pTM;
-
+	 
 	 time(&nSeconds);
 	 pTM = localtime(&nSeconds);
-
-	 //系统日期和时间,格式: yyyymmddHHMMSS
+	 
+	 //系统日期和时间,格式: yyyymmddHHMMSS 
 	 sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
 			 pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
 			 pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
-
-	 sprintf(stmp,"%d",pTM->tm_mday);
+	 
+	 sprintf(stmp,"%d",pTM->tm_mday);	 
 	 filename=exePath+"/"+stmp+".txt";
 	 fpLog = fopen(filename.c_str(), "a");
-
+	 
 	 fseek(fpLog, 0, SEEK_END);
 	 fprintf(fpLog, "%s->%s\n", sDateTime,str);
-
+	 printf("%s-->%s",sDateTime,str);	 
+	 
 	 fclose(fpLog);
  }
+ 
+ void myprintf(char* str)
+  {
+	  char sDateTime[30],stmp[10];
+	  time_t nSeconds;
+	  struct tm * pTM;
+	  
+	  time(&nSeconds);
+	  pTM = localtime(&nSeconds);
+	  
+	  //系统日期和时间,格式: yyyymmddHHMMSS 
+	  sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
+			  pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
+			  pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
+	  
+	  printf("%s-->%s",sDateTime,str);	  
+  }
 
 

@@ -18,14 +18,14 @@
 #include <string>
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <stdlib.h> 
+#include <unistd.h>  
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <fcntl.h> 
 #include <termios.h>
-#include <errno.h>
-#include <limits.h>
+#include <errno.h>   
+#include <limits.h> 
 #include <asm/ioctls.h>
 #include <time.h>
 #include <pthread.h>
@@ -35,7 +35,7 @@
 #include "comserver.h"
 #include "MyCritical.h"
 #include <string>
-#include <semaphore.h>
+#include <semaphore.h>  
 #include "Protocol.h"
 #include "rs485server.h"
 
@@ -44,7 +44,7 @@ using namespace std;//寮??ユ?翠釜??绌洪??
 #define PORT 		5000       		// The port which is communicate with server
 #define BACKLOG 	10
 
-#define LENGTH 512              		// Buffer length
+#define LENGTH 512              		// Buffer length                                                                                 
 
 int fd_A[BACKLOG];    // accepted connection fd
 int conn_amount;      // current connection amount
@@ -109,7 +109,7 @@ void SetIPinfo(IPInfo *ipInfo)
 	StrMask=ipInfo->submask;		//子网掩码
 	StrGateway=ipInfo->gateway_addr;//网关
 	StrDNS=ipInfo->dns;				//DNS地址
-
+	
 	Setconfig("IP=",ipInfo->ip);
 	Setconfig("Mask=",ipInfo->submask);
 	Setconfig("Gateway=",ipInfo->gateway_addr);
@@ -139,7 +139,7 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	StrVehPlate1Port=vmctrl_param->VehPlate1Port;		//
 	StrCAMIP=vmctrl_param->CAMIP;		//
 	StrCAMPort=vmctrl_param->CAMPort;		//
-
+	
 	StrCabinetType=vmctrl_param->CabinetType;		//机柜类型
 	StrFlagNetRoadID=vmctrl_param->FlagNetRoadID; //ETC 门架路网编号
 	StrFlagRoadID=vmctrl_param->FlagRoadID;		//ETC 门架路段编号
@@ -147,7 +147,7 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	StrPosId=vmctrl_param->PosId; 		//ETC 门架序号
 	StrDirection=vmctrl_param->Direction; 	//行车方向
 	StrDirDescription=vmctrl_param->DirDescription;	//行车方向说明
-
+	
 	Setconfig("HWServer=",vmctrl_param->HWServer);		//华为服务器地址
 	Setconfig("ServerURL1=",vmctrl_param->ServerURL1);
 	Setconfig("ServerURL2=",vmctrl_param->ServerURL2);
@@ -159,7 +159,7 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	Setconfig("VehPlate1Port=",vmctrl_param->VehPlate1Port);
 	Setconfig("CAMIP=",vmctrl_param->CAMIP);
 	Setconfig("CAMPort=",vmctrl_param->CAMPort);
-
+	
 	Setconfig("FlagNetRoadID=",vmctrl_param->FlagNetRoadID);
 	Setconfig("FlagRoadID=",vmctrl_param->FlagRoadID);
 	Setconfig("FlagID=",vmctrl_param->FlagID);
@@ -182,7 +182,7 @@ void GetConfig(VMCONTROL_PARAM *vmctrl_param)
 	sprintf(vmctrl_param->VehPlate1Port ,StrVehPlate1Port.c_str());
 	sprintf(vmctrl_param->CAMIP ,StrCAMIP.c_str());
 	sprintf(vmctrl_param->CAMPort ,StrCAMPort.c_str());
-
+	
 	sprintf(vmctrl_param->CabinetType ,StrCabinetType.c_str());//机柜类型
 	sprintf(vmctrl_param->FlagNetRoadID ,StrFlagNetRoadID.c_str());
 	sprintf(vmctrl_param->FlagRoadID ,StrFlagRoadID.c_str());
@@ -190,7 +190,7 @@ void GetConfig(VMCONTROL_PARAM *vmctrl_param)
 	sprintf(vmctrl_param->PosId ,StrPosId.c_str());
 	sprintf(vmctrl_param->Direction ,StrDirection.c_str());
 	sprintf(vmctrl_param->DirDescription ,StrDirDescription.c_str());
-
+	
 	sprintf(vmctrl_param->deviceType,StrdeviceType.c_str());		//设备型号900~919
 	sprintf(vmctrl_param->hardwareid,StrID.c_str());		//硬件ID
 	sprintf(vmctrl_param->softVersion,StrVersionNo.c_str()); 		//主程序版本号920
@@ -201,9 +201,9 @@ void initServer()
 {
 	//获取RTC时钟
 //	gRTCfd=rtc_init();
-
+	
 	pthread_t tNetwork_server;
-	if (pthread_create(&tNetwork_server, NULL, NetWork_server_thread,NULL))
+	if (pthread_create(&tNetwork_server, NULL, NetWork_server_thread,NULL)) 
 	{
 		printf("NetWork server create failed!\n");
 	}
@@ -222,9 +222,9 @@ void* NetWork_server_thread(void *param)
 	int num;
 	socklen_t sin_size;
 	char sdbuf[LENGTH];          		// Send buffer
-	struct sockaddr_in server_addr;
-	struct sockaddr_in client_addr;
-	char sendstr[16]= {"123456789 abcde"};
+	struct sockaddr_in server_addr; 
+	struct sockaddr_in client_addr; 
+	char sendstr[16]= {"123456789 abcde"}; 
 	char buf[NETPACKET_MAXLEN];
 	int ret;
 	int i;
@@ -232,10 +232,10 @@ void* NetWork_server_thread(void *param)
 	sockpara.IsQuit = 0;
 	char * jsonPack=(char *)malloc(50*1024);
 	int jsonPackLen=0;
-
-	/* Get the Socket file descriptor */
-	if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1 )
-	{
+           
+	/* Get the Socket file descriptor */  
+	if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1 )  
+	{   
     	printf ("ERROR: Failed to obtain Socket Despcritor.\n");
     	return (0);
 	} else {
@@ -250,7 +250,7 @@ void* NetWork_server_thread(void *param)
 
 	/*  Blind a special Port */
 	if( bind(sockfd, (struct sockaddr*)&server_addr, sizeof(struct sockaddr)) == -1 )
-	{
+	{  
 	  	printf ("ERROR: Failed to bind Port %d.\n",PORT);
 		close(sockfd);
 		return (0);
@@ -259,8 +259,8 @@ void* NetWork_server_thread(void *param)
 	}
 
 	/*  Listen remote connect/calling */
-	if(listen(sockfd,BACKLOG) == -1)
-	{
+	if(listen(sockfd,BACKLOG) == -1)    
+	{  
     	printf ("ERROR: Failed to listen Port %d.\n", PORT);
 		close(sockfd);
 		return (0);
@@ -299,18 +299,18 @@ void* NetWork_server_thread(void *param)
 		printf("TCP_KEEPCNT Error!\n");
 	}
 	//hym end
-
+			
 	fd_set fdsr;
 	int maxsock;
 	struct timeval tv;
-
+	
 	conn_amount = 0;
 	sin_size = sizeof(client_addr);
 	maxsock = sockfd;
 	while (1) {
 		FD_ZERO(&fdsr);
 		FD_SET(sockfd, &fdsr);
-
+	
 		// timeout setting
 		tv.tv_sec = 30;
 		tv.tv_usec = 0;
@@ -323,21 +323,21 @@ void* NetWork_server_thread(void *param)
 					maxsock = fd_A[i];
 			}
 		}
-
+	
 		ret = select(maxsock + 1, &fdsr, NULL, NULL, &tv);
 		if (ret < 0) {
 			perror("select");
 		} else if (ret == 0) {
-
+	
 			continue;
 		}
-
-		for (i = 0; i < conn_amount; i++)
+	
+		for (i = 0; i < conn_amount; i++) 
 		{
-			if (FD_ISSET(fd_A[i], &fdsr))
+			if (FD_ISSET(fd_A[i], &fdsr)) 
 			{
 				ret = recv(fd_A[i], buf, NETCMD_HEADERLEN, 0);
-				if (ret <= 0)
+				if (ret <= 0) 
 				{ // client close
 					printf("client[%d] close\n", i);
 					close(fd_A[i]);
@@ -345,12 +345,12 @@ void* NetWork_server_thread(void *param)
 					fd_A[i] = 0;
 					if(i==conn_amount-1)
 						conn_amount--;
-				}
-				else
+				} 
+				else 
 				{
 					if(ret==NETCMD_HEADERLEN)
 					{
-
+						
 						NETCMD_HEADER *pheader = (NETCMD_HEADER *) buf;
 						if (pheader->magic == NETCMD_MAGIC)
 						{
@@ -359,9 +359,9 @@ void* NetWork_server_thread(void *param)
 							{
 								ret += recv(fd_A[i], pheader->data,	pheader->datalen, 0);
 							}
-
+							
 							//printf("Client_CmdProcessbuff:\r\n");
-							if (ret == NETCMD_HEADERLEN + pheader->datalen)
+							if (ret == NETCMD_HEADERLEN + pheader->datalen) 
 							{
 								//printf("");
 								//("Client_CmdProcessbuff:%s\r\n",buf);
@@ -370,8 +370,8 @@ void* NetWork_server_thread(void *param)
 //								printf("len=%d,data=%s",pheader->datalen,pheader->data );
 								NetSend(fd_A[i], buf,pheader->datalen + NETCMD_HEADERLEN);
 							}
-						}
-						else
+						} 
+						else 
 						{
 							//printf("client[%d] not a current client force closed\n",i);
 							close(fd_A[i]);
@@ -379,16 +379,16 @@ void* NetWork_server_thread(void *param)
 							fd_A[i] = 0;
 							if (i == conn_amount - 1)
 								conn_amount--;
-
+	
 						}
 					}
-
+	
 				}
 			}
 		}
 		//printf("sockfd%d1212\r\n",sockfd);
-
-		if (FD_ISSET(sockfd, &fdsr))
+	
+		if (FD_ISSET(sockfd, &fdsr)) 
 		{
 			//printf("sockfd*****\r\n");
 			newfd = accept(sockfd, (struct sockaddr *) &client_addr,&sin_size);
@@ -398,20 +398,20 @@ void* NetWork_server_thread(void *param)
 				perror("accept");
 				continue;
 			}
-
+	
 			// add to fd queue
-			if (conn_amount < BACKLOG)
+			if (conn_amount < BACKLOG) 
 			{
 				//find empty
 				for (i = 0; i < conn_amount; i++)
 				{
-					if (fd_A[i] == 0)
+					if (fd_A[i] == 0) 
 					{
 						fd_A[i] = newfd;
 						break;
 					}
 				}
-
+	
 				if(i==conn_amount)
 				{
 					fd_A[i] = newfd;
@@ -425,7 +425,7 @@ void* NetWork_server_thread(void *param)
 				SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
 				printf("%s",jsonPack);
 				NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
-
+				
 			}
 		}
 	}
@@ -446,7 +446,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	char * jsonPack=(char *)malloc(JSON_LEN);
 	int jsonPackLen=0;
 	char * pRecvBuf=(char *)malloc(JSON_LEN);
-
+	
 	unsigned char  regAddr;
 	unsigned short regValue;
 	int status;
@@ -456,14 +456,14 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		sprintf(tmpStringData,"Client_CmdProcess cmd =%d \r\n",pCMD->cmd);
 		printf(tmpStringData);
 //		WriteLog(tmpStringData);
-	}
+	}	
 	switch (pCMD->cmd)
 	{
 		case NETCMD_CONTROLERID:		//6 保留
 			sprintf(tmpStringData,"LTKJ-CONTROLER-V1.0");
 			memcpy( (char *) pCMD->data,tmpStringData,strlen(tmpStringData));
 			pCMD->datalen = strlen(tmpStringData);
-
+			
 			break;
 		case NETCMD_DATETIME: 			//1 设置日期时间
 			if(pCMD->status==SFLAG_WRITE)
@@ -475,7 +475,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				system(tmpStringData);		//设置日期时间
 				system("hwclock -w");		//写入硬时钟
 				pCMD->datalen =  0;
-
+			
 			}
 			break;
 
@@ -487,7 +487,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				memcpy((char *) pCMD->data,(char *) &ipinfo,	sizeof(IPInfo));
 				pCMD->datalen = sizeof(IPInfo);
 			}
-			else if(pCMD->status==SFLAG_WRITE)
+			else if(pCMD->status==SFLAG_WRITE)	
 			{
 				printf("Set IP Addr len=%d, %s\n",pCMD->datalen,pCMD->data);
 				memcpy((char *) &ipinfo, (char *) pCMD->data, pCMD->datalen);
@@ -495,7 +495,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				//重新读设置文件
 				GetConfig();
 				pCMD->datalen = 0;
-//                system("reboot") ;
+                        system("reboot") ;
 			}
 			break;
 		case NETCMD_REBOOT: 			//4 重启设备指令
@@ -534,7 +534,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = jsonPackLen;
 			}
 			break;
-
+		
 		case NETCMD_SEND_UPS_PARAM: 			//10 UPS参数
 			if(pCMD->status==SFLAG_READ)
 			{
@@ -546,7 +546,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = jsonPackLen;
 			}
 			break;
-
+			
 		case NETCMD_SEND_SPD_PARAM: 			//11 防雷器寄存器参数
 			if(pCMD->status==SFLAG_READ)
 			{
@@ -580,7 +580,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = 0;
 			}
 			break;
-		case NETCMD_SEND_AIR_PARAM: 			//13 空调参数
+		case NETCMD_SEND_AIR_PARAM: 			//13 空调参数 
 			if(pCMD->status==SFLAG_READ)
 			{
 				memset(jsonPack,0,JSON_LEN);
@@ -605,7 +605,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		case NETCMD_SEND_RSU_PARAM: 			//14 RSU天线参数
 /*			if(pCMD->status==SFLAG_READ)
 			{
-				SendCom1ReadReg(0x01,READ_REGS,RSU_START_ADDR,RSU_REG_MAX);//查询RSU天线参数寄存器
+				SendCom1ReadReg(POWER_CTRL_ADDR,READ_REGS,RSU_START_ADDR,RSU_REG_MAX);//查询RSU天线参数寄存器
 			}*/
 			pCMD->datalen = 0;
 			break;
@@ -654,9 +654,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
    int nSendLen = 0;
    int nLen = 0;
    while(nSendLen < nsize) {
-	 // printf("nsize :%d\r\n",nsize);
-	 nLen = send(s, pbuffer+nSendLen, nsize - nSendLen, MSG_NOSIGNAL);
-	 //printf("nLen :%d\r\n",nLen);
+	 // printf("nsize :%d\r\n",nsize);	   
+	 nLen = send(s, pbuffer+nSendLen, nsize - nSendLen, MSG_NOSIGNAL);	
+	 //printf("nLen :%d\r\n",nLen);  
 	 if(nLen<=0)
 	   break;
 	 nSendLen += nLen;
@@ -664,21 +664,21 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
    return nSendLen;
  }
 
-
+ 
  int  MySendMessage(char *pBuf)
  {
 	 int nsendlen;
 	 int i,nlen;
 	 char done = 0;
-
+	 
 	 NETCMD_HEADER netcmd;
 	 netcmd.cmd 	= NETCMD_SEND_DATA;
 	 netcmd.magic	= 0x12345678;
 	 netcmd.status	= SFLAG_READ;
 	 netcmd.datalen = strlen(pBuf);
 //	 netcmd.data    = pBuf;
-
-
+		 
+ 
 	 for (i = 0; i < BACKLOG; i++) {
 		 if (fd_A[i] > 0) {
 			 nlen = NetSend(fd_A[i], (char *) &netcmd,NETCMD_HEADERLEN);
@@ -695,9 +695,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 //		 else
 //			 printf("soket %d is unable=%d\n", i,fd_A[i]);
-
+		 	
 	 }
-
+		 
 	 return 0;
  }
 
@@ -706,18 +706,18 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	  int nsendlen;
 	  int i,nlen;
 	  char done = 0;
-
+	  
 	  NETCMD_HEADER netcmd;
 	  netcmd.cmd	 = cmd;
 	  netcmd.magic	 = 0x12345678;
 	  netcmd.status  = SFLAG_READ;
 	  netcmd.datalen = len;
-
-
+		  
+  
 	  for (i = 0; i < BACKLOG; i++) {
 		  if (fd_A[i] > 0) {
 			  nlen = NetSend(fd_A[i], (char *) &netcmd,NETCMD_HEADERLEN);
-
+ 
 			  nsendlen=len;
 			  if (nsendlen > 0) {
 				  nlen = NetSend(fd_A[i], (char *) pBuf, nsendlen);
@@ -730,17 +730,17 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		  }
  // 	  else
  // 		  printf("soket %d is unable=%d\n", i,fd_A[i]);
-
+			 
 	  }
-
+		  
 	  return 0;
   }
-
+ 
  int Net_close()
  {
 	 int i;
 	 fd_set fdsr;
-
+ 
 	 for (i = 0; i < BACKLOG; i++) {
 		 if (fd_A[i] != 0)
 		 {
@@ -751,12 +751,13 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 }
 	 return 0;
  }
-
+ 
 void RemoteControl(UINT8* pRCtrl)
 {
 	int i,j;
 	REMOTE_CONTROL *pstuRCtrl=(REMOTE_CONTROL *)pRCtrl;
-	/*	if(pstuRCtrl->rsu1==ACT_CLOSE)			//RSU天线1分闸
+	
+/*	if(pstuRCtrl->rsu1==ACT_CLOSE)			//RSU天线1分闸
  		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,RSU1_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
 	if(pstuRCtrl->rsu1==ACT_OPEN)						//RSU天线1合闸
  		{SendCom1RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,RSU1_REG,SWITCH_ON);usleep(2000);}
@@ -776,15 +777,15 @@ void RemoteControl(UINT8* pRCtrl)
 			ctrl_flag |= LBIT(POWER_1_CTRL_CLOSE+2*i);
 			usleep(2000);
 		}
-	 	//{SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,j,SWITCH_OFF);usleep(2000);}//delay 2ms
 		if(pstuRCtrl->vehplate[i]==ACT_OPEN)						//车牌识别1合闸
 		{
 			ctrl_flag |= LBIT(POWER_1_CTRL_OPEN+2*i);
 			usleep(2000);
 		}
-	 	//{SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,j,SWITCH_ON);usleep(2000);}
-	}
-
+	}  
+//	if(pstuRCtrl->SysReset==WRITE_ENABLE)					//系统重启 1548
+//		system("reboot") ;
+	
 	if(pstuRCtrl->FrontDoorCtrl==SWITCH_OFF)					//开锁
  	{
 		ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
@@ -795,7 +796,7 @@ void RemoteControl(UINT8* pRCtrl)
  		ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
 		usleep(2000);
 	}
-	#if (LOCK_NUM >= 2)
+#if (LOCK_NUM >= 2)
 	if(pstuRCtrl->BackDoorCtrl==SWITCH_OFF)					//开锁
  	{
  		ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
@@ -806,29 +807,26 @@ void RemoteControl(UINT8* pRCtrl)
  		ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
 		usleep(2000);
 	}
-	#endif
-
-//	if(pstuRCtrl->SysReset==WRITE_ENABLE)					//系统重启 1548
-// 		{SendCom1RCtlReg(0x01,FORCE_COIL,SYSRESET,WRITE_ENABLE);usleep(2000);}
+#endif
 }
 
 void AirCondControl(UINT8* pRCtrl)
 {
 	AIRCOND_PARAM *pstuRCtrl=(AIRCOND_PARAM *)pRCtrl;
-
-	if(pstuRCtrl->aircondset==ACT_CLOSE)			//空调关机//1220
- 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCONDSET_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
+	
+	if(pstuRCtrl->aircondset==ACT_CLOSE)			//空调关机//1220	
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,PRESET_REGS,AIRCONDSET_REG,SWITCH_OFF);usleep(2000);}//delay 2ms
 	if(pstuRCtrl->aircondset==ACT_OPEN)						//空调开机
- 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCONDSET_REG,SWITCH_ON);usleep(2000);}
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,PRESET_REGS,AIRCONDSET_REG,SWITCH_ON);usleep(2000);}
 	if(pstuRCtrl->aircoldstartpoint!=0)			// 空调制冷点//1221
- 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCOLDSTARTPOINT_REG,pstuRCtrl->aircoldstartpoint);usleep(2000);}//delay 2ms
-	if(pstuRCtrl->aircoldloop!=0)						//空调制冷回差//1222
- 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRCOLDLOOP_REG,pstuRCtrl->aircoldloop);usleep(2000);}
-	if(pstuRCtrl->airhotstartpoint!=0)						//空调制热点//1223
- 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRHOTSTARTPOINT_REG,pstuRCtrl->airhotstartpoint);usleep(2000);}
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,PRESET_REGS,AIRCOLDSTARTPOINT_REG,pstuRCtrl->aircoldstartpoint);usleep(2000);}//delay 2ms
+	if(pstuRCtrl->aircoldloop!=0)						//空调制冷回差//1222	
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,PRESET_REGS,AIRCOLDLOOP_REG,pstuRCtrl->aircoldloop);usleep(2000);}
+	if(pstuRCtrl->airhotstartpoint!=0)						//空调制热点//1223 
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,PRESET_REGS,AIRHOTSTARTPOINT_REG,pstuRCtrl->airhotstartpoint);usleep(2000);}
 	if(pstuRCtrl->airhotloop!=0)						//空调制热回差//1224
- 		{SendCom1RCtlReg(0x01,PRESET_REGS,AIRHOTLOOP_REG,pstuRCtrl->airhotloop);usleep(2000);}
-
+ 		{SendCom1RCtlReg(POWER_CTRL_ADDR,PRESET_REGS,AIRHOTLOOP_REG,pstuRCtrl->airhotloop);usleep(2000);}
+	  
 }
 
 void *LTKJ_DataPostthread(void *param)
@@ -844,10 +842,10 @@ void *LTKJ_DataPostthread(void *param)
 	{
 		memset(jsonPack,0,50*1024);
 		SetjsonTableStr("flagrunstatus",jsonPack,&jsonPackLen);
-		printf("%s",jsonPack);
+//		printf("%s",jsonPack);
 		HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
-
-		sleep(5);
+		
+		sleep(300);
 	}
 	free(jsonPack);
 	return 0 ;
@@ -872,11 +870,11 @@ void *XY_DataPostthread(void *param)
 	{
 		memset(jsonPack,0,50*1024);
 		SetjsonFlagRunStatusStr(jsonPack,&jsonPackLen);
-		printf("%s",jsonPack);
+//		printf("%s",jsonPack);
 		HttpPostParm(StrServerURL2,jsonPack,jsonPackLen);
 		NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
-
-		sleep(5);
+		
+		sleep(300);
 	}
 	free(jsonPack);
 	return 0 ;

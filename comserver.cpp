@@ -100,17 +100,17 @@ void *ComPortGetDataThread(void *param)
 	{
 	printf("ComPortGetDataThread\r\n");
 		//9 查询环境变量寄存器
-		SendCom1ReadReg(0x01,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);
+		SendCom1ReadReg(POWER_CTRL_ADDR,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);
 		usleep(5000);//delay 5ms
 		//10 查询UPS变量寄存器
-		SendCom1ReadReg(0x01,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);
+		SendCom1ReadReg(POWER_CTRL_ADDR,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);
 		usleep(5000);//delay 5ms
 		//11 查询SPD变量寄存器
-		SendCom1ReadReg(0x01,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);
+		SendCom1ReadReg(POWER_CTRL_ADDR,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);
 		usleep(5000);//delay 5ms
 		//13 查询空调参数寄存器
-		SendCom1ReadReg(0x01,READ_REGS,AIRCOND_START_ADDR,AIRCOND_REG_MAX);
-	  	sleep(5);//delay 5s
+		SendCom1ReadReg(POWER_CTRL_ADDR,READ_REGS,AIRCOND_START_ADDR,AIRCOND_REG_MAX);
+	  	sleep(10);//delay 5s
 	}
 	return 0 ;
 }
@@ -467,4 +467,5 @@ int SetAirCondStruct(unsigned char *buf,unsigned short int len)
 	
 	return 0;
 }
+
 

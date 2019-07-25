@@ -28,10 +28,10 @@ CComPort *mComPort4 = NULL;
 CMyCritical Com4Cri;
 CMyCritical Com4SendCri;
 
-UINT32  comm_flag=0;	// ¬÷—Ø±Í÷æ
-UINT32  ctrl_flag=0;	// –¥±Í÷æ
+UINT32  comm_flag=0;	// ËΩÆËØ¢Ê†áÂøó
+UINT32  ctrl_flag=0;	// ÂÜôÊ†áÂøó
 UINT8  WAIT_response_flag=0;
-UINT8 Recive_Flag = 0;			/* Ω” ’±Í÷æ*/
+UINT8 Recive_Flag = 0;			/* Êé•Êî∂Ê†áÂøó*/
 
 
 extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_NUM];
@@ -46,7 +46,7 @@ const UINT32 locker_id[CARD_NUM] =
 	2857740885u
 };
 
-/*5¥ŒÀ¯µƒ¬÷—Ø∫Û¬÷—Ø∆‰À¸ ¬œÓ*/
+/*5Ê¨°ÈîÅÁöÑËΩÆËØ¢ÂêéËΩÆËØ¢ÂÖ∂ÂÆÉ‰∫ãÈ°π*/
 const UINT16 polling_cnt[] =
 {
 #if (LOCK_NUM >= 1)
@@ -173,10 +173,10 @@ void *Locker_DataPollingthread(void *param)
 			}
 		}
 
-		// »Áπ˚√ª”– ’µΩªÿ∏¥ ˝æ›,’‚¿Ôª·“ª÷±Ω¯≤ª¿¥,“™”√¥¯timeoutµƒ–≈∫≈¡ø
+		// Â¶ÇÊûúÊ≤°ÊúâÊî∂Âà∞ÂõûÂ§çÊï∞ÊçÆ,ËøôÈáå‰ºö‰∏ÄÁõ¥Ëøõ‰∏çÊù•,Ë¶ÅÁî®Â∏¶timeoutÁöÑ‰ø°Âè∑Èáè
 		//if (!WAIT_response_flag)
 		{
-			// øÿ÷∆,”≈œ»¥¶¿ÌDO
+			// ÊéßÂà∂,‰ºòÂÖàÂ§ÑÁêÜDO
 			if (ctrl_flag & (LBIT(POWER_1_CTRL_CLOSE) |LBIT(POWER_1_CTRL_OPEN) |LBIT(POWER_2_CTRL_CLOSE) |LBIT(POWER_2_CTRL_OPEN)
 						|LBIT(POWER_3_CTRL_CLOSE) |LBIT(POWER_3_CTRL_OPEN) |LBIT(POWER_4_CTRL_CLOSE) |LBIT(POWER_4_CTRL_OPEN)
 						|LBIT(POWER_5_CTRL_CLOSE) |LBIT(POWER_5_CTRL_OPEN) |LBIT(POWER_6_CTRL_CLOSE) |LBIT(POWER_6_CTRL_OPEN)
@@ -192,14 +192,14 @@ void *Locker_DataPollingthread(void *param)
 						ctrl_flag &= ~(LBIT(POWER_1_CTRL_CLOSE+2*i));
 						WAIT_response_flag = WAIT_POWER_1_CTRL_CLOSE_RES+2*i;
 						SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,VPLATE1_REG+i,SWITCH_OFF);
-						break;	// Ã¯≥ˆ—≠ª∑,µ»¥˝œ¬“ª∏ˆ450ms∫Û¥Û—≠ª∑‘Ÿ¿¥øÿ÷∆£¨≈¬485≥ÂÕª
+						break;	// Ë∑≥Âá∫Âæ™ÁéØ,Á≠âÂæÖ‰∏ã‰∏Ä‰∏™450msÂêéÂ§ßÂæ™ÁéØÂÜçÊù•ÊéßÂà∂ÔºåÊÄï485ÂÜ≤Á™Å
 					}
 					else if (ctrl_flag & (LBIT(POWER_1_CTRL_OPEN+2*i)))
 					{
 						ctrl_flag &= ~(LBIT(POWER_1_CTRL_OPEN+2*i));
 						WAIT_response_flag = WAIT_POWER_1_CTRL_OPEN_RES+2*i;
 						SendCom4RCtlReg(POWER_CTRL_ADDR,FORCE_COIL,VPLATE1_REG+i,SWITCH_ON);
-						break;	// Ã¯≥ˆ—≠ª∑,µ»¥˝œ¬“ª∏ˆ450ms∫Û¥Û—≠ª∑‘Ÿ¿¥øÿ÷∆£¨≈¬485≥ÂÕª
+						break;	// Ë∑≥Âá∫Âæ™ÁéØ,Á≠âÂæÖ‰∏ã‰∏Ä‰∏™450msÂêéÂ§ßÂæ™ÁéØÂÜçÊù•ÊéßÂà∂ÔºåÊÄï485ÂÜ≤Á™Å
 					}
 				}
 			}
@@ -230,7 +230,7 @@ void *Locker_DataPollingthread(void *param)
 			}
 			#endif
 
-			// ¬÷—Ø
+			// ËΩÆËØ¢
 			else if (comm_flag &LBIT(LOCKER_1_STATUS))
 			{
 				comm_flag &= ~(LBIT(LOCKER_1_STATUS));
@@ -275,19 +275,19 @@ void lockerPollingInit()
 
 
 /******************************************************************************
-*  ∫Ø ˝√˚: void char_to_long(INT8U* buffer,LONG32U* value)
+*  ÂáΩÊï∞Âêç: void char_to_long(INT8U* buffer,LONG32U* value)
 *
-*  √Ë ˆ: ◊÷∑˚◊™ªØŒ™’˚–Õ
+*  ÊèèËø∞: Â≠óÁ¨¶ËΩ¨Âåñ‰∏∫Êï¥Âûã
 *
 *
 *
-*   ‰»Î:
+*  ËæìÂÖ•:
 *
-*   ‰≥ˆ:
+*  ËæìÂá∫:
 *
-*  ∑µªÿ÷µ:
+*  ËøîÂõûÂÄº:
 *
-*  ∆‰À¸:
+*  ÂÖ∂ÂÆÉ:
 *******************************************************************************/
 void char_to_int(UINT8* buffer,UINT16* value)
 {
@@ -300,19 +300,19 @@ void char_to_int(UINT8* buffer,UINT16* value)
 
 
 /******************************************************************************
-*  ∫Ø ˝√˚: void char_to_long(INT8U* buffer,LONG32U* value)
+*  ÂáΩÊï∞Âêç: void char_to_long(INT8U* buffer,LONG32U* value)
 *
-*  √Ë ˆ: ◊÷∑˚◊™ªØŒ™≥§’˚–Õ
+*  ÊèèËø∞: Â≠óÁ¨¶ËΩ¨Âåñ‰∏∫ÈïøÊï¥Âûã
 *
 *
 *
-*   ‰»Î:
+*  ËæìÂÖ•:
 *
-*   ‰≥ˆ:
+*  ËæìÂá∫:
 *
-*  ∑µªÿ÷µ:
+*  ËøîÂõûÂÄº:
 *
-*  ∆‰À¸:
+*  ÂÖ∂ÂÆÉ:
 *******************************************************************************/
 void char_to_long(UINT8* buffer,UINT32* value)
 {
@@ -413,20 +413,20 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 }
 
 /******************************************************************************
- * ∫Ø ˝√˚:	comm_VAData_analyse
- * √Ë ˆ: 		µÁ—πµÁ¡˜≤…ºØ¥´∏–∆˜µƒΩ‚Œˆ
+ * ÂáΩÊï∞Âêç:	comm_VAData_analyse
+ * ÊèèËø∞: 		ÁîµÂéãÁîµÊµÅÈááÈõÜ‰º†ÊÑüÂô®ÁöÑËß£Êûê
  *            -
- *  ‰»Î≤Œ ˝:
- *  ‰≥ˆ≤Œ ˝:
- * ∑µªÿ÷µ:
+ * ËæìÂÖ•ÂèÇÊï∞:
+ * ËæìÂá∫ÂèÇÊï∞:
+ * ËøîÂõûÂÄº:
  *
- * ◊˜’ﬂ:Jerry
- * ¥¥Ω®»’∆⁄:2019.7.12
+ * ‰ΩúËÄÖ:Jerry
+ * ÂàõÂª∫Êó•Êúü:2019.7.12
  ******************************************************************************/
 void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char seq)
 {
 	UINT8 i;
-	UINT16 *pointer = &stuRSU_Param[seq]->phase[0].vln;	/*µ⁄0œ‡*/
+	UINT16 *pointer = &stuRSU_Param[seq]->phase[0].vln;	/*Á¨¨0Áõ∏*/
 
 	if(len == (REAL_DATA_NUM*2+5))
 	{
@@ -438,7 +438,7 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		printf("%5hd ",stuRSU_Param[seq]->phase[0].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[0].amp);printf("\r\n");
 
-		/*µ⁄1œ‡*/
+		/*Á¨¨1Áõ∏*/
 		pointer = &stuRSU_Param[seq]->phase[1].vln;
 		for(i = 7;i <= 8;i++)
 		{
@@ -447,7 +447,7 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		printf("%5hd ",stuRSU_Param[seq]->phase[1].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[1].amp);printf("\r\n");
 
-		/*µ⁄2œ‡*/
+		/*Á¨¨2Áõ∏*/
 		pointer = &stuRSU_Param[seq]->phase[2].vln;
 		for(i = 14;i <= 15;i++)
 		{
@@ -456,7 +456,7 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		printf("%5hd ",stuRSU_Param[seq]->phase[2].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[2].amp);printf("\r\n");
 
-		/*µ⁄3œ‡*/
+		/*Á¨¨3Áõ∏*/
 		pointer = &stuRSU_Param[seq]->phase[3].vln;
 		for(i = 21;i <= 22;i++)
 		{
@@ -465,16 +465,16 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		printf("%5hd ",stuRSU_Param[seq]->phase[3].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[3].amp);printf("\r\n");
 
-		/*µ⁄4œ‡*/
+		/*Á¨¨4Áõ∏*/
 		pointer = &stuRSU_Param[seq]->phase[4].vln;
 		for(i = 28;i <= 29;i++)
 		{
-			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-27));
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-28));
 		}
 		printf("%5hd ",stuRSU_Param[seq]->phase[4].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[4].amp);printf("\r\n");
 
-		/*µ⁄5œ‡*/
+		/*Á¨¨5Áõ∏*/
 		pointer = &stuRSU_Param[seq]->phase[5].vln;
 		for(i = 35;i <= 36;i++)
 		{
@@ -569,7 +569,7 @@ void rs485init(void)
 }
 
 
-//ÂèëÈÄÅÂÜôÈÅ•ÊéßÂØÑÂ≠òÂô?ÓÜêADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + MBUS_OPT_CODE_H + MBUS_OPT_CODE_L + CRC(2)
+//ÈçôÊà¶‚Ç¨‰Ω∏ÂïìÈñ¨„É¶Â∏∂ÁÄµÂã´Áì®Èç£?È°îÊÄâDDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + MBUS_OPT_CODE_H + MBUS_OPT_CODE_L + CRC(2)
 UINT16 SendCom4RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
 {
     Com4SendCri.Lock();
@@ -578,15 +578,15 @@ UINT16 SendCom4RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
     int len=8;
 
     bytSend[MBUS_ADDR]        = Addr;
-    bytSend[MBUS_FUNC]        = Func;       //ÂÜôÂØÑÂ≠òÂô®
-    bytSend[MBUS_REFS_ADDR_H] = (REFS_ADDR&0xFF00) >> 8;     //ÂØÑÂ≠òÂô®Ëµ∑ÂßãÂú∞ÂùÄÈ´ò‰Ωç
-    bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;           //ÂØÑÂ≠òÂô®Ëµ∑ÂßãÂú∞ÂùÄ‰Ωé‰Ωç
-    bytSend[MBUS_OPT_CODE_H] = (code&0xFF00) >> 8;     //Êìç‰ΩúÁ†ÅÈ´ò‰Ω?    bytSend[MBUS_OPT_CODE_L] =  code&0x00FF;           //Êìç‰ΩúÁ†Å‰Ωé‰Ω?
+    bytSend[MBUS_FUNC]        = Func;       //ÈçêÊ¨èÁòéÁÄõÊ®∫Ê´í
+    bytSend[MBUS_REFS_ADDR_H] = (REFS_ADDR&0xFF00) >> 8;     //ÁÄµÂã´Áì®Èç£„Ñ®Êç£ÊøÆÂ¨™Êπ¥Èçß‚Ç¨Ê•ÇÊ®πÁ∂Ö
+    bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;           //ÁÄµÂã´Áì®Èç£„Ñ®Êç£ÊøÆÂ¨™Êπ¥Èçß‚Ç¨Êµ£Â∫ùÁ∂Ö
+    bytSend[MBUS_OPT_CODE_H] = (code&0xFF00) >> 8;     //ÈéøÂ∂ÑÁ∂îÈêÆ‰æÄÁèÆÊµ£?    bytSend[MBUS_OPT_CODE_L] =  code&0x00FF;           //ÈéøÂ∂ÑÁ∂îÈêÆ‰Ω∑Á∂ÜÊµ£?
 	bytSend[MBUS_OPT_CODE_L] =  code&0xFF;
-	//CRCÊ†°È™å
+	//CRCÈèçÔø†Áçô
     unsigned short int CRC = CRC16(bytSend,len-2) ;
-    bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRCÈ´ò‰Ωç
-    bytSend[len-1] =  CRC&0x00FF;           //CRC‰Ωé‰Ωç
+    bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRCÊ•ÇÊ®πÁ∂Ö
+    bytSend[len-1] =  CRC&0x00FF;           //CRCÊµ£Â∫ùÁ∂Ö
 
 	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 
@@ -600,6 +600,8 @@ UINT16 SendCom4RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
 	usleep(5000);//delay 5ms
 	return 0;
 }
+
+
 
 
 

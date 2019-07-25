@@ -14,11 +14,31 @@
 #include "event2/listener.h"
 #include <pthread.h>
 #include "event2/http.h"
+#include "tea.h"
+#include <unistd.h> 
 
 #define BUF_MAX 1024*16
 #define JSON_LEN 10*1024
 
 extern bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout);
+
+int WritepUpdata(unsigned char *pDateBuf,int pDateLen)
+{
+    FILE* fdd ;
+    fdd	= fopen("/opt/tranter", "wb");
+    if(fdd == NULL)
+    {
+       return 1 ;
+    }
+
+    fwrite(pDateBuf,pDateLen, 1, fdd);
+    fflush(fdd);
+    fclose(fdd);
+    
+    return 0 ;
+
+}
+
 
 //解析post请求数据
 void get_post_message(char *buf, struct evhttp_request *req)
@@ -35,6 +55,52 @@ void get_post_message(char *buf, struct evhttp_request *req)
     {
         size_t copy_len = post_size > BUF_MAX ? BUF_MAX : post_size;
         printf("post len:%d, copy_len:%d\n",post_size,copy_len);
+        //updata
+        unsigned char *pbuf = (unsigned char *)(evbuffer_pullup(req->input_buffer,-1));
+        if((pbuf[0] == 0x12) && (pbuf[1] == 0x34) && (pbuf[2] == 0x56) && (pbuf[3] == 0x78)) 
+        {
+           unsigned int getlen ;
+           memcpy(&getlen,pbuf+4,4);
+           if(getlen == post_size)
+           {
+              unsigned short int IntCRC;
+              unsigned short int getCrc = GetCrc(pbuf,getlen-2) ;
+              memcpy(&IntCRC,pbuf+getlen-2,2);
+              if(IntCRC == getCrc)
+              {
+                 system("mv tranter tranter1") ;
+                 printf("start updata\r\n");
+                 WritepUpdata(pbuf+8,getlen-16);
+
+                 struct evbuffer *retbuff = NULL;
+                 retbuff = evbuffer_new();
+                 if(retbuff == NULL)
+                 {
+                   printf("retbuff is null.");
+                   //system("reboot") ;
+                   //return;
+                 }
+                 else
+                 {
+                   evbuffer_add_printf(retbuff,"Updata LTKJ Controller device! Don't turn off the power in 10 seconds! device is auto restart! Thank you!");
+                   evhttp_send_reply(req,HTTP_OK,"Client",retbuff);
+                 }
+
+                 sleep(5);
+                 system("chmod 777 tranter") ;
+                 printf("chmod 777 tranter\r\n");
+                 sleep(1);
+                 system("reboot") ;
+
+              }
+              else
+              {
+                  printf("updata CRC erro %d %d\r\n",IntCRC,getCrc) ;
+              }
+
+           }
+        }
+
         memcpy(buf, evbuffer_pullup(req->input_buffer,-1), copy_len);
         buf[post_size] = '\0';
 //        printf("post msg:%s\n",buf);

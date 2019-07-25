@@ -7,7 +7,7 @@ extern UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
 extern SPD_PARAMS *stuSpd_Param;		//防雷器结构体
 extern DEVICE_PARAMS *stuDev_Param;	//装置参数寄存器
 extern VMCONTROL_PARAM *stuVMCtl_Param;	//采集器设备信息结构体
-extern RSU_PARAMS *stuRSU_Param;		//RSU天线信息结构体
+extern RSU_PARAMS stuRSU_Param[2];		//RSU天线信息结构体
 extern REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
 extern FLAGRUNSTATUS *stuFlagRunStatus;//门架自由流运行状态结构体
 //extern THUAWEIGantry *stuHUAWEIDevValue;//华为机柜状态
@@ -193,9 +193,24 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 		if(it->first=="rsu1")	pRCtrl->rsu1=value;		//1500 RSU天线1 0xFF00: 遥合;0xFF01: 遥分
 		else if(it->first=="door_do")	pRCtrl->door_do=value;	//1501 电子门锁 0xFF00: 关锁;0xFF01: 开锁
 		else if(it->first=="autoreclosure")	pRCtrl->autoreclosure=value;	//1502 自动重合闸0xFF00: 遥合;0xFF01: 遥分
-		else if(it->first=="vehplate1")	pRCtrl->vehplate1=value;			//1503 车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+
+		else if(it->first=="vehplate1")	pRCtrl->vehplate[0]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate2")	pRCtrl->vehplate[1]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate3")	pRCtrl->vehplate[2]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate4")	pRCtrl->vehplate[3]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate5")	pRCtrl->vehplate[4]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate6")	pRCtrl->vehplate[5]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate7")	pRCtrl->vehplate[6]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate8")	pRCtrl->vehplate[7]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate9")	pRCtrl->vehplate[8]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate10")	pRCtrl->vehplate[9]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate11")	pRCtrl->vehplate[10]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="vehplate12")	pRCtrl->vehplate[11]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
 		
 		else if(it->first=="sysreset")	pRCtrl->SysReset=value;			//系统重启
+		else if(it->first=="frontdoorctrl")	pRCtrl->FrontDoorCtrl=value;			//前门电子门锁 0：保持 1：关锁：2：开锁
+		else if(it->first=="backdoorctrl")	pRCtrl->BackDoorCtrl=value;			//后门电子门锁 0：保持 1：关锁：2：开锁
+		else if(it->first=="sidedoorcCtrl")	pRCtrl->SideDoorCtrl=value;			//侧门电子门锁 0：保持 1：关锁：2：开锁
 		it++;
 	}
 	printf("\n");
@@ -879,7 +894,7 @@ void SetjsonFlagRunStatusStr(char *json, int *len)
 	strJson +=	"\"cablenetstate\": 0,\n";	//16 有线网络状态
 	strJson +=	"\"wirelessstate\": 0,\n";	//17 无线网络状态
 	strJson +=	"\"software\": 0,\n";		//18 ETC 门架软件状态
-	strJson +=	"\"softversion\": \"string\",\n";	//19 软件版本
+	strJson +=	"\"softversion\": \"LT08201906251800000B\",\n";	//19 软件版本
 	
 	strJson +=	"\"camercount\": 0,\n"; 	 //20 车牌识别设备数量
 	strJson +=	"\"vehplate1\": 0,\n";	 //21 车牌设别1
@@ -902,10 +917,10 @@ void SetjsonFlagRunStatusStr(char *json, int *len)
 	sprintf(str,"%d", stuRsuControl->AntennaCount);strJson = strJson + "\"rsucount\":"+ str +",\n"; 	//37 天线数量
 	for(i=0;i<stuRsuControl->AntennaCount;i++)
 	{
-		sprintf(str,"\"rsu%d\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Control_state);strJson += str;		//38 天线i 状态
+		sprintf(str,"\"rsu%d\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Status);strJson += str;		//38 天线i 状态
 		sprintf(str,"\"rsu%d_power\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Power);strJson += str; //39 天线i 功率
 		sprintf(str,"\"rsu%d_channel\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Channel);strJson += str; //40 天线i 信道号
-		sprintf(str,"\"rsu%d_switch\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Status);strJson += str;		//41 天线i 开关状态
+		sprintf(str,"\"rsu%d_switch\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Control_state);strJson += str;		//41 天线i 开关状态
 	}
 	for(i=stuRsuControl->AntennaCount;i<16;i++)
 	{
@@ -1119,7 +1134,7 @@ void SetjsonTableStr(char* table, char *json, int *len)
     strJson +=  "\"cablenetstate\": 0,\n";	//16 有线网络状态
     strJson +=  "\"wirelessstate\": 0,\n";	//17 无线网络状态
     strJson +=  "\"software\": 0,\n";		//18 ETC 门架软件状态
-    strJson +=  "\"softversion\": \"string\",\n";	//19 软件版本
+	strJson +=	"\"softversion\": \"LT08201906251800000B\",\n";	//19 软件版本
 	
 	strJson +=	"\"camercount\": 0,\n"; 	 //20 车牌识别设备数量
 	strJson +=  "\"vehplate1\": 0,\n"; 	 //21 车牌设别1
@@ -1142,10 +1157,10 @@ void SetjsonTableStr(char* table, char *json, int *len)
 	sprintf(str,"%d", stuRsuControl->AntennaCount);strJson = strJson + "\"rsucount\":"+ str +",\n";		//37 天线数量
 	for(i=0;i<stuRsuControl->AntennaCount;i++)
 	{
-		sprintf(str,"\"rsu%d\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Control_state);strJson += str;		//38 天线i 状态
+		sprintf(str,"\"rsu%d\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Status);strJson += str;		//38 天线i 状态
 		sprintf(str,"\"rsu%d_power\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Power);strJson += str;	//39 天线i 功率
 		sprintf(str,"\"rsu%d_channel\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Channel);strJson += str;	//40 天线i 信道号
-		sprintf(str,"\"rsu%d_switch\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Status);strJson += str;		//41 天线i 开关状态
+		sprintf(str,"\"rsu%d_switch\": %d,\n", i+1,stuRsuControl->AntennaInfoN[i].Control_state);strJson += str;		//41 天线i 开关状态
 	}
 	for(i=stuRsuControl->AntennaCount;i<16;i++)
 	{
@@ -1318,13 +1333,14 @@ void SetjsonTableStr(char* table, char *json, int *len)
     strJson = strJson + "\"hwair_cond_return_port_sensor_alarm\": " + HUAWEIDevAlarm.hwair_cond_return_port_sensor_alarm.c_str() + ",\n";	//空调回风口传感器故障 248
     strJson = strJson + "\"hwair_cond_evap_freezing_alarm\": " + HUAWEIDevAlarm.hwair_cond_evap_freezing_alarm.c_str() + ",\n";	//空调蒸发器冻结 249
     strJson = strJson + "\"hwair_cond_freq_high_press_alarm\": " + HUAWEIDevAlarm.hwair_cond_freq_high_press_alarm.c_str() + ",\n";	//空调频繁高压力 250
-    strJson = strJson + "\"hwair_cond_comm_fail_alarm\": " + HUAWEIDevAlarm.hwair_cond_comm_fail_alarm.c_str() + "\n";	//空调通信失败告警 251
+    strJson = strJson + "\"hwair_cond_comm_fail_alarm\": " + HUAWEIDevAlarm.hwair_cond_comm_fail_alarm.c_str() + ",\n";	//空调通信失败告警 251
+    strJson = strJson + "\"ishandle\": 0\n";	//空调通信失败告警 251
 
+    pthread_mutex_unlock(&snmpoidMutex);
+	
 	strJson +=	" }\n";
 	strJson +=	" }\n";
 	strJson +=	"}\n\0";
-	
-    pthread_mutex_unlock(&snmpoidMutex);
 	
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);

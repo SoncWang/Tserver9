@@ -20,10 +20,34 @@ const char *our_v3_passphrase = "The Net-SNMP Demo Password";
 
 pthread_mutex_t snmpoidMutex ;   
 vector<string> vecSnmp;
-THUAWEIGantry HUAWEIDevValue;
-extern void initHUAWEIALARM();
+extern THUAWEIGantry HUAWEIDevValue;
 extern string StrCabinetType;
 extern string StrHWServer;		//华为服务器地址
+extern void myprintf(char* str);
+
+void UpdataHUAWEIGantryStr(char* mstr,int len,EM_HUAWEIGantry mIntHUAWEIGantry)
+{
+   pthread_mutex_lock(&snmpoidMutex);
+
+   switch(mIntHUAWEIGantry)
+   {
+   //锂电
+	  case hwMonEquipSoftwareVersion:			 //软件版本
+		  HUAWEIDevValue.strhwMonEquipSoftwareVersion = mstr;
+		  printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipSoftwareVersion).c_str());
+		  break;
+	  case hwMonEquipManufacturer:			 //设备生产商
+		  HUAWEIDevValue.strhwMonEquipManufacturer = mstr ;
+		  printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipManufacturer).c_str());
+		  break;
+	 default:
+		 break;
+
+
+	 }
+
+  pthread_mutex_unlock(&snmpoidMutex);
+}
 
 void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGantry)
 {
@@ -36,7 +60,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
    //锂电
    case hwAcbGroupBatVolt:               //电池电压
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatVolt = mbuf ;
@@ -44,7 +68,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwAcbGroupBatCurr:            //电池电流
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatCurr = mbuf ;
@@ -52,7 +76,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwAcbGroupTotalCapacity:                //电池总容量
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupTotalCapacity = mbuf ;
@@ -60,7 +84,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break ;
    case hwAcbGroupTotalRemainCapacity:               //电池剩余容量
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity = mbuf ;
@@ -68,7 +92,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwAcbGroupBackupTime:              //电池备电时长
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBackupTime = mbuf ;
@@ -76,7 +100,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwAcbGroupBatSoh:             //电池 SOH
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatSoh = mbuf ;
@@ -85,7 +109,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
    //开关电源
    case hwApOrAblVoltage:                //A/AB 电压
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwApOrAblVoltage = mbuf ;
@@ -93,7 +117,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
         break;
    case hwBpOrBclVoltage:                //B/BC 电压
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwBpOrBclVoltage = mbuf ;
@@ -101,7 +125,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwCpOrCalVoltage:                //C/CA 电压
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwCpOrCalVoltage = mbuf ;
@@ -109,7 +133,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwAphaseCurrent:               //A 相电流
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
 	       sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAphaseCurrent = mbuf ;
@@ -117,7 +141,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwBphaseCurrent:              //B 相电流
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwBphaseCurrent = mbuf ;
@@ -125,7 +149,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwCphaseCurrent:             //C 相电流
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwCphaseCurrent = mbuf ;
@@ -133,7 +157,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwDcOutputVoltage:             //DC 输出电压
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwDcOutputVoltage = mbuf ;
@@ -141,7 +165,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    case hwDcOutputCurrent:               //DC 输出电流
 	   if(mIntegerValue==0x7FFFFFFF)
-		   sprintf(mbuf,"0") ;
+		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   else    
        	   sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwDcOutputCurrent = mbuf ;
@@ -160,17 +184,26 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        break;
    //直流空调
    case hwDcAirCtrlMode:             //空调控制模式
-	   sprintf(mbuf,"%d",mIntegerValue) ;
+	   if(mIntegerValue==0xFF)
+		   sprintf(mbuf,"%d",0x7FFFFFFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirCtrlMode = mbuf ;
        printf("空调控制模式:%s\r\n",(HUAWEIDevValue.strhwDcAirCtrlMode).c_str());
        break;
    case hwDcAirRunStatus:             //空调运行状态
-	   sprintf(mbuf,"%d",mIntegerValue) ;
+	   if(mIntegerValue==0xFF)
+		   sprintf(mbuf,"%d",0x7FFFFFFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirRunStatus = mbuf ;
        printf("空调运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirRunStatus).c_str());
        break;
    case hwDcAirCompressorRunStatus:             //空调压缩机运行状态
-	   sprintf(mbuf,"%d",mIntegerValue) ;
+	   if(mIntegerValue==0xFF)
+		   sprintf(mbuf,"%d",0x7FFFFFFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwDcAirCompressorRunStatus = mbuf ;
        printf("空调压缩机运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunStatus).c_str());
        break;
@@ -204,6 +237,147 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
        HUAWEIDevValue.strhwDcAirPowerOffTempPoint = mbuf ;
        printf("空调关机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOffTempPoint).c_str());
        break;
+	//新增加
+   //锂电(新增加)
+   case hwAcbGroupTemperature:			  //电池温度
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+       		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
+	   HUAWEIDevValue.strhwAcbGroupTemperature = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupTemperature).c_str());
+	   break;
+   case hwAcbGroupOverCurThr:			  //充电过流告警点
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+       		sprintf(mbuf,"%d.%d",mIntegerValue/100,mIntegerValue%100) ;
+	   HUAWEIDevValue.strhwAcbGroupOverCurThr = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupOverCurThr).c_str());
+	   break;
+   case hwAcbGroupHighTempThr:			  //高温告警点
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+	   		sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwAcbGroupHighTempThr = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupHighTempThr).c_str());
+	   break;
+   case hwAcbGroupLowTempTh:			  //低温告警点
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+	   		sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwAcbGroupLowTempTh = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupLowTempTh).c_str());
+	   break;
+   case hwAcbGroupDodToAcidBattery:			  //锂电放电DOD
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+	   		sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwAcbGroupDodToAcidBattery = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupDodToAcidBattery).c_str());
+	   break;
+   //开关电源(新增加)
+   case hwSetAcsUpperVoltLimit:			  //AC过压点设置
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+	   		sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwSetAcsUpperVoltLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetAcsUpperVoltLimit).c_str());
+	   break;
+   case hwSetAcsLowerVoltLimit:			  //AC欠压点设置
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+	   		sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwSetAcsLowerVoltLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetAcsLowerVoltLimit).c_str());
+	   break;
+   case hwSetDcsUpperVoltLimit:			  //设置DC过压点
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+       		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
+	   HUAWEIDevValue.strhwSetDcsUpperVoltLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetDcsUpperVoltLimit).c_str());
+	   break;
+   case hwSetDcsLowerVoltLimit: 		  //设置DC欠压点
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+       		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
+	   HUAWEIDevValue.strhwSetDcsLowerVoltLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetDcsLowerVoltLimit).c_str());
+	   break;
+   case hwSetLvdVoltage:			  //设置LVD电压
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+       		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
+	   HUAWEIDevValue.strhwSetLvdVoltage = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetLvdVoltage).c_str());
+	   break;
+   //环境传感器(新增加)
+   case hwSetEnvTempUpperLimit:			  //环境温度告警上限
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+	   		sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwSetEnvTempUpperLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUpperLimit).c_str());
+	   break;
+   case hwSetEnvTempLowerLimit:			  //环境温度告警下限
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+	   		sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwSetEnvTempLowerLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvTempLowerLimit).c_str());
+	   break;
+   case hwSetEnvTempUltraHighTempThreshold:			  //环境高高温告警点
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold).c_str());
+	   break;
+   case hwSetEnvHumidityUpperLimit:			  //环境湿度告警上限
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwSetEnvHumidityUpperLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityUpperLimit).c_str());
+	   break;
+   case hwSetEnvHumidityLowerLimit:			  //环境湿度告警下限
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwSetEnvHumidityLowerLimit = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityLowerLimit).c_str());
+	   break;
+   //直流空调(新增加)
+   case hwDcAirRunTime:			  //空调运行时间
+	   if(mIntegerValue==0x7FFFFFFF)
+		   sprintf(mbuf,"%d",0x7FFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwDcAirRunTime = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwDcAirRunTime).c_str());
+	   break;
+   case hwCoolingDevicesMode:			  //温控模式
+	   if(mIntegerValue==0xFF)
+		   sprintf(mbuf,"%d",0x7FFFFFFF) ;
+	   else    
+		   sprintf(mbuf,"%d",mIntegerValue) ;
+	   HUAWEIDevValue.strhwCoolingDevicesMode = mbuf ;
+	   printf(":%s\r\n",(HUAWEIDevValue.strhwCoolingDevicesMode).c_str());
+	   break;
    default:
        break;
 
@@ -212,7 +386,6 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 
     pthread_mutex_unlock(&snmpoidMutex);
 }
-
 
 
 void *snmpthread(void *param)
@@ -245,7 +418,7 @@ void *snmpthread(void *param)
 
       vector<string>::iterator fistSnmp = vecSnmp.begin();
       strsnmpget = *fistSnmp ;
-      cout<<strsnmpget<<endl;
+//      cout<<strsnmpget<<endl;
       vecSnmp.erase(fistSnmp);
     pthread_mutex_unlock(&snmpoidMutex);
 
@@ -329,7 +502,8 @@ void *snmpthread(void *param)
 	       char *sp = (char *)malloc(1 + vars->val_len);
 	       memcpy(sp, vars->val.string, vars->val_len);
 	       sp[vars->val_len] = '/0';
-               printf("value #%d is a string: %s/n", count++, sp);
+           printf("value #%d is a string: %s/n", count++, sp);
+		   UpdataHUAWEIGantryStr(sp,vars->val_len+1,(EM_HUAWEIGantry)IntHUAWEIGantry);
 	       free(sp);
 	    }
             else
@@ -395,104 +569,181 @@ int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry)
        SendSnmpOid(strsend);
        break;
    case hwAcbGroupBatCurr:            //电池电流
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.6.96;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.6.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwAcbGroupTotalCapacity:                //电池总容量
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.7.96;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.7.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break ;
    case hwAcbGroupTotalRemainCapacity:               //电池剩余容量
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.8.96;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.8.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwAcbGroupBackupTime:              //电池备电时长
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.11.96;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.11.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwAcbGroupBatSoh:             //电池 SOH
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.13.96;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.13.96;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    //开关电源
    case hwApOrAblVoltage:                //A/AB 电压
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.4.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
         break;
    case hwBpOrBclVoltage:                //B/BC 电压
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.5.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.5.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwCpOrCalVoltage:                //C/CA 电压
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.6.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.6.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwAphaseCurrent:               //A 相电流
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.7.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.7.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwBphaseCurrent:              //B 相电流
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.8.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.8.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwCphaseCurrent:             //C 相电流
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.9.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.2.1.1.9.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcOutputVoltage:             //DC 输出电压
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.4.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcOutputCurrent:               //DC 输出电流
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.5.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.2.1.1.5.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    //环境传感器
    case hwEnvTemperature:              //环境温度值
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.4.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwEnvHumidity:             //环境湿度值
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.4.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.4.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    //直流空调
    case hwDcAirCtrlMode:             //空调控制模式
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.4.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.4.1;" + strsend + ";";
+//myprintf(strsend);
        SendSnmpOid(strsend);
        break;
    case hwDcAirRunStatus:             //空调运行状态
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.6.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.6.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcAirCompressorRunStatus:             //空调压缩机运行状态
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.7.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.7.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcAirInnrFanSpeed:             //空调内机转速
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.8.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.8.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcAirOuterFanSpeed:             //空调外风机转速
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.9.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.9.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcAirCompressorRunTime:             //空调压缩机运行时间
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.10.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.10.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcAirEnterChannelTemp:             //空调回风口温度
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.13.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.13.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcAirPowerOnTempPoint:             //空调开机温度点
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.14.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.14.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwDcAirPowerOffTempPoint:             //空调关机温度点
-       strsend = StrHWServer+"a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.15.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.15.1;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
+   case hwMonEquipSoftwareVersion:			  //软件版本
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.2.2.1.1.5.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwMonEquipManufacturer:			  //设备生产商
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.2.2.1.1.7.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+/*   case hwAcbGroupTemperature:			  //电池温度
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.9.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwAcbGroupOverCurThr:			  //充电过流告警点
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.14.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwAcbGroupHighTempThr:			  //高温告警点
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.21.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwAcbGroupLowTempTh:			  //低温告警点
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.22.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwAcbGroupDodToAcidBattery:			  //锂电放电DOD
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.26.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetAcsUpperVoltLimit:			  //AC过压点设置
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.1.5.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+	case hwSetAcsLowerVoltLimit:			  //AC欠压点设置
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.1.6.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetDcsUpperVoltLimit:			  //设置DC过压点
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.1.7.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetDcsLowerVoltLimit:			 //设置DC欠压点
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.1.8.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetLvdVoltage:			 //设置LVD电压
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.7.2.1.1.5.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetEnvTempUpperLimit:			 //环境温度告警上限
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.5.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetEnvTempLowerLimit:			 //环境温度告警下限
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.6.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetEnvTempUltraHighTempThreshold:			 //环境高高温告警点
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.10.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetEnvHumidityUpperLimit:			 //环境湿度告警上限
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.5.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwSetEnvHumidityLowerLimit:			 //环境湿度告警下限
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.6.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwDcAirRunTime:			 //空调运行时间
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.2.2.1.11.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;
+   case hwCoolingDevicesMode:			 //温控模式
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.1.3.1;" + strsend + ";";
+	   SendSnmpOid(strsend);
+	   break;*/
    default:
        break;
 
@@ -507,14 +758,14 @@ void *Sendsnmpthread(void *param)
 
    while(1)
    {
-		initHUAWEIGantry();
+//		initHUAWEIGantry();
 		
 		for(int i=1;i<=HWGANTRY_COUNT;i++)
 		{
-			printf("SendHUAWEIsnmp %d\n",i);
+//			printf("SendHUAWEIsnmp %d\n",i);
 			SendHUAWEIsnmp((EM_HUAWEIGantry)i);
 		}
-		sleep(1);
+		sleep(300);
    }
    printf("Sendsnmpthread exit\t\n");
    return 0 ;
@@ -523,41 +774,63 @@ void *Sendsnmpthread(void *param)
 void initHUAWEIGantry()
 {
    //锂电
-   HUAWEIDevValue.strhwAcbGroupBatVolt="0";                //电池电压 "51.1"
-   HUAWEIDevValue.strhwAcbGroupBatCurr="0";            //电池电流
-   HUAWEIDevValue.strhwAcbGroupTotalCapacity="0";                //电池总容量
-   HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity="0";               //电池剩余容量
-   HUAWEIDevValue.strhwAcbGroupBackupTime="0";              //电池备电时长
-   HUAWEIDevValue.strhwAcbGroupBatSoh="0";             //电池 SOH
+   HUAWEIDevValue.strhwAcbGroupBatVolt="2147483647";                //电池电压 "51.1"
+   HUAWEIDevValue.strhwAcbGroupBatCurr="2147483647";            //电池电流
+   HUAWEIDevValue.strhwAcbGroupTotalCapacity="2147483647";                //电池总容量
+   HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity="2147483647";               //电池剩余容量
+   HUAWEIDevValue.strhwAcbGroupBackupTime="2147483647";              //电池备电时长
+   HUAWEIDevValue.strhwAcbGroupBatSoh="2147483647";             //电池 SOH
    //开关电源
-   HUAWEIDevValue.strhwApOrAblVoltage="0";                //A/AB 电压
-   HUAWEIDevValue.strhwBpOrBclVoltage="0";                //B/BC 电压
-   HUAWEIDevValue.strhwCpOrCalVoltage="0";                //C/CA 电压
-   HUAWEIDevValue.strhwAphaseCurrent="0";               //A 相电流
-   HUAWEIDevValue.strhwBphaseCurrent="0";              //B 相电流
-   HUAWEIDevValue.strhwCphaseCurrent="0";             //C 相电流
-   HUAWEIDevValue.strhwDcOutputVoltage="0";             //DC 输出电压
-   HUAWEIDevValue.strhwDcOutputCurrent="0";               //DC 输出电流
+   HUAWEIDevValue.strhwApOrAblVoltage="2147483647";                //A/AB 电压
+   HUAWEIDevValue.strhwBpOrBclVoltage="2147483647";                //B/BC 电压
+   HUAWEIDevValue.strhwCpOrCalVoltage="2147483647";                //C/CA 电压
+   HUAWEIDevValue.strhwAphaseCurrent="2147483647";               //A 相电流
+   HUAWEIDevValue.strhwBphaseCurrent="2147483647";              //B 相电流
+   HUAWEIDevValue.strhwCphaseCurrent="2147483647";             //C 相电流
+   HUAWEIDevValue.strhwDcOutputVoltage="2147483647";             //DC 输出电压
+   HUAWEIDevValue.strhwDcOutputCurrent="2147483647";               //DC 输出电流
    //环境传感器
-   HUAWEIDevValue.strhwEnvTemperature="32767";              //环境温度值
-   HUAWEIDevValue.strhwEnvHumidity="32767";            //环境湿度值
+   HUAWEIDevValue.strhwEnvTemperature="2147483647";              //环境温度值
+   HUAWEIDevValue.strhwEnvHumidity="2147483647";            //环境湿度值
    //直流空调
-	HUAWEIDevValue.strhwDcAirCtrlMode="255";			//空调控制模式
-	HUAWEIDevValue.strhwDcAirRunStatus="255";			//空调运行状态
-	HUAWEIDevValue.strhwDcAirCompressorRunStatus="255";		//空调压缩机运行状态
-	HUAWEIDevValue.strhwDcAirInnrFanSpeed="0";			//空调内机转速
-	HUAWEIDevValue.strhwDcAirOuterFanSpeed="0";			//空调外风机转速
-	HUAWEIDevValue.strhwDcAirCompressorRunTime="0";		//空调压缩机运行时间
-	HUAWEIDevValue.strhwDcAirEnterChannelTemp="0";		//空调回风口温度
-	HUAWEIDevValue.strhwDcAirPowerOnTempPoint="0";		//空调开机温度点
-	HUAWEIDevValue.strhwDcAirPowerOffTempPoint="0";		//空调关机温度点
+	HUAWEIDevValue.strhwDcAirCtrlMode="2147483647";			//空调控制模式
+	HUAWEIDevValue.strhwDcAirRunStatus="2147483647";			//空调运行状态
+	HUAWEIDevValue.strhwDcAirCompressorRunStatus="2147483647";		//空调压缩机运行状态
+	HUAWEIDevValue.strhwDcAirInnrFanSpeed="2147483647";			//空调内机转速
+	HUAWEIDevValue.strhwDcAirOuterFanSpeed="2147483647";			//空调外风机转速
+	HUAWEIDevValue.strhwDcAirCompressorRunTime="2147483647";		//空调压缩机运行时间
+	HUAWEIDevValue.strhwDcAirEnterChannelTemp="2147483647";		//空调回风口温度
+	HUAWEIDevValue.strhwDcAirPowerOnTempPoint="2147483647";		//空调开机温度点
+	HUAWEIDevValue.strhwDcAirPowerOffTempPoint="2147483647";		//空调关机温度点
+	
+	//设备信息
+	HUAWEIDevValue.strhwMonEquipSoftwareVersion="";	//软件版本
+	HUAWEIDevValue.strhwMonEquipManufacturer="";		//设备生产商
+	//锂电(新增加)
+	HUAWEIDevValue.strhwAcbGroupTemperature="2147483647";			//电池温度
+	HUAWEIDevValue.strhwAcbGroupOverCurThr="2147483647";			//充电过流告警点
+	HUAWEIDevValue.strhwAcbGroupHighTempThr="2147483647";		//高温告警点
+	HUAWEIDevValue.strhwAcbGroupLowTempTh="2147483647";			//低温告警点
+	HUAWEIDevValue.strhwAcbGroupDodToAcidBattery="2147483647";	//锂电放电DOD
+	//开关电源(新增加)
+   	HUAWEIDevValue.strhwSetAcsUpperVoltLimit="2147483647";		//AC过压点设置
+   	HUAWEIDevValue.strhwSetAcsLowerVoltLimit="2147483647";		//AC欠压点设置
+   	HUAWEIDevValue.strhwSetDcsUpperVoltLimit="2147483647";		//设置DC过压点
+   	HUAWEIDevValue.strhwSetDcsLowerVoltLimit="2147483647";		//设置DC欠压点
+   	HUAWEIDevValue.strhwSetLvdVoltage="2147483647";				//设置LVD电压
+	//环境传感器(新增加)
+   	HUAWEIDevValue.strhwSetEnvTempUpperLimit="2147483647";		//环境温度告警上限
+   	HUAWEIDevValue.strhwSetEnvTempLowerLimit="2147483647";		//环境温度告警下限
+   	HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold="2147483647";		//环境高高温告警点
+   	HUAWEIDevValue.strhwSetEnvHumidityUpperLimit="2147483647";		//环境湿度告警上限
+   	HUAWEIDevValue.strhwSetEnvHumidityLowerLimit="2147483647";		//环境湿度告警下限
+	//直流空调(新增加)
+	HUAWEIDevValue.strhwDcAirRunTime="2147483647";				//空调运行时间
+	HUAWEIDevValue.strhwCoolingDevicesMode="2147483647";			//温控模式
 }
 
 int snmpInit(void)
 {
-   initHUAWEIGantry();
-   initHUAWEIALARM();
-
    if(StrCabinetType=="1")		//机柜类型是华为
    	{
 	   pthread_mutex_init(&snmpoidMutex,NULL);
