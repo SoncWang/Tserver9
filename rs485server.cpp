@@ -46,41 +46,11 @@ const UINT32 locker_id[CARD_NUM] =
 	2857740885u
 };
 
-/*5次锁的轮询后轮询其它事项*/
+/*5次锁的轮询后轮询其它事项,其它事项再单独定义一个数组*/
 const UINT16 polling_cnt[] =
 {
-#if (LOCK_NUM >= 1)
-	LOCKER_1_STATUS
-#endif
-#if (LOCK_NUM >= 2)
-	,LOCKER_2_STATUS
-#endif
-#if (LOCK_NUM >= 1)
-	,LOCKER_1_STATUS
-#endif
-#if (LOCK_NUM >= 2)
-	,LOCKER_2_STATUS
-#endif
-#if (LOCK_NUM >= 1)
-	,LOCKER_1_STATUS
-#endif
-#if (LOCK_NUM >= 2)
-	,LOCKER_2_STATUS
-#endif
-#if (LOCK_NUM >= 1)
-	,LOCKER_1_STATUS
-#endif
-#if (LOCK_NUM >= 2)
-	,LOCKER_2_STATUS
-#endif
-#if (LOCK_NUM >= 1)
-	,LOCKER_1_STATUS
-#endif
-#if (LOCK_NUM >= 2)
-	,LOCKER_2_STATUS
-#endif
 #if (VA_METER_BD_NUM >=1)
-	,VOLT_AMP_GET_FLAG_1
+	VOLT_AMP_GET_FLAG_1
 #endif
 #if (LOCK_NUM >= 1)
 	,LOCKER_1_STATUS
@@ -111,11 +81,28 @@ const UINT16 polling_cnt[] =
 #endif
 #if (LOCK_NUM >= 2)
 	,LOCKER_2_STATUS
+#endif
+};
+// 其它事项轮询顺序
+const UINT16 dev_rs485_cnt[] =
+{
+#if (VA_METER_BD_NUM >=1)
+	VOLT_AMP_GET_FLAG_1
 #endif
 #if (VA_METER_BD_NUM >=2)
 	,VOLT_AMP_GET_FLAG_2
-#elif (VA_METER_BD_NUM >=1)
-	,VOLT_AMP_GET_FLAG_1
+#endif
+#if (VA_METER_BD_NUM >=3)
+	,VOLT_AMP_GET_FLAG_3
+#endif
+#if (VA_METER_BD_NUM >=4)
+	,VOLT_AMP_GET_FLAG_4
+#endif
+#if (VA_METER_BD_NUM >=5)
+	,VOLT_AMP_GET_FLAG_5
+#endif
+#if (VA_METER_BD_NUM >=6)
+	,VOLT_AMP_GET_FLAG_6
 #endif
 };
 
@@ -154,6 +141,7 @@ void *Locker_DataPollingthread(void *param)
 	param = NULL;
 	int i;
 	static UINT16 polling_counter = 0;
+	static UINT16 sub_poll_counter = 0;
 
 	while(1)
 	{
@@ -163,13 +151,27 @@ void *Locker_DataPollingthread(void *param)
 		}
 		else
 		{
-			comm_flag |= LBIT(polling_cnt[polling_counter]);
+			if(polling_counter == 0)
+			{
+				// 次轮询, 其它的485设备
+				comm_flag |= LBIT(dev_rs485_cnt[sub_poll_counter]);
+			}
+			else
+			{
+				// 主轮询, 电子锁
+				comm_flag |= LBIT(polling_cnt[polling_counter]);
+			}
 			polling_counter++;
 			if (polling_counter >= (sizeof(polling_cnt)/sizeof(UINT16)))
 			{
 				printf("\r\npoling over");
 				printf("0x%02x" ,polling_counter);printf("\r\n");
 				polling_counter = 0;
+				sub_poll_counter++;
+				if (sub_poll_counter >= (sizeof(dev_rs485_cnt)/sizeof(UINT16)))
+				{
+					sub_poll_counter = 0;
+				}
 			}
 		}
 

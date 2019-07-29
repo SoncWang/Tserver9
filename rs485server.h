@@ -123,6 +123,10 @@ typedef enum
 	LOCKER_2_STATUS,
 	#endif
 
+	#if (LOCK_NUM >= 3)
+	LOCKER_3_STATUS,
+	#endif
+
 	#if (VA_METER_BD_NUM >= 1)
 	VOLT_AMP_GET_FLAG_1,
 	#endif
@@ -133,6 +137,17 @@ typedef enum
 
 	#if (VA_METER_BD_NUM >= 3)
 	VOLT_AMP_GET_FLAG_3,
+	#endif
+
+	#if (VA_METER_BD_NUM >= 4)
+	VOLT_AMP_GET_FLAG_4,
+	#endif
+
+	#if (VA_METER_BD_NUM >= 5)
+	VOLT_AMP_GET_FLAG_5,
+	#endif
+	#if (VA_METER_BD_NUM >= 6)
+	VOLT_AMP_GET_FLAG_6,
 	#endif
 
 	POLLING_NUM
@@ -148,6 +163,11 @@ typedef enum
 	#if (LOCK_NUM >= 2)
 	LOCKER_2_CTRL_UNLOCK,
 	LOCKER_2_CTRL_LOCK,
+	#endif
+
+	#if (LOCK_NUM >= 3)
+	LOCKER_3_CTRL_UNLOCK,
+	LOCKER_3_CTRL_LOCK,
 	#endif
 
 	POWER_1_CTRL_CLOSE,		//4,分闸
