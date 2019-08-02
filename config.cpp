@@ -388,40 +388,40 @@ int GetConfig(void)
 		switch (i)
 		{
 		case 0:
-			Strkey = "VEPLATE1=";
+			Strkey = "VEHPLATE1=";
 			break;
 		case 1:
-			Strkey = "VEPLATE2=";
+			Strkey = "VEHPLATE2=";
 			break;
 		case 2:
-			Strkey = "VEPLATE3=";
+			Strkey = "VEHPLATE3=";
 			break;
 		case 3:
-			Strkey = "VEPLATE4=";
+			Strkey = "VEHPLATE4=";
 			break;
 		case 4:
-			Strkey = "VEPLATE5=";
+			Strkey = "VEHPLATE5=";
 			break;
 		case 5:
-			Strkey = "VEPLATE6=";
+			Strkey = "VEHPLATE6=";
 			break;
 		case 6:
-			Strkey = "VEPLATE7=";
+			Strkey = "VEHPLATE7=";
 			break;
 		case 7:
-			Strkey = "VEPLATE8=";
+			Strkey = "VEHPLATE8=";
 			break;
 		case 8:
-			Strkey = "VEPLATE9=";
+			Strkey = "VEHPLATE9=";
 			break;
 		case 9:
-			Strkey = "VEPLATE10=";
+			Strkey = "VEHPLATE10=";
 			break;
 		case 10:
-			Strkey = "VEPLATE11=";
+			Strkey = "VEHPLATE11=";
 			break;
 		case 11:
-			Strkey = "VEPLATE12=";
+			Strkey = "VEHPLATE12=";
 			break;
 		default:
 			break;

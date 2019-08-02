@@ -30,7 +30,7 @@ CMyCritical Com4Cri;
 CMyCritical Com4SendCri;
 
 UINT32  comm_flag=0;	// 轮询标志
-UINT32  ctrl_flag;
+//UINT32  ctrl_flag;
 UINT32  locker_ctrl_flag=0;	// 电子锁写标志
 UINT32	power_ctrl_flag[POWER_BD_MAX_NUM] = {0,0,0};
 UINT8  WAIT_response_flag=0;
@@ -640,7 +640,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 			if (card_read == locker_id[j])
 			{
 				locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK+addr_base*2);
-				SendCom4RCtlReg(addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+				//SendCom4RCtlReg(addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
 				locker_opened[addr_base] =1;
 				last_card = card_read;	// 记录上次开锁的门卡,暂时未使用
 				break;
@@ -665,59 +665,61 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char seq)
 {
 	UINT8 i;
-	UINT16 *pointer = &stuRSU_Param[seq]->phase[0].vln;	/*第0相*/
+	UINT16 *pointer = &stuRSU_Param[seq]->phase[0].vln;	/*第5相,实际接点路序和传感器是倒序的关系*/
 
 	if(len == (REAL_DATA_NUM*2+5))
 	{
 		printf("va begain\r\n");
-		for (i=0;i<2;i++)
+		/*第5相*/
+		pointer = &stuRSU_Param[seq]->phase[0].vln;
+		for(i = 35;i <= 36;i++)
 		{
-			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-35));
 		}
 		printf("%5hd ",stuRSU_Param[seq]->phase[0].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[0].amp);printf("\r\n");
 
-		/*第1相*/
-		pointer = &stuRSU_Param[seq]->phase[1].vln;
-		for(i = 7;i <= 8;i++)
-		{
-			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-7));
-		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[1].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[1].amp);printf("\r\n");
-
-		/*第2相*/
-		pointer = &stuRSU_Param[seq]->phase[2].vln;
-		for(i = 14;i <= 15;i++)
-		{
-			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-14));
-		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[2].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[2].amp);printf("\r\n");
-
-		/*第3相*/
-		pointer = &stuRSU_Param[seq]->phase[3].vln;
-		for(i = 21;i <= 22;i++)
-		{
-			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-21));
-		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[3].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[3].amp);printf("\r\n");
-
 		/*第4相*/
-		pointer = &stuRSU_Param[seq]->phase[4].vln;
+		pointer = &stuRSU_Param[seq]->phase[1].vln;
 		for(i = 28;i <= 29;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-28));
 		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[1].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[1].amp);printf("\r\n");
+
+		/*第3相*/
+		pointer = &stuRSU_Param[seq]->phase[2].vln;
+		for(i = 21;i <= 22;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-21));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[2].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[2].amp);printf("\r\n");
+
+		/*第2相*/
+		pointer = &stuRSU_Param[seq]->phase[3].vln;
+		for(i = 14;i <= 15;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-14));
+		}
+		printf("%5hd ",stuRSU_Param[seq]->phase[3].vln);printf("\r\n");
+		printf("%5hd ",stuRSU_Param[seq]->phase[3].amp);printf("\r\n");
+
+		/*第1相*/
+		pointer = &stuRSU_Param[seq]->phase[4].vln;
+		for(i = 7;i <= 8;i++)
+		{
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-7));
+		}
 		printf("%5hd ",stuRSU_Param[seq]->phase[4].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[4].amp);printf("\r\n");
 
-		/*第5相*/
+		/*第0相*/
 		pointer = &stuRSU_Param[seq]->phase[5].vln;
-		for(i = 35;i <= 36;i++)
+		for (i=0;i<2;i++)
 		{
-			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-35));
+			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
 		}
 		printf("%5hd ",stuRSU_Param[seq]->phase[5].vln);printf("\r\n");
 		printf("%5hd ",stuRSU_Param[seq]->phase[5].amp);printf("\r\n");
@@ -739,12 +741,21 @@ int DealComm485(unsigned char *buf,unsigned short int len)
 		case WAIT_VA_DATA_1_MSG:				/*MSG from the Volt-amp detector*/
 			comm_VAData_analyse(buf, len,0);
 		break;
-
-	#if (VA_METER_BD_NUM >= 2)
 		case WAIT_VA_DATA_2_MSG:
 			comm_VAData_analyse(buf, len,1);
 		break;
-	#endif
+		case WAIT_VA_DATA_3_MSG:				/*MSG from the Volt-amp detector*/
+			comm_VAData_analyse(buf, len,2);
+		break;
+		case WAIT_VA_DATA_4_MSG:
+			comm_VAData_analyse(buf, len,3);
+		break;
+		case WAIT_VA_DATA_5_MSG:				/*MSG from the Volt-amp detector*/
+			comm_VAData_analyse(buf, len,4);
+		break;
+		case WAIT_VA_DATA_6_MSG:
+			comm_VAData_analyse(buf, len,5);
+		break;
 
 		default:
 		break;
