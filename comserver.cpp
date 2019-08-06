@@ -50,8 +50,8 @@ unsigned int DeviceId = 1 ;
 extern ENVI_PARAMS *stuEnvi_Param;		// 环境数据结构体
 extern UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
 extern SPD_PARAMS *stuSpd_Param;		//防雷器结构体
-extern DEVICE_PARAMS *stuDev_Param[POWER_BD_MAX_NUM +IO_BD_MAX_NUM];		//装置参数寄存器
-extern RSU_PARAMS *stuRSU_Param;		//RSU天线信息结构体
+extern DEVICE_PARAMS *stuDev_Param[POWER_BD_MAX_NUM];		//装置参数寄存器
+extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_MAX_NUM];		//伏安表电压电流结构体
 extern AIRCOND_PARAM *stuAirCondRead;	//读空调状态结构体
 
 char LastSendBuf[256];
@@ -244,7 +244,7 @@ int DealComm(unsigned char *buf,unsigned short int len)
 	UPS_PARAMS *pstuUpsPam=stuUps_Param;		//USP结构体 电源数据寄存器
 	SPD_PARAMS *pstuSpdPam=stuSpd_Param;		//防雷器结构体
 	DEVICE_PARAMS *pstuDevPam=stuDev_Param[0];		//装置参数寄存器
-	RSU_PARAMS *pstuRsuInfo=stuRSU_Param;		//RSU天线信息结构体
+//	RSU_PARAMS *pstuRsuInfo=stuRSU_Param;		//RSU天线信息结构体
 
 
 	unsigned char *sendbuf;
@@ -441,12 +441,12 @@ int SetRsuStatusStruct(unsigned char *buf,unsigned short int len)
    RegCount = buf[2];
 
    int bp=3;
-   for(int i=0;i<RSU_NUM;i++)
+/*   for(int i=0;i<RSU_NUM;i++)
    	{
 	   stuRSU_Param->phase[i].vln=buf[bp]<<8 | buf[bp+1];bp+=2;//RSU天线电压
 	   stuRSU_Param->phase[i].amp=buf[bp]<<8 | buf[bp+1];bp+=2;//RSU天线电流
 	   stuRSU_Param->phase[i].enable=1;// 投切标志
-   	}
+   	}*/
 
    return 0;
 }

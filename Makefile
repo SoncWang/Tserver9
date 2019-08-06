@@ -24,6 +24,7 @@ OBJECTS       =  build/main.o     \
                  build/HttpPost.o  \
                  build/HttpServer.o \
                  build/snmp.o \
+                 build/mywalkapp.o \
                  build/snmptrap.o \
                  build/tea.o      \
                  build/rtc.o      \
@@ -74,6 +75,10 @@ build/snmp.o: snmp.cpp \
 build/snmptrap.o: snmptrap.cpp \
      snmp.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/snmptrap.o snmptrap.cpp
+
+build/mywalkapp.o: mywalkapp.cpp \
+     snmp.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/mywalkapp.o mywalkapp.cpp
 
 build/tea.o: tea.cpp \
     tea.h

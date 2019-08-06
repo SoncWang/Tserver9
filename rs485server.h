@@ -14,7 +14,6 @@
 #define LOCK_MAX_NUM			3
 #define VA_METER_BD_MAX_NUM		6
 #define POWER_BD_MAX_NUM		3
-#define IO_BD_MAX_NUM			3
 
 
 #define CARD_NUM		5	// 暂时为5张卡
@@ -239,7 +238,6 @@ extern RS485_Reg_Table Var_Table[RS485_DEV_MAX_NUM];
 extern string StrAdrrLock[LOCK_MAX_NUM];	//门锁1的地址
 extern string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器1的地址
 extern string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板1的地址
-extern string StrAdrrIO[IO_BD_MAX_NUM];	//IO板1的地址
 extern string StrDoSeq[SWITCH_COUNT];
 extern UINT16 DoSeq[SWITCH_COUNT];
 extern int *polling_arr;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
@@ -261,4 +259,5 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 
 
 #endif
+
 

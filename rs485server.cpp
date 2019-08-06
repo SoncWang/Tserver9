@@ -48,36 +48,18 @@ static UINT32 last_card = 0;
 //UINT8 actual_locker_num = 0;
 
 extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_MAX_NUM];	//门锁状态结构体
-extern RSU_PARAMS *stuRSU_Param[VA_METER_BD_MAX_NUM];		//RSU天线信息结构体
+extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_NUM];		//伏安表电压电流结构体
 
 string StrAdrrLock[LOCK_MAX_NUM];	//门锁1的地址
-//string StrAdrrLock2;	//门锁2的地址
-//string StrAdrrLock3;	//门锁3的地址
-
 
 string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器1的地址
-//string StrAdrrVAMeter2;	//电压电流传感器2的地址
-//string StrAdrrVAMeter3;	//电压电流传感器3的地址
-//string StrAdrrVAMeter4;	//电压电流传感器4的地址
-//string StrAdrrVAMeter5;	//电压电流传感器5的地址
-//string StrAdrrVAMeter6;	//电压电流传感器6的地址
-
-
 string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板1的地址
-//string StrAdrrPower2;	//电源板2的地址
-//string StrAdrrPower3;	//电源板3的地址
-
-string StrAdrrIO[IO_BD_MAX_NUM];	//IO板1的地址
-//string StrAdrrIO2;	//IO板2的地址
-//string StrAdrrIO3;	//IO板3的地址
-
 string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
 UINT16 DoSeq[SWITCH_COUNT]={0,};	// 另外定义一个专门用来存储映射的数组,stuRemote_Ctrl会被清0
 
 
 int *polling_arr;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
 int *polling_subarr;
-
 
 const UINT32 locker_id[CARD_NUM] =
 {
@@ -495,14 +477,14 @@ void *Locker_DataPollingthread(void *param)
 			else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_1))
 			{
 				comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_1));
-				SendCom4ReadReg(stuRSU_Param[0]->address, READ_REGS, VA_REG, VA_DATA_NUM);
+				SendCom4ReadReg(stuVA_Meter_Param[0]->address, READ_REGS, VA_REG, VA_DATA_NUM);
 				WAIT_response_flag = WAIT_VA_DATA_1_MSG;
 			}
 
 			else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_2))
 			{
 				comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_2));
-				SendCom4ReadReg(stuRSU_Param[1]->address, READ_REGS, VA_REG, VA_DATA_NUM);
+				SendCom4ReadReg(stuVA_Meter_Param[1]->address, READ_REGS, VA_REG, VA_DATA_NUM);
 				WAIT_response_flag = WAIT_VA_DATA_2_MSG;
 			}
 			#endif
@@ -665,64 +647,64 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char seq)
 {
 	UINT8 i;
-	UINT16 *pointer = &stuRSU_Param[seq]->phase[0].vln;	/*第5相,实际接点路序和传感器是倒序的关系*/
+	UINT16 *pointer = &stuVA_Meter_Param[seq]->phase[0].vln;	/*第5相,实际接点路序和传感器是倒序的关系*/
 
 	if(len == (REAL_DATA_NUM*2+5))
 	{
 		printf("va begain\r\n");
 		/*第5相*/
-		pointer = &stuRSU_Param[seq]->phase[0].vln;
+		pointer = &stuVA_Meter_Param[seq]->phase[0].vln;
 		for(i = 35;i <= 36;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-35));
 		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[0].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[0].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].amp);printf("\r\n");
 
 		/*第4相*/
-		pointer = &stuRSU_Param[seq]->phase[1].vln;
+		pointer = &stuVA_Meter_Param[seq]->phase[1].vln;
 		for(i = 28;i <= 29;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-28));
 		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[1].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[1].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].amp);printf("\r\n");
 
 		/*第3相*/
-		pointer = &stuRSU_Param[seq]->phase[2].vln;
+		pointer = &stuVA_Meter_Param[seq]->phase[2].vln;
 		for(i = 21;i <= 22;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-21));
 		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[2].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[2].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].amp);printf("\r\n");
 
 		/*第2相*/
-		pointer = &stuRSU_Param[seq]->phase[3].vln;
+		pointer = &stuVA_Meter_Param[seq]->phase[3].vln;
 		for(i = 14;i <= 15;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-14));
 		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[3].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[3].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].amp);printf("\r\n");
 
 		/*第1相*/
-		pointer = &stuRSU_Param[seq]->phase[4].vln;
+		pointer = &stuVA_Meter_Param[seq]->phase[4].vln;
 		for(i = 7;i <= 8;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-7));
 		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[4].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[4].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].amp);printf("\r\n");
 
 		/*第0相*/
-		pointer = &stuRSU_Param[seq]->phase[5].vln;
+		pointer = &stuVA_Meter_Param[seq]->phase[5].vln;
 		for (i=0;i<2;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
 		}
-		printf("%5hd ",stuRSU_Param[seq]->phase[5].vln);printf("\r\n");
-		printf("%5hd ",stuRSU_Param[seq]->phase[5].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].amp);printf("\r\n");
 	}
 }
 
@@ -888,6 +870,7 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 	usleep(5000);	//delay 5ms
 	return 0 ;
 }
+
 
 
 

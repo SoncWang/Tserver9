@@ -112,6 +112,11 @@ void get_post_message(char *buf, struct evhttp_request *req)
 void http_handler_post_msg(struct evhttp_request *req,void *arg)
 {
 	char *jsonPack=(char*)malloc(JSON_LEN);
+	if(jsonPack==NULL)
+	{
+		printf("http_handler_post_msg jsonPack malloc error!\n");
+		return;
+	}
 	int jsonPackLen;
 	
     if(req == NULL)
@@ -132,6 +137,7 @@ void http_handler_post_msg(struct evhttp_request *req,void *arg)
         printf("====line:%d,request data:%s,len: %d\n",__LINE__,buf,strlen(buf));
     }
 
+	//解析发来的JSON请求，打包请求数据
 	memset(jsonPack,0,JSON_LEN);
 	jsonPackLen=0;
 	jsonStrReader(buf,strlen(buf),jsonPack,&jsonPackLen);
@@ -147,7 +153,8 @@ void http_handler_post_msg(struct evhttp_request *req,void *arg)
     }
 //    evbuffer_add_printf(retbuff,"Receive post request,Thanks for the request!");
     evbuffer_add_printf(retbuff,jsonPack);
-    evhttp_send_reply(req,HTTP_OK,"Client",retbuff);
+    evhttp_add_header(evhttp_request_get_output_headers(req),"Content-Type", "application/json");
+	evhttp_send_reply(req,HTTP_OK,"Client",retbuff);
     evbuffer_free(retbuff);
 	free(jsonPack);
 }

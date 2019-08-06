@@ -245,7 +245,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
 	   HUAWEIDevValue.strhwAcbGroupTemperature = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupTemperature).c_str());
+	   printf("电池温度:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTemperature).c_str());
 	   break;
    case hwAcbGroupOverCurThr:			  //充电过流告警点
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -253,7 +253,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/100,mIntegerValue%100) ;
 	   HUAWEIDevValue.strhwAcbGroupOverCurThr = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupOverCurThr).c_str());
+	   printf("充电过流告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupOverCurThr).c_str());
 	   break;
    case hwAcbGroupHighTempThr:			  //高温告警点
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -261,7 +261,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 	   		sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbGroupHighTempThr = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupHighTempThr).c_str());
+	   printf("高温告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupHighTempThr).c_str());
 	   break;
    case hwAcbGroupLowTempTh:			  //低温告警点
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -269,7 +269,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 	   		sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbGroupLowTempTh = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupLowTempTh).c_str());
+	   printf("低温告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupLowTempTh).c_str());
 	   break;
    case hwAcbGroupDodToAcidBattery:			  //锂电放电DOD
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -277,7 +277,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 	   		sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbGroupDodToAcidBattery = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwAcbGroupDodToAcidBattery).c_str());
+	   printf("锂电放电DOD:%s\r\n",(HUAWEIDevValue.strhwAcbGroupDodToAcidBattery).c_str());
 	   break;
    //开关电源(新增加)
    case hwSetAcsUpperVoltLimit:			  //AC过压点设置
@@ -286,7 +286,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 	   		sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwSetAcsUpperVoltLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetAcsUpperVoltLimit).c_str());
+	   printf("AC过压点设置:%s\r\n",(HUAWEIDevValue.strhwSetAcsUpperVoltLimit).c_str());
 	   break;
    case hwSetAcsLowerVoltLimit:			  //AC欠压点设置
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -294,7 +294,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 	   		sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwSetAcsLowerVoltLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetAcsLowerVoltLimit).c_str());
+	   printf("AC欠压点设置:%s\r\n",(HUAWEIDevValue.strhwSetAcsLowerVoltLimit).c_str());
 	   break;
    case hwSetDcsUpperVoltLimit:			  //设置DC过压点
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -302,7 +302,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
 	   HUAWEIDevValue.strhwSetDcsUpperVoltLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetDcsUpperVoltLimit).c_str());
+	   printf("设置DC过压点:%s\r\n",(HUAWEIDevValue.strhwSetDcsUpperVoltLimit).c_str());
 	   break;
    case hwSetDcsLowerVoltLimit: 		  //设置DC欠压点
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -310,7 +310,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
 	   HUAWEIDevValue.strhwSetDcsLowerVoltLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetDcsLowerVoltLimit).c_str());
+	   printf("设置DC欠压点:%s\r\n",(HUAWEIDevValue.strhwSetDcsLowerVoltLimit).c_str());
 	   break;
    case hwSetLvdVoltage:			  //设置LVD电压
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -318,7 +318,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
        		sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
 	   HUAWEIDevValue.strhwSetLvdVoltage = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetLvdVoltage).c_str());
+	   printf("设置LVD电压:%s\r\n",(HUAWEIDevValue.strhwSetLvdVoltage).c_str());
 	   break;
    //环境传感器(新增加)
    case hwSetEnvTempUpperLimit:			  //环境温度告警上限
@@ -327,7 +327,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 	   		sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwSetEnvTempUpperLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUpperLimit).c_str());
+	   printf("环境温度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUpperLimit).c_str());
 	   break;
    case hwSetEnvTempLowerLimit:			  //环境温度告警下限
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -335,7 +335,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 	   		sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwSetEnvTempLowerLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvTempLowerLimit).c_str());
+	   printf("环境温度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempLowerLimit).c_str());
 	   break;
    case hwSetEnvTempUltraHighTempThreshold:			  //环境高高温告警点
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -343,7 +343,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold).c_str());
+	   printf("环境高高温告警点:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold).c_str());
 	   break;
    case hwSetEnvHumidityUpperLimit:			  //环境湿度告警上限
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -351,7 +351,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwSetEnvHumidityUpperLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityUpperLimit).c_str());
+	   printf("环境湿度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityUpperLimit).c_str());
 	   break;
    case hwSetEnvHumidityLowerLimit:			  //环境湿度告警下限
 	   if(mIntegerValue==0x7FFFFFFF)
@@ -359,7 +359,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwSetEnvHumidityLowerLimit = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityLowerLimit).c_str());
+	   printf("环境湿度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityLowerLimit).c_str());
 	   break;
    //直流空调(新增加)
    case hwDcAirRunTime:			  //空调运行时间
@@ -368,7 +368,7 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwDcAirRunTime = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwDcAirRunTime).c_str());
+	   printf("空调运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirRunTime).c_str());
 	   break;
    case hwCoolingDevicesMode:			  //温控模式
 	   if(mIntegerValue==0xFF)
@@ -376,8 +376,21 @@ void UpdataHUAWEIGantry(unsigned int mIntegerValue,EM_HUAWEIGantry mIntHUAWEIGan
 	   else    
 		   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwCoolingDevicesMode = mbuf ;
-	   printf(":%s\r\n",(HUAWEIDevValue.strhwCoolingDevicesMode).c_str());
+	   printf("温控模式:%s\r\n",(HUAWEIDevValue.strhwCoolingDevicesMode).c_str());
 	   break;
+   //防火墙
+   case hwEntityCpuUsage:               //CPU
+       sprintf(mbuf,"%d",mIntegerValue) ;
+       HUAWEIDevValue.strhwEntityCpuUsage = mbuf ;
+       printf("防火墙CPU:%s\r\n",(HUAWEIDevValue.strhwEntityCpuUsage).c_str());
+       break;
+    //交换机
+    case hwswitchEntityCpuUsage:               //CPU
+         sprintf(mbuf,"%d",mIntegerValue) ;
+         HUAWEIDevValue.strhwswitchEntityCpuUsage = mbuf ;
+         printf("交换机CPU:%s\r\n",(HUAWEIDevValue.strhwswitchEntityCpuUsage).c_str());
+         break;
+
    default:
        break;
 
@@ -398,151 +411,153 @@ void *snmpthread(void *param)
     netsnmp_variable_list *vars;
     int status;
     int count=1;
+	char *sp = (char *)malloc(1024);
+	if(sp==NULL)
+	{
+		printf("snmpthread malloc error!\n");
+		return 0;
+	}
     init_snmp("snmpdemoapp");
     snmp_sess_init( &session );
 
 
-  int pos,vecSnmpSize,IntHUAWEIGantry;
-  string strsnmpget,strip,strcommunity,stroid,strHUAWEIGantry;
-  while(1)
-  {
-    //获取数据 ip;community;oid
-    pthread_mutex_lock(&snmpoidMutex);
-    vecSnmpSize = vecSnmp.size();
-    if(vecSnmpSize <= 0)
-    {
-       pthread_mutex_unlock(&snmpoidMutex);
-       usleep(300000) ;
-       continue ;
-    }
-
-      vector<string>::iterator fistSnmp = vecSnmp.begin();
-      strsnmpget = *fistSnmp ;
-//      cout<<strsnmpget<<endl;
-      vecSnmp.erase(fistSnmp);
-    pthread_mutex_unlock(&snmpoidMutex);
-
-       pos = strsnmpget.find(';') ;
-       if(pos > 0)
-         strip = strsnmpget.substr(0,pos) ; 
-       else
-         continue ;
-       strsnmpget = strsnmpget.substr(pos+1) ; 
-
-       pos = strsnmpget.find(';') ;
-       if(pos > 0)
-         strcommunity = strsnmpget.substr(0,pos) ; 
-       else
-         continue ;
-       strsnmpget = strsnmpget.substr(pos+1) ; 
-
-       pos = strsnmpget.find(';') ;
-       if(pos > 0)
-         stroid = strsnmpget.substr(0,pos) ; 
-       else
-         continue ;
-       strsnmpget = strsnmpget.substr(pos+1) ; 
-
-       pos = strsnmpget.find(';') ;
-       if(pos > 0)
-         strHUAWEIGantry = strsnmpget.substr(0,pos) ; 
-       else
-         continue ;
-
-       IntHUAWEIGantry = atoi(strHUAWEIGantry.c_str()) ;
-
-       session.peername = strdup(strip.c_str());
-       session.version = SNMP_VERSION_1;
-       session.community = (unsigned char*)(strcommunity.c_str());
-       session.community_len = strcommunity.size();//strlen(strcommunity.c_str());
-
-       SOCK_STARTUP;
-       ss = snmp_open(&session);                     /* establish the session */
-       if (!ss) {
-          snmp_sess_perror("ack", &session);
-          SOCK_CLEANUP;
-          //exit(1);
-          continue ;
-       }
-    
-       /*
-         * Create the PDU for the data for our request.
-         *   1) We're going to GET the system.sysDescr.0 node.
-       */
-       pdu = snmp_pdu_create(SNMP_MSG_GET);
-       anOID_len = MAX_OID_LEN;
-
-       if (!snmp_parse_oid(stroid.c_str(), anOID, &anOID_len)) {
-          snmp_perror(stroid.c_str());
-          snmp_close(ss);
-          SOCK_CLEANUP;
-          continue ;
-       }
-
-       snmp_add_null_var(pdu, anOID, anOID_len);
-  
-       /*
-         * Send the Request out.
-       */
-       status = snmp_synch_response(ss, pdu, &response);
-       /*
-         * Process the response.
-       */
-       if (status == STAT_SUCCESS && response->errstat == SNMP_ERR_NOERROR) {
-          /*
-           * SUCCESS: Print the result variables
-          */
-         for(vars = response->variables; vars; vars = vars->next_variable)
-         {
-           print_variable(vars->name, vars->name_length, vars);     
-         }
-         /* manipuate the information ourselves */
-         for(vars = response->variables; vars; vars = vars->next_variable) {
-            if (vars->type == ASN_OCTET_STR) {
-	       char *sp = (char *)malloc(1 + vars->val_len);
-	       memcpy(sp, vars->val.string, vars->val_len);
-	       sp[vars->val_len] = '/0';
-           printf("value #%d is a string: %s/n", count++, sp);
-		   UpdataHUAWEIGantryStr(sp,vars->val_len+1,(EM_HUAWEIGantry)IntHUAWEIGantry);
-	       free(sp);
+	int pos,vecSnmpSize,IntHUAWEIGantry;
+	string strsnmpget,strip,strcommunity,stroid,strHUAWEIGantry;
+	while(1)
+	{
+	    //获取数据 ip;community;oid
+	    pthread_mutex_lock(&snmpoidMutex);
+	    vecSnmpSize = vecSnmp.size();
+	    if(vecSnmpSize <= 0)
+	    {
+			pthread_mutex_unlock(&snmpoidMutex);
+			usleep(300000) ;
+			continue ;
 	    }
-            else
-            {
-              unsigned int IntegerValue = *(vars->val.integer) ;
-              printf("value #%d is a integer: %d\n", count++, IntegerValue);
-              //printf("value #%d is NOT a string! Ack!/n", count++);
-              UpdataHUAWEIGantry(IntegerValue,(EM_HUAWEIGantry)IntHUAWEIGantry);
-              
-            }
-         }
-       } 
-       else {
-        /*
-          * FAILURE: print what went wrong!
-        */
-        if (status == STAT_SUCCESS)
-            fprintf(stderr, "Error in packet/nReason: %s/n",
-                snmp_errstring(response->errstat));
-        else if (status == STAT_TIMEOUT)
-            fprintf(stderr, "Timeout: No response from %s./n",
-                session.peername);
-        else
-            snmp_sess_perror("snmpdemoapp", ss);
-      }
 
-      if (response)
-        snmp_free_pdu(response);
-      snmp_close(ss);
-      SOCK_CLEANUP;
+		vector<string>::iterator fistSnmp = vecSnmp.begin();
+		strsnmpget = *fistSnmp ;
+		cout<<strsnmpget<<endl;
+		vecSnmp.erase(fistSnmp);
+		pthread_mutex_unlock(&snmpoidMutex);
 
-      usleep(20000) ;
+		pos = strsnmpget.find(';') ;
+		if(pos > 0)
+			strip = strsnmpget.substr(0,pos) ; 
+		else
+			continue ;
+		strsnmpget = strsnmpget.substr(pos+1) ; 
 
+		pos = strsnmpget.find(';') ;
+		if(pos > 0)
+			strcommunity = strsnmpget.substr(0,pos) ; 
+		else
+			continue ;
+		strsnmpget = strsnmpget.substr(pos+1) ; 
+
+		pos = strsnmpget.find(';') ;
+		if(pos > 0)
+			stroid = strsnmpget.substr(0,pos) ; 
+		else
+			continue ;
+		strsnmpget = strsnmpget.substr(pos+1) ; 
+
+		pos = strsnmpget.find(';') ;
+		if(pos > 0)
+			strHUAWEIGantry = strsnmpget.substr(0,pos) ; 
+		else
+			continue ;
+
+		IntHUAWEIGantry = atoi(strHUAWEIGantry.c_str()) ;
+
+		session.peername = strdup(strip.c_str());
+		session.version = SNMP_VERSION_1;
+		session.community = (unsigned char*)(strcommunity.c_str());
+		session.community_len = strcommunity.size();
+
+		SOCK_STARTUP;
+		ss = snmp_open(&session);                     /* establish the session */
+		if (!ss) 
+		{
+			snmp_sess_perror("ack", &session);
+			SOCK_CLEANUP;
+			//exit(1);
+			continue ;
+		}
     
+		// Create the PDU for the data for our request.
+		//  1) We're going to GET the system.sysDescr.0 node.
+		pdu = snmp_pdu_create(SNMP_MSG_GET);
+		anOID_len = MAX_OID_LEN;
 
-  }
+		if (!snmp_parse_oid(stroid.c_str(), anOID, &anOID_len)) 
+		{
+			snmp_perror(stroid.c_str());
+			snmp_close(ss);
+			SOCK_CLEANUP;
+			continue ;
+		}
 
-  printf("snmpthread exit.\t\r");
-  return (0);
+		snmp_add_null_var(pdu, anOID, anOID_len);
+
+		// Send the Request out.
+		status = snmp_synch_response(ss, pdu, &response);
+		
+		// Process the response.
+		if (status == STAT_SUCCESS && response->errstat == SNMP_ERR_NOERROR) 
+		{
+			// SUCCESS: Print the result variables
+			for(vars = response->variables; vars; vars = vars->next_variable)
+			{
+				print_variable(vars->name, vars->name_length, vars);     
+			}
+			// manipuate the information ourselves 
+			for(vars = response->variables; vars; vars = vars->next_variable) 
+			{
+				if (vars->type == ASN_OCTET_STR) 
+				{
+					printf("ASN_OCTET_STR len=%d, str=%s\n",vars->val_len,vars->val.string);
+					memcpy(sp, vars->val.string, vars->val_len);
+//					sp[vars->val_len] = '/0';
+					sp[vars->val_len] = '\0';
+					printf("value #%d is a string: %s\n", count++, sp);
+					UpdataHUAWEIGantryStr(sp,vars->val_len+1,(EM_HUAWEIGantry)IntHUAWEIGantry);
+				}
+	            else
+	            {
+					printf("ASN_OCTET_INT len=%d\n",*(vars->val.integer));
+					unsigned int IntegerValue = *(vars->val.integer) ;
+					printf("value #%d is a integer: %d\n", count++, IntegerValue);
+					//printf("value #%d is NOT a string! Ack!/n", count++);
+					UpdataHUAWEIGantry(IntegerValue,(EM_HUAWEIGantry)IntHUAWEIGantry);
+
+				}
+			}
+		} 
+		else 
+		{
+			// FAILURE: print what went wrong!
+			if (status == STAT_SUCCESS)
+				fprintf(stderr, "Error in packet\nReason: %s\n",snmp_errstring(response->errstat));
+			else if (status == STAT_TIMEOUT)
+				fprintf(stderr, "Timeout: No response from %s.\n",session.peername);
+			else
+				snmp_sess_perror("snmpdemoapp", ss);
+		}
+
+		if (response)
+		{
+			snmp_free_pdu(response);
+		}
+		snmp_close(ss);
+		SOCK_CLEANUP;
+
+		usleep(20000) ;
+	}
+
+	free(sp);
+	printf("snmpthread exit.\t\r");
+	return (0);
 
 } 
 
@@ -623,11 +638,11 @@ int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry)
        break;
    //环境传感器
    case hwEnvTemperature:              //环境温度值
-       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.4.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.28.1.1.4.4101;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    case hwEnvHumidity:             //环境湿度值
-       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.4.1;" + strsend + ";";
+       strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.28.1.1.5.4101;" + strsend + ";";
        SendSnmpOid(strsend);
        break;
    //直流空调
@@ -676,40 +691,40 @@ int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry)
 	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.2.2.1.1.7.1;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
-/*   case hwAcbGroupTemperature:			  //电池温度
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.9.1;" + strsend + ";";
+   case hwAcbGroupTemperature:			  //电池温度
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.1.1.9.96;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwAcbGroupOverCurThr:			  //充电过流告警点
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.14.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.14.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwAcbGroupHighTempThr:			  //高温告警点
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.21.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.21.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwAcbGroupLowTempTh:			  //低温告警点
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.22.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.22.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwAcbGroupDodToAcidBattery:			  //锂电放电DOD
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.26.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.17.2.1.26.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetAcsUpperVoltLimit:			  //AC过压点设置
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.1.5.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.1.5.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
 	case hwSetAcsLowerVoltLimit:			  //AC欠压点设置
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.1.6.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.5.1.6.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetDcsUpperVoltLimit:			  //设置DC过压点
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.1.7.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.1.7.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetDcsLowerVoltLimit:			 //设置DC欠压点
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.1.8.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.6.1.8.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetLvdVoltage:			 //设置LVD电压
@@ -717,23 +732,23 @@ int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry)
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetEnvTempUpperLimit:			 //环境温度告警上限
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.5.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.5.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetEnvTempLowerLimit:			 //环境温度告警下限
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.6.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.6.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetEnvTempUltraHighTempThreshold:			 //环境高高温告警点
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.10.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.1.1.10.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetEnvHumidityUpperLimit:			 //环境湿度告警上限
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.5.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.5.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwSetEnvHumidityLowerLimit:			 //环境湿度告警下限
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.6.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.8.2.2.1.6.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
 	   break;
    case hwDcAirRunTime:			 //空调运行时间
@@ -741,9 +756,10 @@ int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry)
 	   SendSnmpOid(strsend);
 	   break;
    case hwCoolingDevicesMode:			 //温控模式
-	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.1.3.1;" + strsend + ";";
+	   strsend = StrHWServer+";a12345;.1.3.6.1.4.1.2011.6.164.1.10.1.3.0;" + strsend + ";";
 	   SendSnmpOid(strsend);
-	   break;*/
+	   break;
+
    default:
        break;
 
@@ -762,10 +778,11 @@ void *Sendsnmpthread(void *param)
 		
 		for(int i=1;i<=HWGANTRY_COUNT;i++)
 		{
-//			printf("SendHUAWEIsnmp %d\n",i);
+			printf("SendHUAWEIsnmp %d\n",i);
 			SendHUAWEIsnmp((EM_HUAWEIGantry)i);
 		}
-		sleep(300);
+//		sleep(300);
+		sleep(1);
    }
    printf("Sendsnmpthread exit\t\n");
    return 0 ;
@@ -827,6 +844,15 @@ void initHUAWEIGantry()
 	//直流空调(新增加)
 	HUAWEIDevValue.strhwDcAirRunTime="2147483647";				//空调运行时间
 	HUAWEIDevValue.strhwCoolingDevicesMode="2147483647";			//温控模式
+	
+    //防火墙
+    HUAWEIDevValue.strhwEntityCpuUsage="2147483647";                //CPU 
+    HUAWEIDevValue.strhwEntityMemUsage ="2147483647";              //内存使用率
+    HUAWEIDevValue.strhwEntityTemperature="2147483647";            //温度
+    //交换机
+    HUAWEIDevValue.strhwswitchEntityCpuUsage="2147483647";          //CPU 
+    HUAWEIDevValue.strhwswitchEntityMemUsage="2147483647";          //内存使用率
+    HUAWEIDevValue.strhwswitchEntityTemperature="2147483647";       //温度
 }
 
 int snmpInit(void)
@@ -842,6 +868,8 @@ int snmpInit(void)
 
 	   pthread_t m_snmpthread ;
 	   pthread_create(&m_snmpthread,NULL,snmpthread,NULL);
+
+       mywalkappinit();
    	}
    return 0 ;
 

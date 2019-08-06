@@ -21,12 +21,12 @@ typedef struct control_S{
 }RSUCONTROLER;
 //************B0（设备状态）数据帧解析******************
 typedef struct PSAMInfoN_n{
- char Psam_ID[8];
+ char Psam_ID[9];
 }PSAMINFON_N;
 typedef struct RSU_data_init{
 	char RSUManuID;		//路侧单元厂商代码
-	char RSUID[3];		//路侧单元编号
-	char RSUVersion[2];	//路侧单元软件版本号
+	char RSUID[4];		//路侧单元编号
+	char RSUVersion[3];	//路侧单元软件版本号
 	char ControlId;		//当前工作的天线控制盒Id
 	char PSAMCount;		//PSAM数量
 	PSAMInfoN_n PSAMInfoN[8];	//PSAM信息

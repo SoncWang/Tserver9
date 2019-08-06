@@ -1,7 +1,7 @@
 #ifndef __PROTOCOL_H__
 #define __PROTOCOL_H__
 
-#define VERSIONNO         "V001.0"   
+//#define VERSIONNO         "V001.0"   
 
 #define QRSCAN      0x0001         //二维码扫�?
 #define QRTOLL      0x0002         //支付扣费

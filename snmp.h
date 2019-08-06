@@ -6,7 +6,7 @@
 
 using namespace std; 
 
-#define HWGANTRY_COUNT 27
+#define HWGANTRY_COUNT 44
 
 int snmpInit(void);
 
@@ -14,6 +14,8 @@ int snmpInit(void);
 int SendSnmpOid(string mSnmpOid);
 int snmptrapInit(void);
 void initHUAWEIGantry();
+int mywalkappinit(void);
+int SendWalkSnmpOid(string mSnmpOid);
 
 #pragma pack(push, 1)
 typedef enum
@@ -71,7 +73,23 @@ typedef enum
    	hwSetEnvHumidityLowerLimit=42,		//环境湿度告警下限
 	//直流空调(新增加)
 	hwDcAirRunTime=43,				//空调运行时间
-	hwCoolingDevicesMode=44			//温控模式
+	hwCoolingDevicesMode=44,			//温控模式
+
+    //防火墙
+    hwEntityCpuUsage = 10000,              //CPU 
+    hwEntityMemUsage = 10001,                 //内存使用率
+    hwEntityTemperature = 10002,               //温度
+
+    //交换机
+    hwswitchEntityCpuUsage = 11000,              //CPU 
+    hwswitchEntityMemUsage = 11001,              //内存使用率
+    hwswitchEntityTemperature = 11002,            //温度
+
+    //空调回控
+    hwCoolingDevicesModeCtl = 21000,              //温控模式
+    hwDcAirPowerOnTempPointCtl = 21001,           //空调开机温度点
+    hwDcAirPowerOffTempPointCtl = 21002           //空调关机温度点
+
 }EM_HUAWEIGantry;
 
 typedef struct
@@ -130,6 +148,15 @@ typedef struct
 	//直流空调(新增加)
 	string strhwDcAirRunTime;				//空调运行时间
 	string strhwCoolingDevicesMode;			//温控模式
+    //防火墙
+    string strhwEntityCpuUsage;                //CPU 
+    string strhwEntityMemUsage ;              //内存使用率
+    string strhwEntityTemperature;            //温度
+    //交换机
+    string strhwswitchEntityCpuUsage;          //CPU 
+    string strhwswitchEntityMemUsage;          //内存使用率
+    string strhwswitchEntityTemperature;       //温度
+
 }THUAWEIGantry;
 
 typedef struct
@@ -185,6 +212,9 @@ typedef struct
 }THUAWEIALARM;
 
 #pragma pack(pop)
+
+int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry);
+int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue);
 
 #endif
 

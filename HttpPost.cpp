@@ -11,10 +11,15 @@
 #include <iostream>
 #include <sstream>
 #include <ctime>
+#include <pthread.h>
 
 #include "HttpPost.h"
+#include "registers.h"
 
-using namespace std;
+using namespace std; 
+
+extern pthread_mutex_t PostGetMutex ;
+
 
 //Base64 *pBase64 = new Base64();
 
@@ -165,12 +170,15 @@ int HttpPostjpeng(unsigned char *pjpengbuf,int jpenglen)
 }
 
 
-int HttpPostParm(string url,char *pParmbuf,int parmlen)
+int HttpPostParm(string url,char *pParmbuf,int *parmlen,int flag)
 {
+    pthread_mutex_lock(&PostGetMutex );
+
     CURLcode res = curl_global_init(CURL_GLOBAL_ALL);
     if(CURLE_OK != res)
     {
         cout<<"curl init failed"<<endl;
+         pthread_mutex_unlock(&PostGetMutex );
         return 1;
     }
 
@@ -180,6 +188,7 @@ int HttpPostParm(string url,char *pParmbuf,int parmlen)
     if( NULL == pCurl)
     {
         cout<<"Init CURL failed..."<<endl;
+         pthread_mutex_unlock(&PostGetMutex );
         return -1;
     }
 
@@ -211,10 +220,22 @@ int HttpPostParm(string url,char *pParmbuf,int parmlen)
     //post表单参数
 //    string strJsonData = "";
 	string strJsonData = pParmbuf;
-    //libcur的相关POST配置项
-    curl_easy_setopt(pCurl, CURLOPT_POST, 1L);
-    curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, strJsonData.c_str());
-    curl_easy_setopt(pCurl, CURLOPT_POSTFIELDSIZE, strJsonData.size());
+
+	if(flag==HTTPPOST)
+	{
+	    //libcur的相关POST配置项
+	    curl_easy_setopt(pCurl, CURLOPT_POST, 1L);
+	    curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, strJsonData.c_str());
+	    curl_easy_setopt(pCurl, CURLOPT_POSTFIELDSIZE, strJsonData.size());
+	}
+	else if(flag==HTTPGET)
+	{
+		//设置Get
+	    curl_easy_setopt(pCurl, CURLOPT_CUSTOMREQUEST, "GET");
+	}
+    //是否设置CURLAUTH_BASIC密码
+    //curl_easy_setopt(pCurl, CURLOPT_USERPWD, "root:admin12345");
+    //curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 
 
     res = curl_easy_perform(pCurl);
@@ -233,6 +254,7 @@ int HttpPostParm(string url,char *pParmbuf,int parmlen)
         if(!fp)
         {
             cout<<"open file failed";
+            pthread_mutex_unlock(&PostGetMutex );
             return -1;
         }
 
@@ -240,13 +262,15 @@ int HttpPostParm(string url,char *pParmbuf,int parmlen)
         fclose(fp);
         */
         string strmemory = oDataChunk.memory;
-        printf("%s\r\n",strmemory.c_str()) ;
-
+        printf("HttpPost res: %s\r\n",strmemory.c_str()) ;
+		memcpy(pParmbuf,strmemory.c_str(),strmemory.length());
+		*parmlen=strmemory.length();
+			
         curl_slist_free_all(pList);
         curl_easy_cleanup(pCurl);
        curl_global_cleanup();
-
-
+    
+        pthread_mutex_unlock(&PostGetMutex );
         return true;
     }
     else
@@ -254,6 +278,7 @@ int HttpPostParm(string url,char *pParmbuf,int parmlen)
        curl_slist_free_all(pList);
        curl_easy_cleanup(pCurl);
        curl_global_cleanup();
+       pthread_mutex_unlock(&PostGetMutex );
        return 0;
 
     }

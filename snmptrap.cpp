@@ -4,6 +4,7 @@
 #include <net-snmp/agent/ds_agent.h>
 #include <string> 
 #include "snmp.h"
+#include "registers.h"
 
 using namespace std; 
 
@@ -12,7 +13,7 @@ int      netsnmp_running = 1;
 extern string StrServerURL1;
 extern THUAWEIALARM HUAWEIDevAlarm;		//华为机柜告警
 extern void SetjsonTableStr(char* table, char *json, int *lenr);
-extern int HttpPostParm(string url,char *pParmbuf,int parmlen);
+extern int HttpPostParm(string url,char *pParmbuf,int *parmlen,int flag);
 extern void myprintf(char* str);
 extern void WriteLog(char* str);
 
@@ -26,7 +27,12 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 	int count = 0 ;
 	int i ;
 	int jsonPackLen=0;
-	char * jsonPack=(char *)malloc(50*1024);
+	char * jsonPack=(char *)malloc(JSON_LEN);
+	if(jsonPack==NULL)
+	{
+		myprintf("snmp_input jsonPack malloc error!\n");
+		return 0;
+	}
 	char str[256];
     WriteLog("We got a trap:\n");
     struct variable_list *vars;
@@ -144,7 +150,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 			memset(jsonPack,0,50*1024);
 			SetjsonTableStr("flagrunstatusalarm",jsonPack,&jsonPackLen);
 			//printf("%s",jsonPack);
-			HttpPostParm(StrServerURL1,jsonPack,jsonPackLen);
+			HttpPostParm(StrServerURL1,jsonPack,&jsonPackLen,HTTPPOST);
 			NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
 
 		     

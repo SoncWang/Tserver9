@@ -30,7 +30,7 @@ typedef enum NETCMD_TYPE
     NETCMD_SEND_SWITCH_INFO = 16,	//交换机状态
     NETCMD_FLAGRUNSTATUS  = 17,		//门架运行状态
     NETCMD_REMOTE_CONTROL = 18,		//遥控设备
-    NETCMD_CIRCUIT_STATUS = 19,		//回路开关状态
+    NETCMD_SWITCH_STATUS = 19,		//回路开关状态
 	NETCMD_HWCABINET_STATUS = 20	//华为机柜状态
 }NETCMD_TYPE;
 
@@ -65,7 +65,7 @@ typedef struct _SOCKET_PARA
 	int  fd;
 	int  trigger;
 	char IsQuit;
-}SocketPara;
+}SocketPara; 
 
 
 void initServer(void);
@@ -77,6 +77,10 @@ int Net_close();
 void init_LTKJ_DataPost();
 //初始化新粤定时推送线程
 void init_XY_DataPost();
+//初始化定时取工控机状态线程
+void init_HTTP_DataGet();
+//初始化socket定时推送线程(推送给小槟)
+void init_SocketNetSend();
 
 
 #endif

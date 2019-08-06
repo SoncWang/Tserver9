@@ -19,9 +19,9 @@
 int num;//输入的数据
 int rsctl_all=0x10;
 static int sockfd_rsu; 
-//extern std::string StrRSUIP;	//RSUIP地址
-//extern std::string StrRSUPort;	//RSU端口
-extern RSUCONTROLER *stuRsuControl;	//RSU控制器状态
+extern RSUCONTROLER stuRsuControl;	//RSU控制器状态
+extern RSU_DATA_INIT stuRsuData;	//RSU设备信息结构体
+extern RSU_RESET stuRsuReset;			//天线软件复位状态结构体
 extern char gsRSUIP[20];	//RSUIP地址
 extern char gsRSUPort[10];	//RSU端口
 
@@ -197,8 +197,8 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 //	struct FlagRunStatus_struct RSU_data;
 
 //	struct control_S data1;
-	struct RSU_data_init data2;
-	struct RSU_reset data3;
+//	struct RSU_data_init data2;
+//	struct RSU_reset data3;
 	//struct AntennaInfoN[8] data2[8];
 //	memset(&data1,0,sizeof(data1));
 	if( (sockfd_rsu = socket(AF_INET, SOCK_STREAM, 0)) == -1 )  
@@ -244,55 +244,58 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 			printf("\n");
 			if(buf[8]==0xb9)
 			{	
-				stuRsuControl->ControlCount=buf[17]; 	//控制器数量
+				stuRsuControl.ControlCount=buf[17]; 	//控制器数量
 				
-				temp=stuRsuControl->ControlCount;
+				temp=stuRsuControl.ControlCount;
 				if(temp>8)
 				{
 					printf("RSU ControlCount = %d error!\n",temp);
 					continue;
 				}
 				for(i=0;i<temp;i++)
-				{stuRsuControl->ControlStatusN[i]=buf[18+i];}		//控制器状态
-				stuRsuControl->AntennaCount=buf[18+temp];	//天线数量
-				if(stuRsuControl->AntennaCount>8)
+				{stuRsuControl.ControlStatusN[i]=buf[18+i];}		//控制器状态
+				stuRsuControl.AntennaCount=buf[18+temp];	//天线数量
+				if(stuRsuControl.AntennaCount>8)
 				{
-					printf("RSU AntennaCount = %d error!\n",stuRsuControl->AntennaCount);
+					printf("RSU AntennaCount = %d error!\n",stuRsuControl.AntennaCount);
 					continue;
 				}
-				for(j=0;j<stuRsuControl->AntennaCount;j++)
+				for(j=0;j<stuRsuControl.AntennaCount;j++)
 				{
-					stuRsuControl->AntennaInfoN[j].Status=buf[19+temp+j*4];
-					stuRsuControl->AntennaInfoN[j].Power=buf[20+temp+j*4];;
-					stuRsuControl->AntennaInfoN[j].Channel=buf[21+temp+j*4];;
-					stuRsuControl->AntennaInfoN[j].Control_state=buf[22+temp+j*4];
+					stuRsuControl.AntennaInfoN[j].Status=buf[19+temp+j*4];
+					stuRsuControl.AntennaInfoN[j].Power=buf[20+temp+j*4];;
+					stuRsuControl.AntennaInfoN[j].Channel=buf[21+temp+j*4];;
+					stuRsuControl.AntennaInfoN[j].Control_state=buf[22+temp+j*4];
 				}
-				printf("ControlCount=%d\t\n",stuRsuControl->ControlCount);
-				for(i=0;i<stuRsuControl->ControlCount;i++)
-					printf("Control %d ControlStatusN=%d\t\n",i,stuRsuControl->ControlStatusN[i]);
-				for(j=0;j<stuRsuControl->AntennaCount;j++)
-					printf("Antenna %d Status=%d  Power=%d  Channel=%d  Control_state=%d\t\n",j,stuRsuControl->AntennaInfoN[j].Status,stuRsuControl->AntennaInfoN[j].Power,stuRsuControl->AntennaInfoN[j].Channel,stuRsuControl->AntennaInfoN[j].Control_state);
+				printf("ControlCount=%d AntennaCount=%d\t\n",stuRsuControl.ControlCount,stuRsuControl.AntennaCount);
+				for(i=0;i<stuRsuControl.ControlCount;i++)
+					printf("Control %d ControlStatusN=%d\t\n",i,stuRsuControl.ControlStatusN[i]);
+				for(j=0;j<stuRsuControl.AntennaCount;j++)
+					printf("Antenna %d Status=%d  Power=%d  Channel=%d  Control_state=%d\t\n",j,stuRsuControl.AntennaInfoN[j].Status,stuRsuControl.AntennaInfoN[j].Power,stuRsuControl.AntennaInfoN[j].Channel,stuRsuControl.AntennaInfoN[j].Control_state);
 			}
 			else if(buf[8]==0xb0)
 			{
-				data2.RSUManuID=buf[10];
+				stuRsuData.RSUManuID=buf[10];
 				for(j=0;j<3;j++)
 				{
-				data2.RSUID[i]=buf[11+i];}
-				data2.RSUVersion[0]=buf[14];
-				data2.RSUVersion[1]=buf[15];
-				data2.ControlId=buf[16];
-				data2.PSAMCount=buf[17];
-				for(j=0;j<data2.PSAMCount;j++)
+				stuRsuData.RSUID[i]=buf[11+i];}
+				stuRsuData.RSUID[3]='\0';
+				stuRsuData.RSUVersion[0]=buf[14];
+				stuRsuData.RSUVersion[1]=buf[15];
+				stuRsuData.RSUVersion[2]='\0';
+				stuRsuData.ControlId=buf[16];
+				stuRsuData.PSAMCount=buf[17];
+				for(j=0;j<stuRsuData.PSAMCount;j++)
 				{
 					for(i=0;i<8;i++)
-						{data2.PSAMInfoN[j].Psam_ID[i]=buf[18+j+i];}
+						{stuRsuData.PSAMInfoN[j].Psam_ID[i]=buf[18+j+i];}
+					stuRsuData.PSAMInfoN[j].Psam_ID[8]='\0';
 				}
 			}
 			else if(buf[8]==0xd1)
 			{
-				data3.AntennaCount=buf[9];
-				data3.RSUState=buf[10];
+				stuRsuReset.AntennaCount=buf[9];
+				stuRsuReset.RSUState=buf[10];
 			}
 		}
 		sleep(2);
