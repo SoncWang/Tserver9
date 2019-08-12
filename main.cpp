@@ -102,7 +102,7 @@ int main(void)
 	unsigned int pos_cnt = 0;
 	unsigned int temp = 0;
 	//初始化看门狗
-//    WatchDogInit();
+	WatchDogInit();
 
 	//读设置文件
 	GetConfig();
@@ -217,7 +217,25 @@ int main(void)
 			pos_cnt++;
 		}
 	}
-	// 这里pos_cnt不要清0，后面还要用,要统计全部的485设备数量
+
+	/*上移到电压电流传感器后*/
+	/********    得到除电子锁外的所有485设备的轮询信息                         ***********************/
+	/*动态开辟一个数组，并存储有效其它485设备的轮询配置*/
+	actual_485dev_num = pos_cnt;
+	//pos_cnt = 0;// 这里pos_cnt不要清0，后面还要用,要统计全部的485设备数量
+	printf("actual_485dev_num 0x%02x ",actual_485dev_num);printf("\r\n");
+	polling_subarr = (int*)malloc(sizeof(int)*actual_485dev_num);
+	/*暂时副轮询只针对电压电流传感器*/
+	for (i=VA_METER_1,j=0; i < POWER_BD_1; i++)
+	{
+		if ((Var_Table[i].enable)&&(j<actual_485dev_num))
+		{
+			/*polling_subarr存储的是被使能的Var_Table的status,即顺序号*/
+			polling_subarr[j] = Var_Table[i].status;
+			printf("pollingsubcnt 0x%02x ",polling_subarr[j]);printf("\r\n");
+			j++;
+		}
+	}
 	/////////////////  电压电流传感器配置开始完毕/////////////////////////////////////
 
 
@@ -255,23 +273,6 @@ int main(void)
 	/////////////////  电源控制板配置结束  /////////////////////////////////////////////
 
 
-
-	/********    得到除电子锁外的所有485设备的轮询信息                         ***********************/
-	/*动态开辟一个数组，并存储有效其它485设备的轮询配置*/
-	actual_485dev_num = pos_cnt;
-	pos_cnt = 0;
-	printf("actual_485dev_num 0x%02x ",actual_485dev_num);printf("\r\n");
-	polling_subarr = (int*)malloc(sizeof(int)*actual_485dev_num);
-	for (i=VA_METER_1,j=0; i < RS485_DEV_MAX_NUM; i++)
-	{
-		if ((Var_Table[i].enable)&&(j<actual_485dev_num))
-		{
-			/*polling_subarr存储的是被使能的Var_Table的status,即顺序号*/
-			polling_subarr[j] = Var_Table[i].status;
-			printf("pollingsubcnt 0x%02x ",polling_subarr[j]);printf("\r\n");
-			j++;
-		}
-	}
 	/*打印485配置表的调试信息*/
 	printf("LOCKER_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_1].status, Var_Table[LOCKER_1].enable,Var_Table[LOCKER_1].position,Var_Table[LOCKER_1].addr);
 	printf("LOCKER_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_2].status, Var_Table[LOCKER_2].enable,Var_Table[LOCKER_2].position,Var_Table[LOCKER_2].addr);
@@ -396,6 +397,12 @@ int main(void)
 	init_SocketNetSend();
 	usleep(100000); //delay 100ms
 
+	//初始化获取摄像头状态
+    IpCamServerInit();
+
+    //初始化ip搜索线程
+	init_IpScan();
+
     while(1)
     {
 		if(stuRemote_Ctrl->SysReset==SYSRESET)					//系统重启
@@ -408,56 +415,6 @@ int main(void)
 	return 0;
 }
 
-
-/*void InitCamera(void)
-{
-	sprintf(gIpAddr,"192.192.2.139");
-	g_hCamera=CreateCamera();
-	SetCameraCallBack(g_hCamera,MYCameraJpegCallBackFunc,MYCameraEventCallBackFunc,(DWORD)g_hCamera);
-	ConnectCamera(g_hCamera,gIpAddr,DBVT_MYPORT);
-	ConnectDataCamera(g_hCamera,gIpAddr);
-}
-
-//视频显示线程(JPEG)
-void MYCameraJpegCallBackFunc(char * pBuffer,int size,IMAGE_CAPTURE_INFO *pImageInfo,DWORD nContext)
-{
-	char str[100],strPlatePos[100];
-	int nPlatePosStrLen=0;
-
-	//存储JPEG图片
-	memcpy(gPlateNum,pImageInfo->nCarSpeed,sizeof(char)*12);		   //车牌
-	gPlateColor=(ColorType)pImageInfo->nLimitSpeed[0];
-	printf("MYCameraJpegCallBackFunc plate=%s, color=%d\n",gPlateNum,gPlateColor);
-
-	FILE *ExprssWayFile;
-	ExprssWayFile = fopen("capture.jpg","wb");
-	if(ExprssWayFile!=NULL)
-	{
-		fwrite(pBuffer,1,size,ExprssWayFile);
-	}
-	fclose(ExprssWayFile);
-}
-
-void MYCameraEventCallBackFunc(CAMERA_STATE cEvent,DWORD nContext)
-{
-	HANDLE hCamera = (HANDLE)nContext;
-    if(cEvent==CAMERA_LINKED)
-    {
-        gCamStatus=CAMERA_LINKED;
-		printf("CAMERA_LINKED\n");
-    }
-
-    if(cEvent==CAMERA_BREAK)
-    {
-        gCamStatus=CAMERA_BREAK;
-		printf("CAMERA_BREAK\n");
-    }
-}
-
-void WriteLog(char* str)
-{
-	printf("%s\n",str);
-}*/
 
 void InitStuEnvi_Param(ENVI_PARAMS *pParam)
 {

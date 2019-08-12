@@ -17,7 +17,7 @@
 
 
 #define CARD_NUM		5	// 暂时为5张卡
-#define LOCKER_LOOP_NUM	5	// 电子锁轮询循环计数
+#define LOCKER_LOOP_NUM	10	// 电子锁轮询循环计数
 
 #define DOOR_LOCK_ADDR_1		91			// address of the LOCKER,91-99
 

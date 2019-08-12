@@ -781,8 +781,8 @@ void *Sendsnmpthread(void *param)
 			printf("SendHUAWEIsnmp %d\n",i);
 			SendHUAWEIsnmp((EM_HUAWEIGantry)i);
 		}
-//		sleep(300);
-		sleep(1);
+		sleep(300);
+//		sleep(1);
    }
    printf("Sendsnmpthread exit\t\n");
    return 0 ;
@@ -862,13 +862,13 @@ int snmpInit(void)
 	   pthread_mutex_init(&snmpoidMutex,NULL);
 	   
    	   snmptrapInit();
-	   
+/*	   
 	   pthread_t m_Sendsnmpthread ;
 	   pthread_create(&m_Sendsnmpthread,NULL,Sendsnmpthread,NULL);
 
 	   pthread_t m_snmpthread ;
 	   pthread_create(&m_snmpthread,NULL,snmpthread,NULL);
-
+*/
        mywalkappinit();
    	}
    return 0 ;

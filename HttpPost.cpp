@@ -15,8 +15,8 @@
 
 #include "HttpPost.h"
 #include "registers.h"
+using namespace std;
 
-using namespace std; 
 
 extern pthread_mutex_t PostGetMutex ;
 
@@ -170,7 +170,7 @@ int HttpPostjpeng(unsigned char *pjpengbuf,int jpenglen)
 }
 
 
-int HttpPostParm(string url,char *pParmbuf,int *parmlen,int flag)
+int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag)
 {
     pthread_mutex_lock(&PostGetMutex );
 
@@ -219,7 +219,7 @@ int HttpPostParm(string url,char *pParmbuf,int *parmlen,int flag)
     curl_easy_setopt(pCurl, CURLOPT_VERBOSE, 1L); //启用时会汇报所有的信息
     //post表单参数
 //    string strJsonData = "";
-	string strJsonData = pParmbuf;
+    string strJsonData = StrParmbuf;
 
 	if(flag==HTTPPOST)
 	{
@@ -234,8 +234,12 @@ int HttpPostParm(string url,char *pParmbuf,int *parmlen,int flag)
 	    curl_easy_setopt(pCurl, CURLOPT_CUSTOMREQUEST, "GET");
 	}
     //是否设置CURLAUTH_BASIC密码
-    //curl_easy_setopt(pCurl, CURLOPT_USERPWD, "root:admin12345");
-    //curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    if(strkey != "")
+    {
+        curl_easy_setopt(pCurl, CURLOPT_USERPWD, strkey.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    }
+
 
 
     res = curl_easy_perform(pCurl);
@@ -263,8 +267,9 @@ int HttpPostParm(string url,char *pParmbuf,int *parmlen,int flag)
         */
         string strmemory = oDataChunk.memory;
         printf("HttpPost res: %s\r\n",strmemory.c_str()) ;
-		memcpy(pParmbuf,strmemory.c_str(),strmemory.length());
-		*parmlen=strmemory.length();
+        StrParmbuf = strmemory ;
+        //memcpy(pParmbuf,strmemory.c_str(),strmemory.length());
+        //*parmlen=strmemory.length();
 			
         curl_slist_free_all(pList);
         curl_easy_cleanup(pCurl);

@@ -22,8 +22,8 @@ static int sockfd_rsu;
 extern RSUCONTROLER stuRsuControl;	//RSU控制器状态
 extern RSU_DATA_INIT stuRsuData;	//RSU设备信息结构体
 extern RSU_RESET stuRsuReset;			//天线软件复位状态结构体
-extern char gsRSUIP[20];	//RSUIP地址
-extern char gsRSUPort[10];	//RSU端口
+extern char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
+extern char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
 static void* NetWork_server_thread_RSU(void *arg);
 void myprintf(char* str);
@@ -176,6 +176,21 @@ static char* getNetworkInfo(char *maches)	//读取配置文件的内容
     	fclose(fp);
 	return szNetwork;
 }
+
+void *GetRSUInofthread(void *param)
+{
+	while(1)
+	{
+
+		sleep(100005);
+		//读取配置0xc0
+		send_RSU(0xC0,false,0,1);
+		
+	}
+
+	return 0 ;
+}
+
 void init_net_rsu()
 {
 	pthread_t tNetwork_server_RSU;
@@ -184,6 +199,9 @@ void init_net_rsu()
 		printf("NetWork server create failed!\n");
 	}
 	pthread_detach(tNetwork_server_RSU);
+	
+	pthread_t tGetRSUInof;
+//	pthread_create(&tGetRSUInof, NULL, GetRSUInofthread,NULL); 
 }
 static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 {
@@ -191,9 +209,10 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 	const char *IPaddress;
 	const char * IPport;
 	int port,nlen;
-	char buf[128];
+	unsigned char buf[128];
 	struct sockaddr_in server_addr; 
 	memset(buf,0,sizeof(buf));
+	unsigned short crc_rsu;
 //	struct FlagRunStatus_struct RSU_data;
 
 //	struct control_S data1;
@@ -210,8 +229,8 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 	}
 //	IPaddress = getNetworkInfo("RSUIP");//获取配置文件中的IP地址
 //	IPport=getNetworkInfo("RSUPort");
-	IPaddress = gsRSUIP;//获取配置文件中的IP地址
-	IPport=gsRSUPort;
+	IPaddress = gsRSUIP[0];//获取配置文件中的IP地址
+	IPport=gsRSUPort[0];
 	port=atoi(IPport);
 	/* Fill the local socket address struct */
 	server_addr.sin_family = AF_INET;           		// Protocol Family
@@ -226,6 +245,8 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 	else
 	{
 		myprintf("connect to RSU server sucess!\n");
+		//读取配置0xc0
+		send_RSU(0xC0,false,0,1);
 	while(1)
 	{
 		memset(buf,0,sizeof(buf));
@@ -242,7 +263,8 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 				printf("%x-",buf[i]);
 			}
 			printf("\n");
-			if(buf[8]==0xb9)
+			crc_rsu=CRC16_pc(buf+2,nlen-4);
+			if(buf[8]==0xb9&&buf[nlen-2]==((crc_rsu&0xff00)>>8)&&buf[nlen-1]==(crc_rsu&0x00ff)&&buf[0]==0xff)
 			{	
 				stuRsuControl.ControlCount=buf[17]; 	//控制器数量
 				
@@ -273,26 +295,30 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 				for(j=0;j<stuRsuControl.AntennaCount;j++)
 					printf("Antenna %d Status=%d  Power=%d  Channel=%d  Control_state=%d\t\n",j,stuRsuControl.AntennaInfoN[j].Status,stuRsuControl.AntennaInfoN[j].Power,stuRsuControl.AntennaInfoN[j].Channel,stuRsuControl.AntennaInfoN[j].Control_state);
 			}
-			else if(buf[8]==0xb0)
+			else if(buf[8]==0xb0&&buf[nlen-2]==((crc_rsu&0xff00)>>8)&&buf[nlen-1]==(crc_rsu&0x00ff)&&buf[0]==0xff)
 			{
+				stuRsuData.ErrorCode=buf[9];
 				stuRsuData.RSUManuID=buf[10];
 				for(j=0;j<3;j++)
 				{
-				stuRsuData.RSUID[i]=buf[11+i];}
-				stuRsuData.RSUID[3]='\0';
+					stuRsuData.RSUID[i]=buf[11+i];
+				}
 				stuRsuData.RSUVersion[0]=buf[14];
 				stuRsuData.RSUVersion[1]=buf[15];
-				stuRsuData.RSUVersion[2]='\0';
 				stuRsuData.ControlId=buf[16];
-				stuRsuData.PSAMCount=buf[17];
-				for(j=0;j<stuRsuData.PSAMCount;j++)
+				if(stuRsuData.ErrorCode!=0x02)//PSAM卡非异常
 				{
-					for(i=0;i<8;i++)
-						{stuRsuData.PSAMInfoN[j].Psam_ID[i]=buf[18+j+i];}
-					stuRsuData.PSAMInfoN[j].Psam_ID[8]='\0';
+					stuRsuData.PSAMCount=buf[17];
+					for(j=0;j<stuRsuData.PSAMCount;j++)
+					{
+						for(i=0;i<8;i++)
+						{
+							stuRsuData.PSAMInfoN[j].Psam_ID[i]=buf[18+j*8+i];
+						}
+					}
 				}
 			}
-			else if(buf[8]==0xd1)
+			else if(buf[8]==0xd1&&buf[nlen-2]==((crc_rsu&0xff00)>>8)&&buf[nlen-1]==(crc_rsu&0x00ff)&&buf[0]==0xff)
 			{
 				stuRsuReset.AntennaCount=buf[9];
 				stuRsuReset.RSUState=buf[10];

@@ -76,14 +76,16 @@ typedef enum
 	hwCoolingDevicesMode=44,			//温控模式
 
     //防火墙
-    hwEntityCpuUsage = 10000,              //CPU 
-    hwEntityMemUsage = 10001,                 //内存使用率
-    hwEntityTemperature = 10002,               //温度
+    hwEntityCpuUCheck = 10000,             //查询
+    hwEntityCpuUsage = 10001,              //CPU
+    hwEntityMemUsage = 10002,                 //内存使用率
+    hwEntityTemperature = 10003,               //温度
 
     //交换机
-    hwswitchEntityCpuUsage = 11000,              //CPU 
-    hwswitchEntityMemUsage = 11001,              //内存使用率
-    hwswitchEntityTemperature = 11002,            //温度
+    hwswitchEntityCpuCheck = 11000,             //查询
+    hwswitchEntityCpuUsage = 11001,              //CPU
+    hwswitchEntityMemUsage = 11002,              //内存使用率
+    hwswitchEntityTemperature = 11003,            //温度
 
     //空调回控
     hwCoolingDevicesModeCtl = 21000,              //温控模式

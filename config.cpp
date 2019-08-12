@@ -52,11 +52,14 @@ string StrRSUPort[RSUCTL_NUM];	//RSU控制器端口
 string StrVehPlateCount;	//识别仪数量
 string StrVehPlateIP[VEHPLATE_NUM];	//识别仪IP地址
 string StrVehPlatePort[VEHPLATE_NUM];	//识别仪端口
+string StrVehPlateKey[VEHPLATE_NUM];	//识别仪用户名密码
 string StrCAMIP;	//监控摄像头IP地址
 string StrCAMPort;	//监控摄像头端口
+string StrCAMKey;	//监控摄像头用户名密码
 
-char gsRSUIP[20];	//RSUIP地址
-char gsRSUPort[10];	//RSU端口
+char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
+char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
+
 
 string StrdeviceType="LTKJ-VMCTRL-101";	//设备型号
 string StrVersionNo="V1.00.00" ;	//主程序版本号
@@ -114,8 +117,10 @@ string getstring(string str,string strkey)
 
 int GetConfig(void)
 {
-    int i;
+    int i,vehplatecnt,rsucnt;
+	char key[128];
 	char strbuf[1501];
+	string strvalue;
     memset(strbuf,0x00,1501) ;
 
     char strwifibuf[1001];
@@ -150,9 +155,11 @@ int GetConfig(void)
 	{
 		StrVehPlateIP[i] = "";	//识别仪1IP地址
 		StrVehPlatePort[i] = "";	//识别仪1端口
+		StrVehPlateKey[i] = "";	//识别仪用户名密码
 	}
 	StrCAMIP = "";			//监控摄像头IP地址
 	StrCAMPort = "";		//监控摄像头端口
+	StrCAMKey = "";	//监控摄像头用户名密码
 
 	StrCabinetType="";		//机柜类型
 
@@ -259,43 +266,44 @@ int GetConfig(void)
 
     Strkey = "RSUCount=";
     StrRSUCount = getstring(StrConfig,Strkey) ;//RSU数量
+    rsucnt=atoi(StrRSUCount.c_str());
 
-    Strkey = "RSUIP=";
-    StrRSUIP[0] = getstring(StrConfig,Strkey) ;//RSU IP 地址
-    sprintf(gsRSUIP,StrRSUIP[0].c_str());//RSUIP地址
+	for(i=0;i<rsucnt;i++)
+	{
+		sprintf(key,"RSU%dIP=",i+1);
+	    StrRSUIP[i] = getstring(StrConfig,key) ;//RSU IP 地址
+	    sprintf(gsRSUIP[i],StrRSUIP[i].c_str());//RSUIP地址
 
-    Strkey = "RSUPort=";
-    StrRSUPort[0] = getstring(StrConfig,Strkey) ;//RSU端口
-    sprintf(gsRSUPort,StrRSUPort[0].c_str());//RSU端口
+		sprintf(key,"RSU%dPort=",i+1);
+	    StrRSUPort[i] = getstring(StrConfig,key) ;//RSU端口
+	    sprintf(gsRSUPort[i],StrRSUPort[i].c_str());//RSU端口
+
+	}
 
     Strkey = "VehPlateCount=";
     StrVehPlateCount = getstring(StrConfig,Strkey) ;//识别仪数量
+	vehplatecnt=atoi(StrVehPlateCount.c_str());
 
-    Strkey = "VehPlate1IP=";
-    StrVehPlateIP[0] = getstring(StrConfig,Strkey) ;//识别仪1IP地址
-    Strkey = "VehPlate1Port=";
-    StrVehPlatePort[0] = getstring(StrConfig,Strkey) ;//识别仪1端口
+	for(i=0;i<vehplatecnt;i++)
+	{
+		sprintf(key,"VehPlate%dIP=",i+1);
+	    StrVehPlateIP[i] = getstring(StrConfig,key) ;//识别仪IP地址
 
-    Strkey = "VehPlate2IP=";
-    StrVehPlateIP[1] = getstring(StrConfig,Strkey) ;//识别仪2IP地址
-    Strkey = "VehPlate2Port=";
-    StrVehPlatePort[1] = getstring(StrConfig,Strkey) ;//识别仪2端口
+		sprintf(key,"VehPlate%dPort=",i+1);
+	    StrVehPlatePort[i] = getstring(StrConfig,key) ;//识别仪端口
 
-    Strkey = "VehPlate3IP=";
-    StrVehPlateIP[2] = getstring(StrConfig,Strkey) ;//识别仪3IP地址
-    Strkey = "VehPlate3Port=";
-    StrVehPlatePort[2] = getstring(StrConfig,Strkey) ;//识别仪3端口
-
-    Strkey = "VehPlate4IP=";
-    StrVehPlateIP[3] = getstring(StrConfig,Strkey) ;//识别仪4IP地址
-    Strkey = "VehPlate4Port=";
-    StrVehPlatePort[3] = getstring(StrConfig,Strkey) ;//识别仪4端口
+		sprintf(key,"VehPlate%dKey=",i+1);
+	    StrVehPlateKey[i] = getstring(StrConfig,key) ;//识别仪用户名密码
+	}
 
     Strkey = "CAMIP=";
     StrCAMIP = getstring(StrConfig,Strkey) ;//监控摄像头IP地址
 
     Strkey = "CAMPort=";
     StrCAMPort = getstring(StrConfig,Strkey) ;//监控摄像头端口
+
+    Strkey = "StrCAMKey=";
+    StrCAMKey = getstring(StrConfig,Strkey) ;//监控摄像头用户名密码
 
     Strkey = "CabinetType=";
     StrCabinetType = getstring(StrConfig,Strkey) ;//机柜类型
@@ -351,172 +359,33 @@ int GetConfig(void)
 	/*电子锁的地址配置, 最大支持3把*/
 	for (i = 0; i < LOCK_MAX_NUM; i++)
 	{
-		if (i == 0)
-		{
-			Strkey = "LOCKADD1=";
-		}
-		else if (i == 1)
-		{
-			Strkey = "LOCKADD2=";
-		}
-		else if (i == 2)
-		{
-			Strkey = "LOCKADD3=";
-		}
-		else if (i == 3)
-		{
-			Strkey = "LOCKADD4=";
-		}
-		StrAdrrLock[i] = getstring(StrConfig,Strkey) ;
+		sprintf(key,"LOCKADD%d=",i+1);
+		StrAdrrLock[i] = getstring(StrConfig,key) ;
 	}
 
 	/*电压电流传感器的地址配置, 最大支持6个*/
 	for (i = 0; i < VA_METER_BD_MAX_NUM; i++)
 	{
-		if (i == 0)
-		{
-			Strkey = "VAMETERADD1=";
-		}
-		else if (i == 1)
-		{
-			Strkey = "VAMETERADD2=";
-		}
-		else if (i == 2)
-		{
-			Strkey = "VAMETERADD3=";
-		}
-		else if (i == 3)
-		{
-			Strkey = "VAMETERADD4=";
-		}
-		else if (i == 4)
-		{
-			Strkey = "VAMETERADD5=";
-		}
-		else if (i == 5)
-		{
-			Strkey = "VAMETERADD6=";
-		}
-		StrAdrrVAMeter[i] = getstring(StrConfig,Strkey);
+		sprintf(key,"VAMETERADD%d=",i+1);
+		StrAdrrVAMeter[i] = getstring(StrConfig,key);
 	}
 
 	/*电源控制板的地址配置, 最大支持3块*/
 	for (i = 0; i < POWER_BD_MAX_NUM; i++)
 	{
-		if (i == 0)
-		{
-			Strkey = "POWERBDADD1=";
-		}
-		else if (i == 1)
-		{
-			Strkey = "POWERBDADD2=";
-		}
-		else if (i == 2)
-		{
-			Strkey = "POWERBDADD3=";
-		}
-		StrAdrrPower[i] = getstring(StrConfig,Strkey);
+		sprintf(key,"POWERBDADD%d=",i+1);
+		StrAdrrPower[i] = getstring(StrConfig,key);
 	}
 
-	for (i = 0; i < SWITCH_COUNT; i++)
+	for (i = 0; i < VEHPLATE_NUM; i++)
 	{
-		switch (i)
+		sprintf(key,"VEHPLATE%d_DO=",i+1);
+		strvalue=getstring(StrConfig,key);
+		if(strvalue!="")
 		{
-		case 0:
-			Strkey = "VEHPLATE1=";
-			break;
-		case 1:
-			Strkey = "VEHPLATE2=";
-			break;
-		case 2:
-			Strkey = "VEHPLATE3=";
-			break;
-		case 3:
-			Strkey = "VEHPLATE4=";
-			break;
-		case 4:
-			Strkey = "VEHPLATE5=";
-			break;
-		case 5:
-			Strkey = "VEHPLATE6=";
-			break;
-		case 6:
-			Strkey = "VEHPLATE7=";
-			break;
-		case 7:
-			Strkey = "VEHPLATE8=";
-			break;
-		case 8:
-			Strkey = "VEHPLATE9=";
-			break;
-		case 9:
-			Strkey = "VEHPLATE10=";
-			break;
-		case 10:
-			Strkey = "VEHPLATE11=";
-			break;
-		case 11:
-			Strkey = "VEHPLATE12=";
-			break;
-		default:
-			break;
+			StrDoSeq[i] = strvalue;
 		}
-		StrDoSeq[i] = getstring(StrConfig,Strkey);
 	}
-
-/*	printf("%d %s\n",StrID.length(), StrID.c_str());			//硬件ID
-	printf("%d %s\n",StrstationID.length(), StrstationID.c_str());	//虚拟站编号
-	printf("%d %s\n",StrstationName.length(), StrstationName.c_str());	//虚拟站名
-	printf("%d %s\n",StrNET.length(), StrNET.c_str());			//网络方式
-	printf("%d %s\n",StrDHCP.length(), StrDHCP.c_str()); 		//是否DHCP
-	printf("%d %s\n",StrIP.length(), StrIP.c_str());			//IP地址
-	printf("%d %s\n",StrMask.length(), StrMask.c_str()); 		//子网掩码
-	printf("%d %s\n",StrGateway.length(), StrGateway.c_str());		//网关
-	printf("%d %s\n",StrDNS.length(), StrDNS.c_str());			//DNS地址
-
-	printf("%d %s\n",StrHWServer.length(), StrHWServer.c_str()); 	//华为服务器地址
-	printf("%d %s\n",StrHWGetPasswd.length(), StrHWGetPasswd.c_str());	//SNMP GET 密码
-	printf("%d %s\n",StrHWSetPasswd.length(), StrHWSetPasswd.c_str());	//SNMP SET 密码
-	printf("%d %s\n",StrServerURL1.length(), StrServerURL1.c_str());	//服务端URL1
-	printf("%d %s\n",StrServerURL2.length(), StrServerURL2.c_str());	//服务端URL2
-	printf("%d %s\n",StrServerURL3.length(), StrServerURL3.c_str());	//服务端URL3
-	printf("%d %s\n",StrStationURL.length(), StrStationURL.c_str());	//虚拟站端URL
-	printf("%d %s\n",StrRSUIP.length(), StrRSUIP.c_str());	//RSUIP地址
-	printf("%d %s\n",StrRSUPort.length(), StrRSUPort.c_str());	//RSU端口
-	printf("%d %s\n",StrVehPlateIP[0].length(), StrVehPlateIP[0].c_str());	//识别仪1IP地址
-	printf("%d %s\n",StrVehPlatePort[0].length(), StrVehPlatePort[0].c_str());	//识别仪1端口
-	printf("%d %s\n",StrVehPlateIP[1].length(), StrVehPlateIP[1].c_str());	//识别仪2IP地址
-	printf("%d %s\n",StrVehPlatePort[1].length(), StrVehPlatePort[1].c_str());	//识别仪2端口
-	printf("%d %s\n",StrVehPlateIP[2].length(), StrVehPlateIP[2].c_str());	//识别仪3IP地址
-	printf("%d %s\n",StrVehPlatePort[2].length(), StrVehPlatePort[2].c_str());	//识别仪3端口
-	printf("%d %s\n",StrVehPlateIP[3].length(), StrVehPlateIP[3].c_str());	//识别仪4IP地址
-	printf("%d %s\n",StrVehPlatePort[3].length(), StrVehPlatePort[3].c_str());	//识别仪4端口
-	printf("%d %s\n",StrCAMIP.length(), StrCAMIP.c_str());	//监控摄像头IP地址
-	printf("%d %s\n",StrCAMPort.length(), StrCAMPort.c_str());	//监控摄像头端口
-
-	printf("%d %s\n",StrdeviceType.length(), StrdeviceType.c_str()); //设备型号
-	printf("%d %s\n",StrID.length(), StrID.c_str()); //设备ID号
-	printf("%d %s\n",StrVersionNo.length(), StrVersionNo.c_str());	//主程序版本号
-	printf("%d %s\n",StrSoftDate.length(), StrSoftDate.c_str());	//版本日期
-
-	printf("%d %s\n",StrCabinetType.length(), StrCabinetType.c_str());		//机柜类型
-	printf("%d %s\n",StrFlagNetRoadID.length(), StrFlagNetRoadID.c_str());	//ETC 门架路网编号
-	printf("%d %s\n",StrFlagRoadID.length(), StrFlagRoadID.c_str());		//ETC 门架路段编号
-	printf("%d %s\n",StrFlagID.length(), StrFlagID.c_str());			//ETC 门架编号
-	printf("%d %s\n",StrPosId.length(), StrPosId.c_str());			//ETC 门架序号
-	printf("%d %s\n",StrDirection.length(), StrDirection.c_str());		//行车方向
-	printf("%d %s\n",StrDirDescription.length(), StrDirDescription.c_str());	//行车方向说明
-
-
-	printf("%d %s\n",StrWIFIUSER.length(), StrWIFIUSER.c_str()); 	//WIIFI用户名
-	printf("%d %s\n",StrWIFIKEY.length(), StrWIFIKEY.c_str());		//WIIFI密码
-
-	printf("%d %s\n",StrFireWareIP.length(), StrFireWareIP.c_str());		  //防火墙IP
-	printf("%d %s\n",StrFireWareGetPasswd.length(), StrFireWareGetPasswd.c_str());  //防火墙get密码
-	printf("%d %s\n",StrFireWareSetPasswd.length(), StrFireWareSetPasswd.c_str());  //防火墙set密码
-	printf("%d %s\n",StrSwitchIP.length(), StrSwitchIP .c_str());//交换机IP
-	printf("%d %s\n",StrSwitchGetPasswd.length(), StrSwitchGetPasswd .c_str());//交换机get密码
-	printf("%d %s\n",StrSwitchSetPasswd.length(), StrSwitchSetPasswd .c_str());//交换机set密码*/
 
     ConfigCri.UnLock();
     return 0 ;

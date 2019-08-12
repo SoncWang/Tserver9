@@ -93,8 +93,10 @@ extern string StrRSUPort[RSUCTL_NUM];	//RSU端口
 extern string StrVehPlateCount;	//识别仪数量
 extern string StrVehPlateIP[VEHPLATE_NUM];	//识别仪IP地址
 extern string StrVehPlatePort[VEHPLATE_NUM];	//识别仪端口
+extern string StrVehPlateKey[VEHPLATE_NUM];	//识别仪用户名密码
 extern string StrCAMIP;	//监控摄像头IP地址
 extern string StrCAMPort;	//监控摄像头端口
+extern string StrCAMKey;	//监控摄像头用户名密码
 extern string StrFireWareIP;         //防火墙IP
 extern string StrFireWareGetPasswd;  //防火墙get密码
 extern string StrFireWareSetPasswd;  //防火墙set密码
@@ -143,6 +145,9 @@ void GetIPinfo(IPInfo *ipInfo)
 
 void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 {
+	char key[20];
+	int i,rsucnt,vehplatecnt;
+	
 	StrCabinetType=vmctrl_param->CabinetType;				//机柜类型
 	StrHWServer=vmctrl_param->HWServer;				//华为服务器地址
 	StrHWGetPasswd=vmctrl_param->HWGetPasswd;				//SNMP GET 密码
@@ -152,32 +157,39 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	StrServerURL3=vmctrl_param->ServerURL3;				//
 	StrStationURL=vmctrl_param->StationURL;		//
 	StrRSUCount=vmctrl_param->RSUCount;		//RSU数量
-	for(int i=0;i<RSUCTL_NUM;i++)
+	rsucnt=atoi(vmctrl_param->RSUCount);
+	for(i=0;i<rsucnt;i++)
 	{
 		StrRSUIP[i]=vmctrl_param->RSUIP[i];		//RSUIP地址
 		StrRSUPort[i]=vmctrl_param->RSUPort[i];		//RSU端口
 	}
 	StrVehPlateCount=vmctrl_param->VehPlateCount;		//识别仪数量
-	for(int i=0;i<VEHPLATE_NUM;i++)
+	vehplatecnt=atoi(vmctrl_param->VehPlateCount);
+	for(i=0;i<vehplatecnt;i++)
 	{
 		StrVehPlateIP[i]=vmctrl_param->VehPlateIP[i];		//
 		StrVehPlatePort[i]=vmctrl_param->VehPlatePort[i];		//
+		StrVehPlateKey[i]=vmctrl_param->VehPlateKey[i];		//用户名密码
 	}
 	StrCAMIP=vmctrl_param->CAMIP;		//
 	StrCAMPort=vmctrl_param->CAMPort;		//
+	StrCAMKey=vmctrl_param->CAMKey;		//监控摄像头用户名密码
+
 	StrFireWareIP=vmctrl_param->FireWareIP;		//防火墙地址
 	StrFireWareGetPasswd=vmctrl_param->FireWareGetPasswd;		///防火墙get密码
 	StrFireWareSetPasswd=vmctrl_param->FireWareSetPasswd;		///防火墙set密码
 	StrSwitchIP=vmctrl_param->SwitchIP;		//交换机地址
 	StrSwitchGetPasswd=vmctrl_param->SwitchGetPasswd;		//交换机get密码
 	StrSwitchSetPasswd=vmctrl_param->SwitchSetPasswd;		//交换机set密码
-	
-/*	StrAdrrLock1=vmctrl_param->LockAddr1;		//门锁地址1
-	StrAdrrLock2=vmctrl_param->LockAddr2;		//门锁地址2
-	StrAdrrVAMeter1=vmctrl_param->VameterAddr1;		//电能表地址1
-	StrAdrrVAMeter2=vmctrl_param->VameterAddr2;		//电能表地址2
-	StrPowerAddr1=vmctrl_param->PowerAddr1;		//电源板地址1
-	StrPowerAddr2=vmctrl_param->PowerAddr2;		//电源板地址2*/
+
+	for(i=0;i<LOCK_NUM;i++)
+		StrAdrrLock[i]=vmctrl_param->LockAddr[i];		//门锁地址
+	for(i=0;i<VA_METER_BD_NUM;i++)
+		StrAdrrVAMeter[i]=vmctrl_param->VameterAddr[i];		//电能表地址
+	for(i=0;i<POWER_BD_NUM;i++)
+		StrAdrrPower[i]=vmctrl_param->PowerAddr[i];		//电源板地址
+	for(i=0;i<VEHPLATE_NUM;i++)
+		StrDoSeq[i]=vmctrl_param->DoSeq[i];		//车牌识别DO映射 最多12路车牌识别
 	
 	StrCabinetType=vmctrl_param->CabinetType;		//机柜类型
 	StrFlagNetRoadID=vmctrl_param->FlagNetRoadID; //ETC 门架路网编号
@@ -196,17 +208,28 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	Setconfig("ServerURL3=",vmctrl_param->ServerURL3);
 	Setconfig("StationURL=",vmctrl_param->StationURL);
 	Setconfig("RSUCount=",vmctrl_param->RSUCount);
-	Setconfig("RSUIP=",vmctrl_param->RSUIP[0]);
-	Setconfig("RSUPort=",vmctrl_param->RSUPort[0]);
+	rsucnt=atoi(vmctrl_param->RSUCount);
+	for(i=0;i<rsucnt;i++)
+	{
+		sprintf(key,"RSU%dIP=",i+1);//RSUIP地址
+		Setconfig(key,vmctrl_param->RSUIP[i]);
+	    
+		sprintf(key,"RSU%dPort=",i+1);//RSU端口
+		Setconfig(key,vmctrl_param->RSUPort[i]);
+	}
 	Setconfig("VehPlateCount=",vmctrl_param->VehPlateCount);
-	Setconfig("VehPlate1IP=",vmctrl_param->VehPlateIP[0]);
-	Setconfig("VehPlate1Port=",vmctrl_param->VehPlatePort[0]);
-	Setconfig("VehPlate2IP=",vmctrl_param->VehPlateIP[1]);
-	Setconfig("VehPlate2Port=",vmctrl_param->VehPlatePort[1]);
-	Setconfig("VehPlate3IP=",vmctrl_param->VehPlateIP[2]);
-	Setconfig("VehPlate3Port=",vmctrl_param->VehPlatePort[2]);
-	Setconfig("VehPlate4IP=",vmctrl_param->VehPlateIP[3]);
-	Setconfig("VehPlate4Port=",vmctrl_param->VehPlatePort[3]);
+	vehplatecnt=atoi(vmctrl_param->VehPlateCount);
+	for(i=0;i<vehplatecnt;i++)
+	{
+		sprintf(key,"VehPlate%dIP=",i+1);//识别仪IP地址
+		Setconfig("key=",vmctrl_param->VehPlateIP[i]);
+	    
+		sprintf(key,"VehPlate%dPort=",i+1);//识别仪端口
+		Setconfig(key,vmctrl_param->VehPlatePort[i]);
+	    
+		sprintf(key,"VehPlate%dKey=",i+1);//识别仪用户名密码
+		Setconfig(key,vmctrl_param->VehPlateKey[i]);
+	}
 	Setconfig("CAMIP=",vmctrl_param->CAMIP);
 	Setconfig("CAMPort=",vmctrl_param->CAMPort);
 	Setconfig("FireWareIP=",vmctrl_param->FireWareIP);//防火墙地址
@@ -215,14 +238,25 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	Setconfig("SwitchIP=",vmctrl_param->SwitchIP);//交换机地址
 	Setconfig("SwitchGetPasswd=",vmctrl_param->SwitchGetPasswd);//交换机get密码
 	Setconfig("SwitchSetPasswd=",vmctrl_param->SwitchSetPasswd);//交换机set密码
+	
 	Setconfig("LOCKADD1=",vmctrl_param->LockAddr[0]);//门锁地址1
 	Setconfig("LOCKADD2=",vmctrl_param->LockAddr[1]);//门锁地址2
 	Setconfig("LOCKADD3=",vmctrl_param->LockAddr[2]);//门锁地址2
 	Setconfig("VAMETERADDR1=",vmctrl_param->VameterAddr[0]);//电能表地址1
 	Setconfig("VAMETERADDR2=",vmctrl_param->VameterAddr[1]);//电能表地址2
-	Setconfig("VAMETERADDR2=",vmctrl_param->VameterAddr[1]);//电能表地址2
-	Setconfig("PowerAddr1=",vmctrl_param->PowerAddr[0]);//电源板地址1
-	Setconfig("PowerAddr2=",vmctrl_param->PowerAddr[1]);//电源板地址2
+	Setconfig("VAMETERADDR3=",vmctrl_param->VameterAddr[2]);//电能表地址3
+	Setconfig("VAMETERADDR4=",vmctrl_param->VameterAddr[3]);//电能表地址4
+	Setconfig("VAMETERADDR5=",vmctrl_param->VameterAddr[4]);//电能表地址5
+	Setconfig("VAMETERADDR6=",vmctrl_param->VameterAddr[5]);//电能表地址6
+	Setconfig("POWERBDADD1=",vmctrl_param->PowerAddr[0]);//电源板地址1
+	Setconfig("POWERBDADD2=",vmctrl_param->PowerAddr[1]);//电源板地址2
+	Setconfig("POWERBDADD3=",vmctrl_param->PowerAddr[2]);//电源板地址3
+
+	for(int i=0;i<VEHPLATE_NUM;i++)
+	{
+		sprintf(key,"VEHPLATE%d_DO=",i+1);
+		Setconfig(key,vmctrl_param->DoSeq[i]);//车牌识别DO映射
+	}
 	
 	Setconfig("FlagNetRoadID=",vmctrl_param->FlagNetRoadID);
 	Setconfig("FlagRoadID=",vmctrl_param->FlagRoadID);
@@ -235,6 +269,8 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 }
 void GetConfig(VMCONTROL_PARAM *vmctrl_param)
 {
+	int i,rsucnt,vehplatecnt;
+	
 	sprintf(vmctrl_param->HWServer ,StrHWServer.c_str());		//华为服务器地址
 	sprintf(vmctrl_param->HWGetPasswd ,StrHWGetPasswd.c_str());		//SNMP GET 密码
 	sprintf(vmctrl_param->HWSetPasswd ,StrHWSetPasswd.c_str());		//SNMP SET 密码
@@ -243,31 +279,38 @@ void GetConfig(VMCONTROL_PARAM *vmctrl_param)
 	sprintf(vmctrl_param->ServerURL3 ,StrServerURL3.c_str());
 	sprintf(vmctrl_param->StationURL ,StrStationURL.c_str());
 	sprintf(vmctrl_param->RSUCount ,StrRSUCount.c_str());
-	for(int i=0;i<RSUCTL_NUM;i++)
+	rsucnt=atoi(StrRSUCount.c_str());
+	for(i=0;i<rsucnt;i++)
 	{
 		sprintf(vmctrl_param->RSUIP[i] ,StrRSUIP[i].c_str());
 		sprintf(vmctrl_param->RSUPort[i] ,StrRSUPort[i].c_str());
 	}
 	sprintf(vmctrl_param->VehPlateCount ,StrVehPlateCount.c_str());
-	for(int i=0;i<VEHPLATE_NUM;i++)
+	vehplatecnt=atoi(StrVehPlateCount.c_str());
+	for(i=0;i<vehplatecnt;i++)
 	{
 		sprintf(vmctrl_param->VehPlateIP[i] ,StrVehPlateIP[i].c_str());
 		sprintf(vmctrl_param->VehPlatePort[i] ,StrVehPlatePort[i].c_str());
+		sprintf(vmctrl_param->VehPlateKey[i] ,StrVehPlateKey[i].c_str());
 	}
 	sprintf(vmctrl_param->CAMIP ,StrCAMIP.c_str());
 	sprintf(vmctrl_param->CAMPort ,StrCAMPort.c_str());
+	sprintf(vmctrl_param->CAMKey ,StrCAMKey.c_str());//监控摄像头用户名密码
 	sprintf(vmctrl_param->FireWareIP ,StrFireWareIP.c_str());	//防火墙地址
 	sprintf(vmctrl_param->FireWareGetPasswd ,StrFireWareGetPasswd.c_str());	//防火墙get密码
 	sprintf(vmctrl_param->FireWareSetPasswd ,StrFireWareSetPasswd.c_str());	//防火墙set密码
 	sprintf(vmctrl_param->SwitchIP ,StrSwitchIP.c_str());	//交换机地址
 	sprintf(vmctrl_param->SwitchGetPasswd ,StrSwitchGetPasswd.c_str());	//交换机get密码
 	sprintf(vmctrl_param->SwitchSetPasswd ,StrSwitchSetPasswd.c_str());	//交换机set密码
-/*	sprintf(vmctrl_param->LockAddr1 ,StrAdrrLock1.c_str());	//门锁地址1
-	sprintf(vmctrl_param->LockAddr2 ,StrAdrrLock2.c_str());	//门锁地址2
-	sprintf(vmctrl_param->VameterAddr1 ,StrAdrrVAMeter1.c_str());	//电能表地址1
-	sprintf(vmctrl_param->VameterAddr2 ,StrAdrrVAMeter2.c_str());	//电能表地址2
-	sprintf(vmctrl_param->PowerAddr1 ,StrPowerAddr1.c_str());	//电源板地址1
-	sprintf(vmctrl_param->PowerAddr2 ,StrPowerAddr2.c_str());	//电源板地址2*/
+	
+	for(int i=0;i<LOCK_NUM;i++)
+		sprintf(vmctrl_param->LockAddr[i] ,StrAdrrLock[i].c_str());	//门锁地址
+	for(int i=0;i<VA_METER_BD_NUM;i++)
+		sprintf(vmctrl_param->VameterAddr[i] ,StrAdrrVAMeter[i].c_str());	//电能表地址
+	for(int i=0;i<POWER_BD_NUM;i++)
+		sprintf(vmctrl_param->PowerAddr[i] ,StrAdrrPower[i].c_str());	//电源板地址
+	for(int i=0;i<VEHPLATE_NUM;i++)
+		sprintf(vmctrl_param->DoSeq[i] ,StrDoSeq[i].c_str());	//车牌识别DO映射
 	
 	sprintf(vmctrl_param->CabinetType ,StrCabinetType.c_str());//机柜类型
 	sprintf(vmctrl_param->FlagNetRoadID ,StrFlagNetRoadID.c_str());
@@ -513,9 +556,10 @@ void* NetWork_server_thread(void *param)
 					maxsock = newfd;
 				//有新客户端连接，主动发门架状态信息
 				memset(jsonPack,0,JSON_LEN);
-				SetjsonFlagRunStatusStr(NETCMD_FLAGRUNSTATUS,jsonPack,&jsonPackLen);
+                string mstrdata;
+                SetjsonFlagRunStatusStr(NETCMD_FLAGRUNSTATUS,mstrdata);
 				printf("%s",jsonPack);
-				NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
+                NetSendParm(NETCMD_FLAGRUNSTATUS,(char *)(mstrdata.c_str()),mstrdata.size());
 				
 			}
 		}
@@ -608,6 +652,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		case NETCMD_CONFIG_PARA: 		//7 设置参数
 			if(pCMD->status==SFLAG_READ)
 			{
+				memset(&vmctrl_param,0,sizeof(VMCONTROL_PARAM));
 				GetConfig(&vmctrl_param);
 				memcpy((char *) pCMD->data,(char *) &vmctrl_param,	sizeof(VMCONTROL_PARAM));
 				pCMD->datalen = sizeof(VMCONTROL_PARAM);
@@ -619,7 +664,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				memcpy((char *) &vmctrl_param, (char *) pCMD->data, pCMD->datalen);
 				SetConfig(&vmctrl_param);
 				//重新读设置文件
-				GetConfig();
+				//GetConfig();
 				pCMD->datalen = 0;
 			}
 			break;
@@ -675,9 +720,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				memset(pRecvBuf,0,JSON_LEN);
 				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
 				jsonstrVmCtlParamReader(pRecvBuf,pCMD->datalen,(UINT8*)&vmctrl_param,(UINT8*)&ipinfo);//将json字符串转换成结构体
-				SetConfig(&vmctrl_param);
+				//SetConfig(&vmctrl_param);
 				//重新读设置文件
-				GetConfig();
+				//GetConfig();
 				pCMD->datalen = 0;
 			}
 			break;
@@ -713,13 +758,24 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = jsonPackLen;
 			}
 			break;
+		case NETCMD_SEND_CAM_PARAM: 			//15 车牌识别仪状态
+			if(pCMD->status==SFLAG_READ)
+			{
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
+				jsonStrVehPlateWriter(pCMD->cmd,jsonPack,&jsonPackLen);
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
+			}
+			break;
 		case NETCMD_FLAGRUNSTATUS: 			//17 门架运行状态
 			if(pCMD->status==SFLAG_READ)
 			{
 				memset(jsonPack,0,JSON_LEN);
 				jsonPackLen=0;
-				SetjsonFlagRunStatusStr(pCMD->cmd,jsonPack,&jsonPackLen);
-				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+                string mstrdata;
+                SetjsonFlagRunStatusStr(pCMD->cmd,mstrdata);
+                memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
 				pCMD->datalen = jsonPackLen;
 			}
 			break;
@@ -1001,28 +1057,20 @@ void AirCondControl(UINT8* pRCtrl)
 
 void *HTTP_DataGetthread(void *param)
 {
-	char * jsonPack=(char *)malloc(JSON_LEN);
-	char *start,*end;
-	int jsonPackLen=0;
-	if(jsonPack==NULL)
-	{
-		myprintf("HTTP_DataGetthread jsonPack malloc error!\n");
-		return 0;
-	}
+    string mStrdata = "";
+    string mstrkey = ""; //没有用户名和密码：则为“”；
+    int start,end;
 	while(1)
 	{
-		memset(jsonPack,0,JSON_LEN);
-		jsonPackLen=0;
-		HttpPostParm(StrServerURL3,jsonPack,&jsonPackLen,HTTPGET);
-		//printf("HTTP_DataGetthread len:%d %s:\n",jsonPackLen,jsonPack);
+        HttpPostParm(StrServerURL3,mStrdata,mstrkey,HTTPGET);
+        start = mStrdata.find('[');
+        end = mStrdata.find(']');
+        if((end > start) && (end > 0) && (start >= 0))
+        {
+           mStrdata = mStrdata.substr(start+1,end-start-1) ;
+           jsonComputerReader((char *)(mStrdata.c_str()),mStrdata.size());
+        }
 
-		start=strchr(jsonPack,'[');
-		end=strchr(jsonPack,']');
-		memcpy(jsonPack+jsonPackLen+1,start+1,end-start-1);
-		jsonComputerReader(jsonPack+jsonPackLen+1,end-start-1);
-//		jsonComputerReader(jsonPack,jsonPackLen);
-		
-//		sleep(300);
 		sleep(1);
 	}
 	return 0 ;
@@ -1037,30 +1085,19 @@ void init_HTTP_DataGet()
 
 void *LTKJ_DataPostthread(void *param)
 {
-	char ch;
-	int loop=0;
-	char str[100];
-	char * jsonPack=(char *)malloc(JSON_LEN);
-	if(jsonPack==NULL)
-	{
-		myprintf("LTKJ_DataPostthread jsonPack malloc error!\n");
-		return 0;
-	}
-	REMOTE_CONTROL *pRCtrl;
-	int jsonPackLen=0;
-
+    string mStrdata;
+    string mstrkey = ""; //没有用户名和密码：则为“”；
 	while(1)
 	{
-		memset(jsonPack,0,JSON_LEN);
-		SetjsonTableStr("flagrunstatus",jsonPack,&jsonPackLen);
-		printf("%s",jsonPack);
-		if(StrServerURL1.length()>0)
-			HttpPostParm(StrServerURL1,jsonPack,&jsonPackLen,HTTPPOST);
-		
-//		sleep(300);
-		sleep(1);
+
+        SetjsonTableStr("flagrunstatus", mStrdata);
+        if(StrServerURL1.length()>0)
+           HttpPostParm(StrServerURL1,mStrdata,mstrkey,HTTPPOST);
+
+		sleep(300);
+//		sleep(1);
 	}
-	free(jsonPack);
+
 	return 0 ;
 }
 
@@ -1072,29 +1109,19 @@ void init_LTKJ_DataPost()
 
 void *XY_DataPostthread(void *param)
 {
-	char ch;
-	int loop=0;
-	char str[100];
-	char * jsonPack=(char *)malloc(JSON_LEN);
-	if(jsonPack==NULL)
-	{
-		myprintf("XY_DataPostthread jsonPack malloc error!\n");
-		return 0;
-	}
-	REMOTE_CONTROL *pRCtrl;
-	int jsonPackLen=0;
 
+    string mStrdata;
+    string mstrkey = ""; //没有用户名和密码：则为“”；
 	while(1)
-	{
-		memset(jsonPack,0,JSON_LEN);
-		SetjsonFlagRunStatusStr(NETCMD_FLAGRUNSTATUS,jsonPack,&jsonPackLen);
-		if(StrServerURL2.length()>0)
-			HttpPostParm(StrServerURL2,jsonPack,&jsonPackLen,HTTPPOST);
-		
+	{        
+        SetjsonFlagRunStatusStr(NETCMD_FLAGRUNSTATUS,mStrdata);
+        if(StrServerURL2.length()>0)
+            HttpPostParm(StrServerURL2,mStrdata,mstrkey,HTTPPOST);
+
 //		sleep(300);
 		sleep(1);
 	}
-	free(jsonPack);
+
 	return 0 ;
 }
 
@@ -1106,28 +1133,18 @@ void init_XY_DataPost()
 
 void *SocketNetSendthread(void *param)
 {
-	char ch;
-	int loop=0;
-	char str[100];
-	char * jsonPack=(char *)malloc(JSON_LEN);
-	if(jsonPack==NULL)
-	{
-		myprintf("XY_DataPostthread jsonPack malloc error!\n");
-		return 0;
-	}
-	REMOTE_CONTROL *pRCtrl;
-	int jsonPackLen=0;
 
+    string mStrdata;
 	while(1)
 	{
-		memset(jsonPack,0,JSON_LEN);
-		SetjsonFlagRunStatusStr(NETCMD_FLAGRUNSTATUS,jsonPack,&jsonPackLen);
-		NetSendParm(NETCMD_FLAGRUNSTATUS,jsonPack,jsonPackLen);
+        //memset(jsonPack,0,JSON_LEN);
+        SetjsonFlagRunStatusStr(NETCMD_FLAGRUNSTATUS,mStrdata);
+        NetSendParm(NETCMD_FLAGRUNSTATUS,(char *)(mStrdata.c_str()),mStrdata.size());
 		
-//		sleep(10);
-		sleep(1);
+		sleep(10);
+//		sleep(1);
 	}
-	free(jsonPack);
+
 	return 0 ;
 }
 

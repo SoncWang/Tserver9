@@ -12,6 +12,9 @@
 #include "config.h"
 #include "net_rsu.h"
 #include "snmp.h"
+#include "IpcamServer.h"
+#include "ipscan.h"
+
 
 void InitStuEnvi_Param(ENVI_PARAMS *pParam);
 void InitStuUPS_Param(UPS_PARAMS *pParam);

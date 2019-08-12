@@ -800,7 +800,7 @@ void rs485init(void)
 	mComPort4 = new CComPort();
 	/*there is only ttysp1 for RS485 now in A287，ttymxc3是串口4*/
 	mComPort4->fd = mComPort4->openSerial((char *)"/dev/ttymxc3",9600);
-	printf("rs485_4 status");
+	printf("ttymxc3 status");
 	printf("0x%02x \r\n",mComPort4->fd);
 	temp = BITS_MSK_GET(0,LOCKER_CTRL_NUM);
 	printf("debug 0x%02x \r\n",temp);

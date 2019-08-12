@@ -22,6 +22,7 @@ OBJECTS       =  build/main.o     \
 				 build/rs485server.o  \
                  build/comport.o  \
                  build/HttpPost.o  \
+                 build/IpcamServer.o  \
                  build/HttpServer.o \
                  build/snmp.o \
                  build/mywalkapp.o \
@@ -32,6 +33,7 @@ OBJECTS       =  build/main.o     \
                  build/MyCritical.o		\
                  build/config.o   \
                  build/net_rsu.o      \
+                 build/ipscan.o		\
 		 		 build/json_reader.o      \
                  build/jsonPackage.o  \
                  build/json_value.o     \
@@ -63,6 +65,10 @@ build/comport.o: comport.cpp \
 build/HttpPost.o: HttpPost.cpp \
      HttpPost.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/HttpPost.o HttpPost.cpp
+
+build/IpcamServer.o: IpcamServer.cpp \
+     IpcamServer.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/IpcamServer.o IpcamServer.cpp
 
 build/HttpServer.o: HttpServer.cpp \
      HttpServer.h
@@ -96,13 +102,17 @@ build/net_rsu.o: net_rsu.c \
      net_rsu.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/net_rsu.o net_rsu.c
 
+build/ipscan.o: ipscan.c \
+     ipscan.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/ipscan.o ipscan.c
+
 build/MyCritical.o: MyCritical.cpp \
     MyCritical.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/MyCritical.o MyCritical.cpp
 
-build/server.o: server.c \
+build/server.o: server.cpp \
      server.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/server.o server.c
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/server.o server.cpp
 
 build/jsonPackage.o: src/jsonPackage.cpp 
 	$(CXX) -o build/jsonPackage.o -c src/jsonPackage.cpp $(INCPATH)

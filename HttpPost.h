@@ -1,9 +1,12 @@
 #ifndef __HTTPPOST_H__
 #define __HTTPPOST_H__
 
+#include <stdlib.h>
+using namespace std;
 
 int HttpPostjpeng(unsigned char *pjpengbuf,int jpenglen);
-int HttpPostParm(std::string url,char *pParmbuf,int *parmlen,int flag);
+int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag);
+
 
 
 #endif

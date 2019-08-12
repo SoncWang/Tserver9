@@ -90,12 +90,12 @@ typedef unsigned int      	UINT32;
 //预留4路RSU控制器
 #define RSUCTL_NUM 4
 
-// 暂时2个伏安表, 每个伏安表为6组电流电压值
-#define VA_METER_BD_NUM		2
+// 最大支持6个伏安表, 每个伏安表为6组电流电压值
+#define VA_METER_BD_NUM		6
 #define VA_PHASE_NUM 6
-//预留2路电子门锁
-#define LOCK_NUM			2
-//预留3层电源板
+//最大支持3路电子门锁
+#define LOCK_NUM			3
+//最大支持3层电源板
 #define POWER_BD_NUM			3
 
 /*功能码*/
@@ -443,8 +443,10 @@ typedef struct vmctl_params_struct
     char VehPlateCount[5];            //识别仪数量
     char VehPlateIP[VEHPLATE_NUM][20];      //识别仪IP地址(预留12路)
     char VehPlatePort[VEHPLATE_NUM][20];    //识别仪端口(预留12路)
+    char VehPlateKey[VEHPLATE_NUM][20];    //识别仪用户名密码(预留12路)
     char CAMIP[20];            //监控摄像头IP地址
     char CAMPort[20];          //监控摄像头端口
+    char CAMKey[20];            //监控摄像头用户名密码
 
     char FireWareIP[20];       //防火墙地址
     char FireWareGetPasswd[20];   //防火墙get密码
@@ -453,9 +455,10 @@ typedef struct vmctl_params_struct
     char SwitchGetPasswd[20];     //交换机get密码
     char SwitchSetPasswd[20];     //交换机set密码
     
-    char LockAddr[LOCK_NUM][20];         //门锁地址
-    char VameterAddr[VA_METER_BD_NUM][20];     //电能表地址
-    char PowerAddr[POWER_BD_NUM][20];       //电源板地址
+    char LockAddr[LOCK_NUM][20];         //门锁地址	最多3把锁
+    char VameterAddr[VA_METER_BD_NUM][20];     //电能表地址 最多6个表 每层2个
+    char PowerAddr[POWER_BD_NUM][20];       //电源板地址 最多3层
+	char DoSeq[VEHPLATE_NUM][4];	// 车牌识别DO映射 最多12路车牌识别
 
     //硬件信息
     char deviceType[20];		//设备型号900~919
