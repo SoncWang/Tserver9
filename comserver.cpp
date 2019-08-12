@@ -28,11 +28,9 @@
 using namespace std;//寮曞叆鏁翠釜鍚嶇┖闂?
 CComPort *mComPort1 = NULL ;   //
 CComPort *mComPort2 = NULL ;   //Stm32
-CComPort *mComPort3 = NULL ;   //
 
 CMyCritical Com1Cri;
 CMyCritical Com2Cri;
-CMyCritical Com3Cri;
 
 CMyCritical Com2SendCri;
 

@@ -2,7 +2,7 @@
 #include <linux/watchdog.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>  
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <string>
 #include <sys/time.h>
@@ -86,12 +86,12 @@ void InitTimer(void)
      //设置时间间隔为10秒
      interval.tv_sec = 10;
 	 interval.tv_usec =0;
-      
+
      timer.it_interval = interval;
      timer.it_value = interval;
-      
+
      setitimer(ITIMER_VIRTUAL, &timer, NULL);//让它产生SIGVTALRM信号
-      
+
      //为SIGVTALRM注册信号处理函数
      signal(SIGALRM, sig_handler);
 }
@@ -106,7 +106,7 @@ int main(void)
 
 	//读设置文件
 	GetConfig();
-	
+
 	// 环境数据结构体
 	stuEnvi_Param = (ENVI_PARAMS*)malloc(sizeof(ENVI_PARAMS));
 	InitStuEnvi_Param(stuEnvi_Param);
@@ -117,6 +117,8 @@ int main(void)
 	stuSpd_Param = (SPD_PARAMS*)malloc(sizeof(SPD_PARAMS));
 	memset(stuSpd_Param,0,sizeof(SPD_PARAMS));
 
+
+	/////////////////  电子锁配置开始  /////////////////////////////////////////////////////
 	//电子锁参数配置
 	for (i = 0; i < LOCK_MAX_NUM; i++)
 	{
@@ -135,13 +137,35 @@ int main(void)
 			Rs485_table_set(LOCKER_1+i, DISABLE,NULL_VAR, NULL_VAR);
 		}
 	}
+
+	/*如果配置文件未配置锁的信息, 则默认配置地址91/92两把锁*/
+	if (pos_cnt == 0)
+	{
+		for (i = 0; i < 2; i++)
+		{
+			lockerHw_Param[i] = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
+			memset(lockerHw_Param[i],0,sizeof(LOCKER_HW_PARAMS));
+			if (i == 0)
+			{
+				lockerHw_Param[i]->address = DOOR_LOCK_ADDR_1;
+			}
+			else
+			{
+				lockerHw_Param[i]->address = DOOR_LOCK_ADDR_1+1;
+			}
+			//更新配置表
+			Rs485_table_set(LOCKER_1+i, ENABLE,pos_cnt++, lockerHw_Param[i]->address);
+		}
+	}
+
+	/*得到实际的锁的数量配置,配置了几把就是几,如果未配置则为1*/
 	actual_locker_num = pos_cnt;
-	pos_cnt = 0;
+	pos_cnt = 0;		// 用完后要清0
 	printf("actual_locker_num 0x%02x ",actual_locker_num);printf("\r\n");
 
 	/*动态开辟一个数组，并存储有效电子锁轮询配置*/
 	polling_arr = (int*)malloc(sizeof(int)*actual_locker_num);
-	for (i = 0,j=0; i <= LOCKER_3; i++)
+	for (i = 0,j=0; i < VA_METER_1; i++)
 	{
 		if ((Var_Table[i].enable)&&(j<actual_locker_num))
 		{
@@ -150,7 +174,10 @@ int main(void)
 			j++;
 		}
 	}
+	/////////////////  电子锁配置完毕  /////////////////////////////////////////////////////
 
+
+	/////////////////  电压电流传感器配置开始  /////////////////////////////////////////////
 	//电压电流传感器参数配置
 	for (i = 0; i < VA_METER_BD_MAX_NUM; i++)
 	{
@@ -160,6 +187,7 @@ int main(void)
 			stuVA_Meter_Param[i] = (VA_METER_PARAMS*)malloc(sizeof(VA_METER_PARAMS));
 			memset(stuVA_Meter_Param[i],0,sizeof(VA_METER_PARAMS));
 			stuVA_Meter_Param[i]->address = atoi(StrAdrrVAMeter[i].c_str());
+			/*这里的Position要算上电子锁的实际数量*/
 			Rs485_table_set(VA_METER_1+i, ENABLE,pos_cnt+actual_locker_num, stuVA_Meter_Param[i]->address);
 			pos_cnt++;
 		}
@@ -169,7 +197,33 @@ int main(void)
 			Rs485_table_set(VA_METER_1+i, DISABLE,NULL_VAR, NULL_VAR);
 		}
 	}
+	/*如果配置文件里面没有配置,则默认配置2个电压电流传感器,分别为81,82*/
+	if (pos_cnt == 0)
+	{
+		for (i = 0; i < 2; i++)
+		{
+			stuVA_Meter_Param[i] = (VA_METER_PARAMS*)malloc(sizeof(VA_METER_PARAMS));
+			memset(stuVA_Meter_Param[i],0,sizeof(VA_METER_PARAMS));
+			if (i == 0)
+			{
+				stuVA_Meter_Param[i]->address = VA_STATION_ADDRESS_1;
+			}
+			else
+			{
+				stuVA_Meter_Param[i]->address = VA_STATION_ADDRESS_2;
+			}
+			/*这里的Position要算上电子锁的实际数量*/
+			Rs485_table_set(VA_METER_1+i, ENABLE,pos_cnt+actual_locker_num, stuVA_Meter_Param[i]->address);
+			pos_cnt++;
+		}
+	}
+	// 这里pos_cnt不要清0，后面还要用,要统计全部的485设备数量
+	/////////////////  电压电流传感器配置开始完毕/////////////////////////////////////
+
+
+	/////////////////  电源控制板配置开始  /////////////////////////////////////////////
 	//装置参数寄存器,分为电源板和IO板
+	temp = 0;	//统计到底有几个电源板
 	for (i = 0; i < POWER_BD_MAX_NUM; i++)
 	{
 		/*配置文件中是否有配置*/
@@ -180,6 +234,7 @@ int main(void)
 			stuDev_Param[i]->Address = atoi(StrAdrrPower[i].c_str());
 			Rs485_table_set(POWER_BD_1+i, ENABLE,pos_cnt+actual_locker_num, stuDev_Param[i]->Address);
 			pos_cnt++;
+			temp++;
 		}
 		else
 		{
@@ -187,7 +242,21 @@ int main(void)
 			Rs485_table_set(POWER_BD_1+i, DISABLE,NULL_VAR, NULL_VAR);
 		}
 	}
+	/*如果配置表中没有配置，则默认配置1块电源板，地址为71*/
+	if (temp == 0)
+	{
+		stuDev_Param[0] = (DEVICE_PARAMS*)malloc(sizeof(DEVICE_PARAMS));
+		memset(stuDev_Param[0],0,sizeof(DEVICE_PARAMS));
+		stuDev_Param[0]->Address = POWER_CTRL_ADDR_1;
+		Rs485_table_set(POWER_BD_1, ENABLE,pos_cnt+actual_locker_num, stuDev_Param[0]->Address);
+		pos_cnt++;
+		temp++;
+	}
+	/////////////////  电源控制板配置结束  /////////////////////////////////////////////
 
+
+
+	/********    得到除电子锁外的所有485设备的轮询信息                         ***********************/
 	/*动态开辟一个数组，并存储有效其它485设备的轮询配置*/
 	actual_485dev_num = pos_cnt;
 	pos_cnt = 0;
@@ -197,14 +266,17 @@ int main(void)
 	{
 		if ((Var_Table[i].enable)&&(j<actual_485dev_num))
 		{
+			/*polling_subarr存储的是被使能的Var_Table的status,即顺序号*/
 			polling_subarr[j] = Var_Table[i].status;
 			printf("pollingsubcnt 0x%02x ",polling_subarr[j]);printf("\r\n");
 			j++;
 		}
 	}
+	/*打印485配置表的调试信息*/
 	printf("LOCKER_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_1].status, Var_Table[LOCKER_1].enable,Var_Table[LOCKER_1].position,Var_Table[LOCKER_1].addr);
 	printf("LOCKER_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_2].status, Var_Table[LOCKER_2].enable,Var_Table[LOCKER_2].position,Var_Table[LOCKER_2].addr);
 	printf("LOCKER_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_3].status, Var_Table[LOCKER_3].enable,Var_Table[LOCKER_3].position,Var_Table[LOCKER_3].addr);
+	printf("LOCKER_4=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_4].status, Var_Table[LOCKER_4].enable,Var_Table[LOCKER_4].position,Var_Table[LOCKER_4].addr);
 	printf("VA_METER_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_1].status, Var_Table[VA_METER_1].enable,Var_Table[VA_METER_1].position,Var_Table[VA_METER_1].addr);
 	printf("VA_METER_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_2].status, Var_Table[VA_METER_2].enable,Var_Table[VA_METER_2].position,Var_Table[VA_METER_2].addr);
 	printf("VA_METER_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_3].status, Var_Table[VA_METER_3].enable,Var_Table[VA_METER_3].position,Var_Table[VA_METER_3].addr);
@@ -219,11 +291,14 @@ int main(void)
 	printf("IO_BD_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[IO_BD_3].status, Var_Table[IO_BD_3].enable,Var_Table[IO_BD_3].position,Var_Table[IO_BD_3].addr);
 
 	//控制器参数结构体
-	stuVMCtl_Param = (VMCONTROL_PARAM*)malloc(sizeof(VMCONTROL_PARAM)); 
+	stuVMCtl_Param = (VMCONTROL_PARAM*)malloc(sizeof(VMCONTROL_PARAM));
 	memset(stuVMCtl_Param,0,sizeof(VMCONTROL_PARAM));
 	//遥控寄存器结构体
 	stuRemote_Ctrl = (REMOTE_CONTROL*)malloc(sizeof(REMOTE_CONTROL));
 	memset(stuRemote_Ctrl,0,sizeof(REMOTE_CONTROL));
+
+	/////////////////  DO配置表开始/////////////////////////////////////////////
+	temp = 0;	//统计到底有几个DO
 	for (i = 0; i < SWITCH_COUNT; i++)
 	{
 		/*配置文件中是否有配置*/
@@ -254,6 +329,7 @@ int main(void)
 	{
 		printf("do_seqx=0x%02x\r\n",DoSeq[i]);
 	}
+	/////////////////  DO配置表结束/////////////////////////////////////////////
 
 	//门架自由流运行状态结构体
 	stuFlagRunStatus = (FLAGRUNSTATUS*)malloc(sizeof(FLAGRUNSTATUS));
@@ -262,18 +338,18 @@ int main(void)
 	stuHUAWEIDevValue = &HUAWEIDevValue;
 	initHUAWEIGantry();
 	initHUAWEIALARM();
-	
+
 	//初始化RSU控制器状态
-	memset(&stuRsuControl,0,sizeof(RSUCONTROLER)); 
+	memset(&stuRsuControl,0,sizeof(RSUCONTROLER));
 	for(j=0;j<8;j++)
 		memset(&stuRsuControl.ControlStatusN,0,sizeof(AntennaInfoN_n));
 	//初始化RSU设备信息结构体
-	memset(&stuRsuData,0,sizeof(RSU_DATA_INIT)); 
+	memset(&stuRsuData,0,sizeof(RSU_DATA_INIT));
 	for(j=0;j<8;j++)
 		memset(&stuRsuData.PSAMInfoN,0,sizeof(PSAMInfoN_n));
 	//初始化天线软件复位状态结构体
-	memset(&stuRsuReset,0,sizeof(RSU_RESET)); 
-	
+	memset(&stuRsuReset,0,sizeof(RSU_RESET));
+
 	//读空调状态结构体
 	stuAirCondRead = (AIRCOND_PARAM*)malloc(sizeof(AIRCOND_PARAM));
 	memset(stuAirCondRead,0,sizeof(AIRCOND_PARAM));
@@ -285,7 +361,7 @@ int main(void)
 //	cominit();
 	rs485init();
 
-	lockerPollingInit(); 
+	lockerPollingInit();
 
 	//初始化http服务端
 	HttpInit();
@@ -294,11 +370,11 @@ int main(void)
 	//初始化服务器线程
 	initServer();
 	usleep(500000); //delay 500ms
-	
+
 	//初始化RSU
 	init_net_rsu();
 	usleep(500000); //delay 500ms
-	
+
 	//初始化RSU
 	snmpInit();
 	usleep(100000); //delay 100ms
@@ -322,9 +398,9 @@ int main(void)
 
     while(1)
     {
-		if(stuRemote_Ctrl->SysReset==SYSRESET)					//系统重启 
+		if(stuRemote_Ctrl->SysReset==SYSRESET)					//系统重启
 			system("reboot") ;
-		
+
 		write(WDTfd, "\0", 1);
 		sleep(5);
     }
@@ -405,7 +481,7 @@ void InitStuEnvi_Param(ENVI_PARAMS *pParam)
 	pParam->air_cond_temp_in=0x7fff;		//当前空调室内温度值317 ×10
 	pParam->air_cond_amp=0x7fff;					//当前空调电流值318 ×1000
 	pParam->air_cond_volt=0x7fff;					//当前空调电压值319 ×1
-	
+
 	pParam->air_cond_hightemp_alarm=0x7fff;			//空调高温告警320
 	pParam->air_cond_lowtemp_alarm=0x7fff;			//空调低温告警321
 	pParam->air_cond_highmoist_alarm=0x7fff;		//空调高湿告警322
@@ -463,7 +539,7 @@ void InitStuUPS_Param(UPS_PARAMS *pParam)
 	pParam->load_Aout=0x7fff;		// 负载
 	pParam->load_Bout=0x7fff;		// 负载
 	pParam->load_Cout=0x7fff;		// 负载
-	
+
 	//电池参数
 	pParam->running_day=0x7fff; 		// UPS运行时间 56 天
 	pParam->battery_volt=0x7fff;		//UPS电池电压	57 ×10
@@ -504,71 +580,71 @@ void WriteLog(char* str)
 	 exePath="logs";
 	 if(access(exePath.c_str(),0) == -1)
 	 	mkdir(exePath.c_str(),0755);
-	 
+
 	 time_t nSeconds;
 	 struct tm * pTM;
-	 
+
 	 time(&nSeconds);
 	 pTM = localtime(&nSeconds);
-	 
+
 	 //判断前一天文件是否存在，存在就先删除
 /*	 if(pTM->tm_mday>1 && pTM->tm_mday<=31)
 	 {
-		 sprintf(stmp,"%d",pTM->tm_mday-1);   
+		 sprintf(stmp,"%d",pTM->tm_mday-1);
 		 filename=exePath+"/"+stmp+".txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }		 
+		 }
 	 }
 	 else if(pTM->tm_mday==1)
 	 {
 		 filename=exePath+"/30.txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }		 
+		 }
 		 filename=exePath+"/31.txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }	
+		 }
 	 }*/
-	 
-	 //系统日期和时间,格式: yyyymmddHHMMSS 
+
+	 //系统日期和时间,格式: yyyymmddHHMMSS
 	 sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
 			 pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
 			 pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
-	 
-	 sprintf(stmp,"%d",pTM->tm_mday);	 
+
+	 sprintf(stmp,"%d",pTM->tm_mday);
 	 filename=exePath+"/"+stmp+".txt";
 	 fpLog = fopen(filename.c_str(), "a");
-	 
+
 	 fseek(fpLog, 0, SEEK_END);
 	 fprintf(fpLog, "%s->%s\n", sDateTime,str);
-	 printf("%s-->%s",sDateTime,str);	 
-	 
+	 printf("%s-->%s",sDateTime,str);
+
 	 fclose(fpLog);
  }
- 
+
  void myprintf(char* str)
   {
 	  char sDateTime[30],stmp[10];
 	  time_t nSeconds;
 	  struct tm * pTM;
-	  
+
 	  time(&nSeconds);
 	  pTM = localtime(&nSeconds);
-	  
-	  //系统日期和时间,格式: yyyymmddHHMMSS 
+
+	  //系统日期和时间,格式: yyyymmddHHMMSS
 	  sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
 			  pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
 			  pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
-	  
-	  printf("%s-->%s",sDateTime,str);	  
+
+	  printf("%s-->%s",sDateTime,str);
   }
 
 

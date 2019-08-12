@@ -25,8 +25,11 @@
 
 /*Global definition*/
 using namespace std;
-CComPort *mComPort4 = NULL;
+CComPort *mComPort3 = NULL ;   	//RS485对应串口4,轮询计量设备
+CComPort *mComPort4 = NULL;		//RS485对应串口5,轮询电子锁,最多4把锁
+CMyCritical Com3Cri;
 CMyCritical Com4Cri;
+CMyCritical Com3SendCri;
 CMyCritical Com4SendCri;
 
 UINT32  comm_flag=0;	// 轮询标志
@@ -122,6 +125,7 @@ RS485_Reg_Table Var_Table[RS485_DEV_MAX_NUM] =
 	{LOCKER_1,   ENABLE, 	 NULL_VAR,   		DOOR_LOCK_ADDR_1 +0},		// 锁1，地址为91
 	{LOCKER_2,   ENABLE,     NULL_VAR,   		DOOR_LOCK_ADDR_1 +1},		// 锁2，地址为92
 	{LOCKER_3,   DISABLE,    NULL_VAR,  		DOOR_LOCK_ADDR_1 +2},		// 锁3，地址为93,默认不使能
+	{LOCKER_4,   DISABLE,    NULL_VAR,  		DOOR_LOCK_ADDR_1 +3},		// 锁3，地址为94,默认不使能
 	{VA_METER_1, ENABLE,     NULL_VAR,   		VA_STATION_ADDRESS_1 +0},		// 电压电流传感器1，地址为81
 	{VA_METER_2, ENABLE,     NULL_VAR,   		VA_STATION_ADDRESS_1 +1},		// 电压电流传感器2，地址为82
 	{VA_METER_3, DISABLE, 	 NULL_VAR,   		VA_STATION_ADDRESS_1 +2},	// 电压电流传感器3，地址为83
@@ -293,7 +297,7 @@ void *Locker_DataPollingthread(void *param)
 			 || (power_ctrl_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM)) || (power_ctrl_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM)))
 		{
 			comm_flag = 0;
-			printf("power_ctrl_flag0485=0x%04x\r\n",power_ctrl_flag[0]);
+			printf("there is no 485msg\r\n");
 		}
 		else
 		{
@@ -717,6 +721,7 @@ int DealComm485(unsigned char *buf,unsigned short int len)
 		case WAIT_LOCKER_1_MSG:					/*MSG from the locker*/
 		case WAIT_LOCKER_2_MSG:
 		case WAIT_LOCKER_3_MSG:
+		case WAIT_LOCKER_4_MSG:
 			DealLockerMsg(buf, len);
 		break;
 
@@ -791,25 +796,25 @@ void *ComPort4Thread(void *param)
 void rs485init(void)
 {
 	int temp = 0;
-   mComPort4 = new CComPort();
 
-   /*there is only ttysp1 for RS485 now in A287*/
-   mComPort4->fd = mComPort4->openSerial((char *)"/dev/ttymxc4",9600);
-   printf("rs485 status");
-   printf("0x%02x \r\n",mComPort4->fd);
-   temp = BITS_MSK_GET(0,LOCKER_CTRL_NUM);
-   printf("debug 0x%02x \r\n",temp);
-   temp = BITS_MSK_GET(0,POWER_CTRL_NUM);
-   printf("debug 0x%02x \r\n",temp);
+	mComPort4 = new CComPort();
+	/*there is only ttysp1 for RS485 now in A287，ttymxc3是串口4*/
+	mComPort4->fd = mComPort4->openSerial((char *)"/dev/ttymxc3",9600);
+	printf("rs485_4 status");
+	printf("0x%02x \r\n",mComPort4->fd);
+	temp = BITS_MSK_GET(0,LOCKER_CTRL_NUM);
+	printf("debug 0x%02x \r\n",temp);
+	temp = BITS_MSK_GET(0,POWER_CTRL_NUM);
+	printf("debug 0x%02x \r\n",temp);
 
-   pthread_t m_ComPort4Thread ;
-   pthread_create(&m_ComPort4Thread,NULL,ComPort4Thread,NULL);
+	pthread_t m_ComPort4Thread ;
+	pthread_create(&m_ComPort4Thread,NULL,ComPort4Thread,NULL);
 
-   /*与电子锁有关的变量进行动态分配*/
-   locker_opened = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
-   memset(locker_opened,0,sizeof(UINT16)*actual_locker_num);
-   last_cnt = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
-   memset(last_cnt,0,sizeof(UINT16)*actual_locker_num);
+	/*与电子锁有关的变量进行动态分配*/
+	locker_opened = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
+	memset(locker_opened,0,sizeof(UINT16)*actual_locker_num);
+	last_cnt = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
+	memset(last_cnt,0,sizeof(UINT16)*actual_locker_num);
 }
 
 
@@ -870,8 +875,5 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 	usleep(5000);	//delay 5ms
 	return 0 ;
 }
-
-
-
 
 

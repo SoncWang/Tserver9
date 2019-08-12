@@ -11,7 +11,7 @@
 #define NULL_VAR	0xFF	// 定义0xFF为不相关的值, 不适用NULL是因为NULL默认是0，0是我们需要的
 
 /*最大支持数目,实际以配置文件为准*/
-#define LOCK_MAX_NUM			3
+#define LOCK_MAX_NUM			4
 #define VA_METER_BD_MAX_NUM		6
 #define POWER_BD_MAX_NUM		3
 
@@ -19,8 +19,7 @@
 #define CARD_NUM		5	// 暂时为5张卡
 #define LOCKER_LOOP_NUM	5	// 电子锁轮询循环计数
 
-#define DOOR_LOCK_ADDR_1		91			// address of the LOCKER
-#define DOOR_LOCK_ADDR_2		92			// address of the LOCKER
+#define DOOR_LOCK_ADDR_1		91			// address of the LOCKER,91-99
 
 /*电源控制器地址*/
 #define POWER_CTRL_ADDR_1			71		/*电源控制器地址*/
@@ -41,7 +40,11 @@
 #define LOCKER_REG_NUM			9		// 4+5(字)
 #define FRAME_HEAD_NUM 			3		/*读数据时返回帧有效数据前数据个数*/
 
-#define INTERVAL_TIME		450000	// 500ms
+/*经测试,锁的回复数据为23个字节,共24ms,加上回复延时共50ms,*/
+/*而电压电流传感器的回复数据有VA_DATA_NUM=42个,加上回复延时共80ms左右，完全是够的*/
+/*350ms,缩短时间,如果是4把锁轮询要快,最差的情况为4把锁全部配置,加上一次其它轮询共*/
+/*350ms*5 = 1.75s,而1.4s是常态*/
+#define INTERVAL_TIME		350000
 
 /*VOLT-AMP sampling definition*/
 #define REAL_DATA_NUM			42  	/*需实时更新数据长度，0x69-0x40*/
@@ -59,6 +62,7 @@ typedef enum
 	LOCKER_1 = 0,
 	LOCKER_2,
 	LOCKER_3,
+	LOCKER_4,		// 最多4把锁
 	VA_METER_1,
 	VA_METER_2,
 	VA_METER_3,
@@ -82,7 +86,8 @@ typedef enum
 	WAIT_NONE = 0,
 	WAIT_LOCKER_1_MSG,
 	WAIT_LOCKER_2_MSG,
-	WAIT_LOCKER_3_MSG,	// 最多支持3把电子锁
+	WAIT_LOCKER_3_MSG,
+	WAIT_LOCKER_4_MSG,	// 最多支持4把电子锁
 	WAIT_VA_DATA_1_MSG,
 	WAIT_VA_DATA_2_MSG,
 	WAIT_VA_DATA_3_MSG,
@@ -96,6 +101,8 @@ typedef enum
 	WAIT_LOCKER_2_LOCK_RES,
 	WAIT_LOCKER_3_UNLOCK_RES,
 	WAIT_LOCKER_3_LOCK_RES,
+	WAIT_LOCKER_4_UNLOCK_RES,
+	WAIT_LOCKER_4_LOCK_RES,
 
 	WAIT_POWER_1_CTRL_CLOSE_RES,
 	WAIT_POWER_1_CTRL_OPEN_RES,
@@ -133,6 +140,7 @@ typedef enum
 	LOCKER_1_STATUS = 0,
 	LOCKER_2_STATUS,
 	LOCKER_3_STATUS,
+	LOCKER_4_STATUS,
 
 	VOLT_AMP_GET_FLAG_1,
 	VOLT_AMP_GET_FLAG_2,
@@ -141,7 +149,7 @@ typedef enum
 	VOLT_AMP_GET_FLAG_5,
 	VOLT_AMP_GET_FLAG_6,
 
-	POLLING_NUM
+	POLLING_NUM			// 10
 }POLLING_LIST;
 
 /*电子锁控制定义*/
@@ -156,7 +164,10 @@ typedef enum
 	LOCKER_3_CTRL_UNLOCK,
 	LOCKER_3_CTRL_LOCK,
 
-	LOCKER_CTRL_NUM			//6
+	LOCKER_4_CTRL_UNLOCK,
+	LOCKER_4_CTRL_LOCK,
+
+	LOCKER_CTRL_NUM			//8
 }LOCKER_CTRL_LIST;
 
 /*电源 控制定义*/
