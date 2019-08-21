@@ -23,6 +23,8 @@
 #include "rtc.h"
 #include "server.h"
 #include "rs485server.h"
+#include "arpa/inet.h"
+
 
 
 using namespace std;//寮曞叆鏁翠釜鍚嶇┖闂?
@@ -32,60 +34,168 @@ CComPort *mComPort2 = NULL ;   //Stm32
 CMyCritical Com1Cri;
 CMyCritical Com2Cri;
 
+CMyCritical Com1SendCri;
 CMyCritical Com2SendCri;
-
-extern sem_t httpsem;
-extern string Sendhttp ;
-extern CMyCritical HttpCri;
-
-string EmStyle ;
-
-extern int httpsend(string strhttp);
-string StrOrderNumber = "";
-string StrPayQrCode = "";
-
-unsigned int DeviceId = 1 ;
-extern ENVI_PARAMS *stuEnvi_Param;		// 环境数据结构体
-extern UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
-extern SPD_PARAMS *stuSpd_Param;		//防雷器结构体
-extern DEVICE_PARAMS *stuDev_Param[POWER_BD_MAX_NUM];		//装置参数寄存器
-extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_MAX_NUM];		//伏安表电压电流结构体
-extern AIRCOND_PARAM *stuAirCondRead;	//读空调状态结构体
 
 char LastSendBuf[256];
 int LastSendLen=0;
 
+/*因为大小端的原因，IPaddr的整型值和IP地址刚好是反的*/
+/*比如128.8.130.8转后变成0x08820880*/
+in_addr IPaddr = {0};
+UINT8 SoftVersion[3] = {0,0,0};
 
-//To Stm32
+extern string StrID;			//硬件ID
+extern string StrVersionNo;
+extern void GetIPinfo(IPInfo *ipInfo);
+extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_MAX_NUM];
+
+
+// 把如128.8.130.82转成一个4字节整型
+void ipstring_to_ipint(char *ip_addr, in_addr *buf)
+{
+    char *p;
+    int i=0;
+
+	#if 0
+	// 分隔IP地址字符串,第一次调用,返回第一个.分隔符的字符串
+    p = strtok(ip_addr,".");
+    while((p)&&(i<4))
+    {
+    	// 把上一次转换好的字符串转成整数
+        buf[i] = atoi(p);
+		printf("IP0x%02x \r\n",buf[i]);
+		// ""表示以后的每一次调用的地址都是上一次调用的.分隔符的下一个地址
+        p = strtok("NULL",".");
+		printf("P=%s \r\n",p);
+        i++;
+    }
+	printf("i=0x%02x \r\n",i);
+	#endif
+	inet_aton(ip_addr,buf);
+}
+
+
+// 从配置文件中读取IP地址，放在IPaddr中
+void IPgetFromConfig(void)
+{
+	IPInfo IPDadaForCom;	// 只用于RS232，传输IP地址
+
+	memset(&IPDadaForCom,0,sizeof(IPInfo));
+	GetIPinfo(&IPDadaForCom);
+	//printf("IPs0x%s \r\n",IPDadaForCom.ip);
+	ipstring_to_ipint(IPDadaForCom.ip,&IPaddr);
+}
+
+// 把如V1.00.00转成一个3字节数组，数组里面是整数值
+void verstring_to_verint(char *verval, unsigned char *buf)
+{
+    char *p;
+    int i=0;
+
+	// 分隔IP地址字符串,第一次调用,返回第一个.分隔符的字符串
+    p = strtok(verval,".");
+    while((p)&&(i<3))
+    {
+    	// 把上一次转换好的字符串转成整数
+        buf[i] = atoi(p);
+		//printf("ver0x%02x \r\n",buf[i]);
+		// ""表示以后的每一次调用的地址都是上一次调用的.分隔符的下一个地址
+        p = strtok(NULL,".");
+        i++;
+    }
+}
+
+
+// 从配置文件中读取IP地址，放在IPaddr中
+void VergetFromConfig(void)
+{
+	char softver[20];	// 只用于RS232，传输版本号
+
+	memset(softver,0,sizeof(softver));
+	sprintf(softver,StrVersionNo.c_str());
+	verstring_to_verint(&softver[1],SoftVersion);
+}
+
+// 从配置文件中读取设备ID
+unsigned long long IDgetFromConfig(void)
+{
+	unsigned long long IDDataSaved;	// 64位长度存ID
+
+	/*不能用atoi和atol，它们最大只能转换长整型,超出的会返回0x7FFFFFFF*/
+	IDDataSaved = (unsigned long long)strtod(StrID.c_str(),NULL);
+	return IDDataSaved;
+}
+
+// 获取电压电流传感器的电压电流值,返回增加的长度
+int VAGetAndSaved(UINT8 *pbuf, VA_METER_PARAMS *pVA_Meter)
+{
+	int lenth = 0;
+
+	pbuf[lenth++] = (pVA_Meter->phase[0].vln>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[0].vln&0xFF;
+	pbuf[lenth++] = (pVA_Meter->phase[0].amp>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[0].amp;
+	pbuf[lenth++] = (pVA_Meter->phase[1].vln>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[1].vln&0xFF;
+	pbuf[lenth++] = (pVA_Meter->phase[1].amp>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[1].amp;
+	pbuf[lenth++] = (pVA_Meter->phase[2].vln>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[2].vln&0xFF;
+	pbuf[lenth++] = (pVA_Meter->phase[2].amp>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[2].amp;
+	pbuf[lenth++] = (pVA_Meter->phase[3].vln>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[3].vln&0xFF;
+	pbuf[lenth++] = (pVA_Meter->phase[3].amp>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[3].amp;
+	pbuf[lenth++] = (pVA_Meter->phase[4].vln>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[4].vln&0xFF;
+	pbuf[lenth++] = (pVA_Meter->phase[4].amp>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[4].amp;
+	pbuf[lenth++] = (pVA_Meter->phase[5].vln>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[5].vln&0xFF;
+	pbuf[lenth++] = (pVA_Meter->phase[5].amp>>8)&0xFF;
+	pbuf[lenth++] = pVA_Meter->phase[5].amp;
+
+	return lenth;
+}
+
+
+
+//To touchScreen
 void *ComPort2Thread(void *param)
 {
-   param = NULL;
-   int buffPos=0;
-   int len ;
-   unsigned char buf[256] ;
-   while(1)
-   {
-      len = read(mComPort2->fd, buf+buffPos, 256) ;
-	  buffPos = buffPos+len;
-	  if(buffPos<5) continue;
+	param = NULL;
+	int buffPos=0;
+	int len ;
+	unsigned char buf[256] ;
+	while(1)
+	{
+		len = read(mComPort2->fd, buf+buffPos, 256) ;
+		buffPos = buffPos+len;
+		if(buffPos<5) continue;
 
-	  //CRC
-	  unsigned short int CRC = CRC16(buf,buffPos-2) ;
-	  if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
+		if((buf[BUF_HEAD1] != FRAME_HEAD_1) || (buf[BUF_HEAD2] != FRAME_HEAD_2))
 		{
-//		  printf("CRC error\r\n");
- 		  if(buffPos>=256) buffPos=0;
-
-		  continue ;
+			printf("FRAM error\r\n");
+			if(buffPos>=256) buffPos=0;
+			continue ;
 	  	}
 
-//      printf("com1 len=%d\r\n",buffPos) ;
-//	  int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+		printf("com3 len=%d\r\n",buffPos) ;
+		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
-	  DealComm(buf , buffPos);
-
-	  buffPos=0;
-      usleep(5000);//delay 5ms
+		if (buf[BUF_CMD] == CMD_WRITE)
+		{
+			;
+		}
+		else if (buf[BUF_CMD] == CMD_READ)
+		{
+			;
+		}
+		//DealComm(buf , buffPos);
+		buffPos=0;
+		usleep(5000);//delay 5ms
    }
 
    return NULL ;
@@ -93,50 +203,192 @@ void *ComPort2Thread(void *param)
 }
 
 
-void *ComPortGetDataThread(void *param)
+/******************************************************************************
+ * 函数名:	message_pack
+ * 描述: 信息的打包,形成协议格式数据
+ *
+ * 输入参数: uart_no, 目标输出串口, buf，数据处理串口
+ * 输出参数:
+ * 返回值:
+ *
+ * 作者:Jerry
+ * 创建日期:2018.10.18
+ *
+ *------------------------
+ * 修改人:
+ * 修改日期:
+ ******************************************************************************/
+UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 {
+	/*取得目标串口对应的发送缓存*/
+	UINT8 *pbuf = buf;	//buf->pTxBuf;
+	UINT8 len = 0;
+	unsigned long long IDInfo = IDgetFromConfig();
+	printf("IDD=%lld \r\n",IDInfo);
+
+	IPgetFromConfig();
+	VergetFromConfig();
+	switch (msg_type)
+	{
+	/*专门用来测试*/
+	case WRITE_MSG:
+		pbuf[len++] = FRAME_HEAD_1;
+		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
+		pbuf[len++] = 0x05;				// 长度先临时写入5，后面再更新
+		pbuf[len++] = CMD_WRITE;
+		// 串口屏的地址是以16位为单位的
+		pbuf[len++] = ((address>>8)&0xFF);
+		pbuf[len++] = address&0xFF;
+		// IP地址转换过来顺序是反的，IP高位在s_addr的低位
+		pbuf[len++] = 0;
+		pbuf[len++] = IPaddr.s_addr&0xFF;;
+		pbuf[len++] = 0;
+		pbuf[len++] = (IPaddr.s_addr >>8)&0xFF;;
+		pbuf[len++] = 0;
+		pbuf[len++] = (IPaddr.s_addr >>16)&0xFF;
+		pbuf[len++] = 0;
+		pbuf[len++] = (IPaddr.s_addr >>24) &0xFF;
+		pbuf[len++] = (IDInfo>>56)&0xFF;
+		pbuf[len++] = (IDInfo>>48)&0xFF;
+		pbuf[len++] = (IDInfo>>40)&0xFF;
+		pbuf[len++] = (IDInfo>>32)&0xFF;
+		pbuf[len++] = (IDInfo>>24)&0xFF;
+		pbuf[len++] = (IDInfo>>16)&0xFF;
+		pbuf[len++] = (IDInfo>>8)&0xFF;
+		pbuf[len++] = IDInfo&0xFF;
+		pbuf[len++] = 0;
+		pbuf[len++] = SoftVersion[0];
+		pbuf[len++] = 0;
+		pbuf[len++] = SoftVersion[1];
+		pbuf[len++] = 0;
+		pbuf[len++] = SoftVersion[2];
+		// 0xDFFB~0xDFFF保留未用，填0
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		pbuf[len++] = 0;
+		// 0xE000开始
+		for (int i = 0; i < VA_METER_BD_MAX_NUM; i++)
+		{
+			if (stuVA_Meter_Param[i] != NULL)
+			{
+				len += VAGetAndSaved(pbuf+len, stuVA_Meter_Param[i]);
+			}
+		}
+
+		//len += VAGetAndSaved(pbuf+len, stuVA_Meter_Param[1]);
+		//len += VAGetAndSaved(pbuf+len, stuVA_Meter_Param[2]);
+		//len += VAGetAndSaved(pbuf+len, stuVA_Meter_Param[3]);
+		//len += VAGetAndSaved(pbuf+len, stuVA_Meter_Param[4]);
+		//len += VAGetAndSaved(pbuf+len, stuVA_Meter_Param[5]);
+		pbuf[BUF_LENTH] = len-3;
+		break;
+
+	case NOT_USED_MSG:
+		break;
+	default:
+		break;
+	}
+	return len;
+}
+
+
+void *ComPort2HandleDataThread(void *param)
+{
+	param = param;
 	while(1)
 	{
-	printf("ComPortGetDataThread\r\n");
 		//9 查询环境变量寄存器
-		SendCom1ReadReg(POWER_CTRL_ADDR_1,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);
-		usleep(5000);//delay 5ms
-		//10 查询UPS变量寄存器
-		SendCom1ReadReg(POWER_CTRL_ADDR_1,READ_REGS,UPS_START_ADDR,UPS_REG_MAX);
-		usleep(5000);//delay 5ms
-		//11 查询SPD变量寄存器
-		SendCom1ReadReg(POWER_CTRL_ADDR_1,READ_REGS,SPD_START_ADDR,SPD_REG_MAX);
-		usleep(5000);//delay 5ms
-		//13 查询空调参数寄存器
-		SendCom1ReadReg(POWER_CTRL_ADDR_1,READ_REGS,AIRCOND_START_ADDR,AIRCOND_REG_MAX);
-	  	sleep(10);//delay 5s
+		//SendCom1ReadReg(POWER_CTRL_ADDR_1,READ_REGS,ENVI_START_ADDR,ENVI_REG_MAX);
+		//usleep(5000);//delay 5ms
+		SendCom2WriteReg(REG_ADD,WRITE_MSG);
+	  	sleep(11);//delay 11	// 错开一个时间，防止负载同一时间太高
 	}
 	return 0 ;
 }
 
+IPInfo ipinfo;
 
 void cominit(void)
 {
-   //SetSystemTime("2017-08-30 17:03:00");
-   mComPort2 = new CComPort();
+	//SetSystemTime("2017-08-30 17:03:00");
+	mComPort2 = new CComPort();
 
-//   mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttySP2",115200) ;//287 To Stm32
-   mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttymxc3",115200) ;//9100 To Stm32
-   if(mComPort2->fd>0)
-   	printf("ComPort2 open secess! %d\r\n",mComPort2->fd);
-   else
+	/*不用*/
+	mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttymxc2",115200) ;//9100 To TouchScreen
+	if(mComPort2->fd>0)
+		printf("ComPort2 open secess! %d\r\n",mComPort2->fd);
+	else
 	   printf("ComPort2 open fail! %d\r\n",mComPort2->fd);
 
-   pthread_t m_ComPort2Thread ;
-   pthread_create(&m_ComPort2Thread,NULL,ComPort2Thread,NULL);
+	pthread_t m_ComPort2Thread ;
+	pthread_create(&m_ComPort2Thread,NULL,ComPort2Thread,NULL);
 
-   pthread_t m_ComPortGetDataThread ;
-   pthread_create(&m_ComPortGetDataThread,NULL,ComPortGetDataThread,NULL);
+	pthread_t m_ComPortGetDataThread ;
+	pthread_create(&m_ComPortGetDataThread,NULL,ComPort2HandleDataThread,NULL);
+}
+
+//发送写数据寄存器 ,没有CRC
+int SendCom2WriteReg(UINT16 Addr, UINT8 Func)
+{
+    Com2SendCri.Lock();
+    UINT8 j;
+	UINT8 bytSend[256];
+	UINT8 datalen = 0;
+
+	datalen = message_pack(Addr,Func,bytSend);
+
+	// debug测试打印
+	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
+
+	mComPort2->SendBuf(bytSend,datalen);
+    Com2SendCri.UnLock();
+	usleep(5000);//delay 5ms
+	return 0 ;
 }
 
 
+//发送写遥控寄存器 ADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + MBUS_OPT_CODE_H + MBUS_OPT_CODE_L + CRC(2)
+int SendCom1RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
+{
+    Com2SendCri.Lock();
+    UINT8 bytSend[8]={0x00,0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00};
+
+    int len=8;
+
+    bytSend[MBUS_ADDR]        = Addr;
+    bytSend[MBUS_FUNC]        = Func;       //写寄存器
+    bytSend[MBUS_REFS_ADDR_H] = (REFS_ADDR&0xFF00) >> 8;     //寄存器起始地址高位
+    bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;           //寄存器起始地址低位
+    bytSend[MBUS_OPT_CODE_H] = (code&0xFF00) >> 8;     //操作码高位
+    bytSend[MBUS_OPT_CODE_L] =  code&0x00FF;           //操作码低位
+
+    //CRC校验
+    unsigned short int CRC = CRC16(bytSend,len-2) ;
+    bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC高位
+    bytSend[len-1] =  CRC&0x00FF;           //CRC低位
+
+//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+
+	mComPort2->SendBuf(bytSend,len);
+
+	memcpy(LastSendBuf,bytSend,len);
+	LastSendLen=len;
+
+    Com2SendCri.UnLock();
+	usleep(5000);//delay 5ms
+	return 0 ;
+}
+#if 0
+
 //发送读数据寄存器 ADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + REFS_COUNT_H + MBUS_REFS_COUNT_L + CRC(2)
-int SendCom1ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
+int SendCom2ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 {
     Com2SendCri.Lock();
     UINT8 i,j,bytSend[8]={0x00,0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00};
@@ -148,75 +400,6 @@ int SendCom1ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
     bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;           //寄存器起始地址低位
     bytSend[MBUS_REFS_COUNT_H] = (REFS_COUNT&0xFF00) >> 8;     //寄存器数量高位
     bytSend[MBUS_REFS_COUNT_L] =  REFS_COUNT&0x00FF;           //寄存器数量低位
-
-    //CRC校验
-    unsigned short int CRC = CRC16(bytSend,len-2) ;
-    bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC高位
-    bytSend[len-1] =  CRC&0x00FF;           //CRC低位
-
-//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
-
-	mComPort2->SendBuf(bytSend,len);
-
-	memcpy(LastSendBuf,bytSend,len);
-	LastSendLen=len;
-
-    Com2SendCri.UnLock();
-	usleep(5000);//delay 5ms
-	return 0 ;
-}
-
-//发送写数据寄存器 ADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + REFS_COUNT_H + MBUS_REFS_COUNT_L + DATA + CRC(2)
-int SendCom1WriteReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT, UINT8 *pBuf)
-{
-    Com2SendCri.Lock();
-    UINT8 i,j;
-	UINT8 *bytSend;
-
-	UINT8 datalen=pBuf[0];
-	UINT8 len=6+1+datalen+2;
-	bytSend = (UINT8 *)malloc(len);
-
-    bytSend[MBUS_ADDR]        = Addr;
-    bytSend[MBUS_FUNC]        = Func;       //写寄存器
-    bytSend[MBUS_REFS_ADDR_H] = (REFS_ADDR&0xFF00) >> 8;     //寄存器起始地址高位
-    bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;           //寄存器起始地址低位
-    bytSend[MBUS_REFS_COUNT_H] = (REFS_COUNT&0xFF00) >> 8;     //寄存器数量高位
-    bytSend[MBUS_REFS_COUNT_L] =  REFS_COUNT&0x00FF;           //寄存器数量低位
-    memcpy(bytSend+6,pBuf,datalen+1);
-
-    //CRC校验
-    unsigned short int CRC = CRC16(bytSend,len-2) ;
-    bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC高位
-    bytSend[len-1] =  CRC&0x00FF;           //CRC低位
-
-//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
-
-	mComPort2->SendBuf(bytSend,len);
-
-	memcpy(LastSendBuf,bytSend,len);
-	LastSendLen=len;
-	free(bytSend);
-
-    Com2SendCri.UnLock();
-	usleep(5000);//delay 5ms
-	return 0 ;
-}
-
-//发送写遥控寄存器 ADDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + MBUS_OPT_CODE_H + MBUS_OPT_CODE_L + CRC(2)
-int SendCom1RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
-{
-    Com2SendCri.Lock();
-    UINT8 i,j,bytSend[8]={0x00,0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00};
-
-    int len=8;
-
-    bytSend[MBUS_ADDR]        = Addr;
-    bytSend[MBUS_FUNC]        = Func;       //写寄存器
-    bytSend[MBUS_REFS_ADDR_H] = (REFS_ADDR&0xFF00) >> 8;     //寄存器起始地址高位
-    bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;           //寄存器起始地址低位
-    bytSend[MBUS_OPT_CODE_H] = (code&0xFF00) >> 8;     //操作码高位
-    bytSend[MBUS_OPT_CODE_L] =  code&0x00FF;           //操作码低位
 
     //CRC校验
     unsigned short int CRC = CRC16(bytSend,len-2) ;
@@ -466,5 +649,5 @@ int SetAirCondStruct(unsigned char *buf,unsigned short int len)
 
 	return 0;
 }
-
+#endif
 

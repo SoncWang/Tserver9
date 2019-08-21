@@ -778,7 +778,7 @@ void *ComPort4Thread(void *param)
 		  continue ;
 	  	}
 
-      	printf("com1 len=%d\r\n",buffPos) ;
+      	printf("com4 len=%d\r\n",buffPos) ;
 		Recive_Flag = WAIT_response_flag;	// already received the data.
 
 	  	/*debug the information*/

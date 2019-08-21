@@ -102,7 +102,7 @@ int main(void)
 	unsigned int pos_cnt = 0;
 	unsigned int temp = 0;
 	//初始化看门狗
-	WatchDogInit();
+	//WatchDogInit();
 
 	//读设置文件
 	GetConfig();
@@ -190,6 +190,14 @@ int main(void)
 			/*这里的Position要算上电子锁的实际数量*/
 			Rs485_table_set(VA_METER_1+i, ENABLE,pos_cnt+actual_locker_num, stuVA_Meter_Param[i]->address);
 			pos_cnt++;
+			// 测试用
+			#if 1
+			for (int k = 0; k < 6; k++)
+			{
+				stuVA_Meter_Param[i]->phase[k].vln = 22000+100*i+k;
+				stuVA_Meter_Param[i]->phase[k].amp = 11000+100*i+k;
+			}
+			#endif
 		}
 		else
 		{
@@ -358,8 +366,9 @@ int main(void)
 	stuAirCondWrite = (AIRCOND_PARAM*)malloc(sizeof(AIRCOND_PARAM));
 	memset(stuAirCondWrite,0,sizeof(AIRCOND_PARAM));
 
-	//初始化串口
-//	cominit();
+	//初始化串口232
+	cominit();
+	//初始化串口485
 	rs485init();
 
 	lockerPollingInit();

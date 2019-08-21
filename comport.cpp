@@ -1,13 +1,13 @@
 
 #include <stdio.h>
-#include <stdlib.h> 
-#include <unistd.h>  
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 #include <termios.h>
-#include <errno.h>   
-#include <limits.h> 
+#include <errno.h>
+#include <limits.h>
 #include <asm/ioctls.h>
 #include <time.h>
 #include <pthread.h>
@@ -37,19 +37,19 @@ int CComPort::openSerial(char *cSerialName,int Baud)
 {
     int iFd;
 
-    struct termios opt; 
+    struct termios opt;
 
-    iFd = open(cSerialName, O_RDWR | O_NOCTTY);                        
+    iFd = open(cSerialName, O_RDWR | O_NOCTTY);
     if(iFd < 0) {
         perror(cSerialName);
         return -1;
     }
 
-    tcgetattr(iFd, &opt);      
+    tcgetattr(iFd, &opt);
 
     //cfsetispeed(&opt, B57600);
     //cfsetospeed(&opt, B57600);
- 
+
     switch(Baud)
     {
        case 9600:
@@ -77,7 +77,7 @@ int CComPort::openSerial(char *cSerialName,int Baud)
             break ;
     }
 
-    
+
     /*
      * raw mode
      */
@@ -90,7 +90,7 @@ int CComPort::openSerial(char *cSerialName,int Baud)
     /*
      * 'DATA_LEN' bytes can be read by serial
      */
-    opt.c_cc[VMIN]   =   1;                                      
+    opt.c_cc[VMIN]   =   1;
     opt.c_cc[VTIME]  =   0;  //0 yi zhi deng
 
     if (tcsetattr(iFd,   TCSANOW,   &opt)<0) {
@@ -110,5 +110,5 @@ int CComPort::SendBuf(unsigned char *buf,int len)
 
 
 
- 
+
 
