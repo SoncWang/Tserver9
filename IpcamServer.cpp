@@ -30,35 +30,6 @@ extern bool jsonIPCamReader(char* jsonstr, int len,int mIndex);
 pthread_mutex_t IpCamStateMutex ;
 TIPcamState mTIPcamState[VEHPLATE_NUM];
 
-void *HTTP_IPCamDataGet(void *param)
-{
-    int i,IntIpcamCount = atoi(StrVehPlateCount.c_str());
-    int n = 0;
-
-	for(i=0;i<IntIpcamCount;i++)
-	{
-    	mstrurlget[i] = StrVehPlateIP[i] + ":" + StrVehPlatePort[i] + "/api/LeaTop/GetDeviceStatus" ;
-
-    	mstrurlctl[i] = StrVehPlateIP[i] + ":" + StrVehPlatePort[i] + "/api/LeaTop/ControlDevice" ;
-
-    	mstrkey[i] = StrVehPlateIP[i] + ":" + StrVehPlatePort[i] ;
-	}
-    string mStrdata;
-	while(1)
-	{
-        for(n=0;n<IntIpcamCount;n++)
-        {
-            HttpPostParm(mstrurlget[n],mStrdata,mstrkey[n],HTTPGET);
-            pthread_mutex_lock(&IpCamStateMutex);
-            jsonIPCamReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
-            pthread_mutex_unlock(&IpCamStateMutex);
-            sleep(1);
-        }
-        sleep(300);
-	}
-	return 0 ;
-}
-
 
 int RebootIpCam(int Ipcamindex)
 {
@@ -66,11 +37,53 @@ int RebootIpCam(int Ipcamindex)
         return 1 ;
 
     string mStrdata = "{\"action\":\"camreboot\",\"entity\": null}";
+
+    printf("%s,%s\r\n",mstrurlctl[Ipcamindex].c_str(),mstrkey[Ipcamindex].c_str());
+
     HttpPostParm(mstrurlctl[Ipcamindex],mStrdata,mstrkey[Ipcamindex],HTTPPOST);
   //  jsonIPCamReader((char *)(mStrdata.c_str()),mStrdata.size());
     return 0 ;
 
 }
+
+
+void *HTTP_IPCamDataGet(void *param)
+{
+    int i,IntIpcamCount = atoi(StrVehPlateCount.c_str());
+    int n = 0;
+
+	for(i=0;i<IntIpcamCount;i++)
+	{
+        mstrurlget[i] = StrVehPlateIP[i] + ":" + StrVehPlatePort[i] + "/api/LeaTop/GetDeviceStatus" ;
+
+        mstrurlctl[i] = StrVehPlateIP[i] + ":" + StrVehPlatePort[i] + "/api/LeaTop/ControlDevice" ;
+
+        mstrkey[i] = StrVehPlateKey[i] ;
+	}
+
+    //mstrurlget[0] = "http://10.44.65.155:80/api/LeaTop/GetDeviceStatus";
+    //mstrurlctl[0] = "http://10.44.65.155:80/api/LeaTop/ControlDevice";      
+    //mstrkey[0] = "hdcam:hdcam";
+    //RebootIpCam(0);
+   // string mStrdata ;
+    string mStrdata;
+	while(1)
+    {
+        for(n=0;n<IntIpcamCount;n++)
+        {   printf("%s,%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
+            HttpPostParm(mstrurlget[n],mStrdata,mstrkey[n],HTTPGET);
+            pthread_mutex_lock(&IpCamStateMutex);
+            jsonIPCamReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
+            pthread_mutex_unlock(&IpCamStateMutex);
+            sleep(3);
+        }
+        sleep(300);
+	}
+	return 0 ;
+}
+
+
+
 
 
 int IpCamServerInit(void)

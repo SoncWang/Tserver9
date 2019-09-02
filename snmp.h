@@ -6,7 +6,7 @@
 
 using namespace std; 
 
-#define HWGANTRY_COUNT 44
+#define HWGANTRY_COUNT 54
 
 int snmpInit(void);
 
@@ -74,6 +74,19 @@ typedef enum
 	//直流空调(新增加)
 	hwDcAirRunTime=43,				//空调运行时间
 	hwCoolingDevicesMode=44,			//温控模式
+
+	//2019-08-20新增
+	hwAcbGroupBatRunningState=45,		//电池状态
+	hwSmokeSensorStatus=46,				//烟雾传感器状态
+	hwWaterSensorStatus=47,				//水浸传感器状态
+	hwDoorSensorStatus=48,				//门磁传感器状态
+	hwDcAirEquipAddress=49,				//空调地址
+	hwTemHumEquipAddress=50,			//温湿度地址
+	//单个锂电池
+	hwAcbBatVolt=51,					//单个电池电压
+	hwAcbBatCurr=52,					//单个电池电流
+	hwAcbBatSoh=53,						//单个电池串SOH
+	hwAcbBatCapacity=54,				//单个电池容量
 
     //防火墙
     hwEntityCpuUCheck = 10000,             //查询
@@ -150,6 +163,15 @@ typedef struct
 	//直流空调(新增加)
 	string strhwDcAirRunTime;				//空调运行时间
 	string strhwCoolingDevicesMode;			//温控模式
+	//2019-08-20新增
+	string strhwAcbGroupBatRunningState;		//电池状态
+	string strhwDcAirEquipAddress;				//空调地址
+	string strhwTemHumEquipAddress;			//温湿度地址
+	//单个锂电池2019-08-20新增
+	string strhwAcbBatVolt;					//单个电池电压
+	string strhwAcbBatCurr;					//单个电池电流
+	string strhwAcbBatSoh;						//单个电池串SOH
+	string strhwAcbBatCapacity;				//单个电池容量
     //防火墙
     string strhwEntityCpuUsage;                //CPU 
     string strhwEntityMemUsage ;              //内存使用率
@@ -164,17 +186,11 @@ typedef struct
 typedef struct
 {
 	string hwEnvTempAlarmTraps;		//高温/低温/高高温告警
-	string hwEnvTempAlarmResume;	//高温/低温/高高温告警恢复
 	string hwEnvHumiAlarmTraps;		//高湿/低湿告警
-	string hwEnvHumiAlarmResume;	//高湿/低湿告警恢复
 	string hwSpareDigitalAlarmTraps;	//输入干接点告警
-	string hwSpareDigitalAlarmResume;	//输入干接点告警恢复
 	string hwDoorAlarmTraps;		//门禁告警
-	string hwDoorAlarmResume;		//门禁告警恢复
 	string hwWaterAlarmTraps;		//水浸告警
-	string hwWaterAlarmResume;		//水浸告警恢复
 	string hwSmokeAlarmTraps;		//烟感告警
-	string hwSmokeAlarmResume;		//烟感告警恢复
 
 	string hwair_cond_infan_alarm;	//空调内风机故障
 	string hwair_cond_outfan_alarm;	//空调外风机故障
@@ -186,22 +202,14 @@ typedef struct
 
 	//新增加告警
 	string hwACSpdAlarmTraps;					//交流防雷器故障
-	string hwACSpdAlarmResumeTraps;			//交流防雷器故障恢复
 	string hwDCSpdAlarmTraps;					//直流防雷器故障
-	string hwDCSpdAlarmResumeTraps;			//直流防雷器故障恢复
 	//电源告警
 	string hwAcInputFailAlarm;				//交流电源输入停电告警
-	string hwAcInputFailAlarmResume;		//交流电源输入停电告警恢复
 	string hwAcInputL1FailAlarm;				//交流电源输入L1	相缺相告警
-	string hwAcInputL1FailAlarmResume;		//交流电源输入L1	相缺相告警恢复
 	string hwAcInputL2FailAlarm;				//交流电源输入L2	相缺相告警
-	string hwAcInputL2FailAlarmResume;		//交流电源输入L2	相缺相告警恢复
 	string hwAcInputL3FailAlarm;				//交流电源输入L3	相缺相告警
-	string hwAcInputL3FailAlarmResume;		//交流电源输入L3	相缺相告警恢复
 	string hwDcVoltAlarmTraps;				//直流电源输出告警
-	string hwDcVoltAlarmResumeTraps;		//直流电源输出告警恢复
 	string hwLoadLvdAlarmTraps;				//LLVD1下电告警
-	string hwLoadLvdAlarmResumeTraps;		//LLVD1下电恢复
 	//锂电池告警
 	string hwAcbGroup_comm_fail_alarm;		//所有锂电通信失败
 	string hwAcbGroup_discharge_alarm;		//电池放电告警
@@ -217,6 +225,9 @@ typedef struct
 
 int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry);
 int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue);
+void UpdataHUAWEIGantryStr(char* mstr,int len,EM_HUAWEIGantry mIntHUAWEIGantry);
+void DealAlarm(string Stroid,int AlarmID);
+int GetAlarmID(char* sp);
 
 #endif
 

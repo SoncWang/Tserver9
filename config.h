@@ -3,6 +3,6 @@
 
 
 int GetConfig(void);
-
+int WriteNetconfig(char *configbuf,int configlen);
 
 #endif

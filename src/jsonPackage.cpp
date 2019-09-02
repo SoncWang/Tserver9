@@ -63,6 +63,7 @@ extern string StrSwitchSetPasswd ;//交换机set密码
 
 extern string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器1的地址
 extern string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板1的地址
+extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 extern string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
 extern UINT16 DoSeq[SWITCH_COUNT];	// 另外定义一个专门用来存储映射的数组,stuRemote_Ctrl会被清0
 
@@ -377,7 +378,7 @@ Json::Reader reader;
   }
 
   string strentity = json_object["entity"].toStyledString() ;
-  if(strentity != "")
+  if(strentity.size() > 3)
   {
      printf("entity:%s\r\n",strentity.c_str()) ;
      jsonIPCamReaderNext((char *)(strentity.c_str()),strentity.size(),mIndex);
@@ -402,8 +403,11 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 	jsonReader(json, out);
 	
 	REMOTE_CONTROL *pRCtrl=(REMOTE_CONTROL *)pstuRCtrl;
-	char key[50];
-	int value;
+	char key[50],keytmp[50];
+	int i,value;
+
+	pRCtrl->hwdcairpowerontemppointctl=255;		//空调开机温度点 255:保持； -20-80（有效）；45(缺省值)
+	pRCtrl->hwdcairpowerofftemppointctl=255;		//空调关机温度点  		  255:保持； -20-80（有效）；37(缺省值)
 	
 	std::map<std::string, std::string>::iterator it;
 	it = out.begin();
@@ -429,10 +433,62 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 		else if(it->first=="vehplate11")	pRCtrl->vehplate[10]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
 		else if(it->first=="vehplate12")	pRCtrl->vehplate[11]=value;			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
 		
+		else if(it->first=="rsucontrlor1")	pRCtrl->rsucontrlor[0]=value;			//rsu 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="rsucontrlor2")	pRCtrl->rsucontrlor[1]=value;			//rsu 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="rsucontrlor3")	pRCtrl->rsucontrlor[2]=value;			//rsu 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="rsucontrlor4")	pRCtrl->rsucontrlor[3]=value;			//rsu 0xFF00: 遥合;0xFF01: 遥分
+
+		else if(it->first=="antenna1")	pRCtrl->antenna[0]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna2")	pRCtrl->antenna[1]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna3")	pRCtrl->antenna[2]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna4")	pRCtrl->antenna[3]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna5")	pRCtrl->antenna[4]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna6")	pRCtrl->antenna[5]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna7")	pRCtrl->antenna[6]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna8")	pRCtrl->antenna[7]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna9")	pRCtrl->antenna[8]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna10")	pRCtrl->antenna[9]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna11")	pRCtrl->antenna[10]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna12")	pRCtrl->antenna[11]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		
+		else if(it->first=="do1")	pRCtrl->antenna[0]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna2")	pRCtrl->antenna[1]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna3")	pRCtrl->antenna[2]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna4")	pRCtrl->antenna[3]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna5")	pRCtrl->antenna[4]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna6")	pRCtrl->antenna[5]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna7")	pRCtrl->antenna[6]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna8")	pRCtrl->antenna[7]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna9")	pRCtrl->antenna[8]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna10")	pRCtrl->antenna[9]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna11")	pRCtrl->antenna[10]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="antenna12")	pRCtrl->antenna[11]=value;			//天线 0xFF00: 遥合;0xFF01: 遥分
+		
+		else if(it->first=="fireware")	pRCtrl->fireware[0]=value;			//防火墙 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="ipswitch")	pRCtrl->ipswitch[0]=value;			//交换机 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="backupdo1")	pRCtrl->backupdo[0]=value;			//备用 0xFF00: 遥合;0xFF01: 遥分
+		else if(it->first=="backupdo2")	pRCtrl->backupdo[1]=value;			//备用 0xFF00: 遥合;0xFF01: 遥分
+
 		else if(it->first=="sysreset")	pRCtrl->SysReset=value;			//系统重启
 		else if(it->first=="frontdoorctrl")	pRCtrl->FrontDoorCtrl=value;			//前门电子门锁 0：保持 1：关锁：2：开锁
 		else if(it->first=="backdoorctrl")	pRCtrl->BackDoorCtrl=value;			//后门电子门锁 0：保持 1：关锁：2：开锁
 		else if(it->first=="sidedoorcCtrl")	pRCtrl->SideDoorCtrl=value;			//侧门电子门锁 0：保持 1：关锁：2：开锁
+
+		else if(it->first=="hwcoolingdevicesmodectl")	pRCtrl->hwcoolingdevicesmodectl=value;			//温控模式	
+		else if(it->first=="hwdcairpowerontemppointctl")	pRCtrl->hwdcairpowerontemppointctl=value;			//空调开机温度点
+		else if(it->first=="hwdcairpowerofftemppointctl")	pRCtrl->hwdcairpowerofftemppointctl=value;			//空调关机温度点
+
+		for(i=0;i<SWITCH_COUNT;i++)
+		{
+			sprintf(keytmp,"do%d",i+1);
+			
+			if(it->first==keytmp) 
+			{
+				pRCtrl->doseq[i]=value;
+				printf("%s %d doseq%d=%d\n",keytmp,value,i,pRCtrl->doseq[i]);
+			}
+		}
+
 		it++;
 	}
 	printf("\n");
@@ -581,11 +637,15 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam, UINT8 *pstIP
 		else if(it->first=="poweraddr1")	StrAdrrPower[0]=value;	//电源板地址1
 		else if(it->first=="poweraddr2")	StrAdrrPower[1]=value;	//电源板地址2
 		else if(it->first=="poweraddr3")	StrAdrrPower[2]=value;	//电源板地址3
-
-		for(i=0;i<VEHPLATE_NUM;i++)
+		else if(it->first=="hardwareid")	StrID=value;	//硬件ID
+		
+		for(i=0;i<SWITCH_COUNT;i++)
 		{
-        	sprintf(key,"doseq%d",i+1);   //车牌识别DO映射 最多12路车牌识别
-			if(it->first==key)	StrDoSeq[i]=value;	
+			if(it->first==StrDeviceNameSeq[i])	
+			{
+				StrDoSeq[i]=value;
+				DoSeq[i]=atoi(value);
+			}
 		}
 		it++;
 	}
@@ -644,6 +704,45 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam, UINT8 *pstIP
 		sprintf(pRCtrl->PowerAddr[i],"%s",StrAdrrPower[i].c_str());	//电源板地址
 	for(i=0;i<VEHPLATE_NUM;i++)
 		sprintf(pRCtrl->DoSeq[i],"%s",StrDoSeq[i].c_str());	//车牌识别DO映射 最多12路车牌识别
+	
+	sprintf(pRCtrl->hardwareid,"%s",StrID.c_str());	//硬件ID
+	return true;
+}
+
+
+bool jsonstrIpInfoReader(char* jsonstr, int len, UINT8 *pstIPPam)
+{
+	printf("%s \t\n",jsonstr);
+	
+	std::string json = jsonstr;
+	std::map<std::string, std::string> out;
+	jsonReader(json, out);
+	
+	IPInfo *pIPInfo=(IPInfo *)pstIPPam;
+	char key[50],value[128];
+	
+	std::map<std::string, std::string>::iterator it;
+	it = out.begin();
+	while (it != out.end())
+	{
+		sprintf(key,"%s",it->first.c_str());
+		sprintf(value,"%s",it->second.c_str());
+		printf("%s %s\n",key,value);
+		
+		//参数设置
+		if(it->first=="ipaddr")	StrIP=value;	//IP地址
+		else if(it->first=="mask")	StrMask=value;	//子网掩码
+		else if(it->first=="gateway")	StrGateway=value;//网关
+		else if(it->first=="dns")	StrDNS=value;//DNS地址
+		it++;
+	}
+	
+	printf("\n");
+    //IP 地址
+	sprintf(pIPInfo->ip,"%s",StrIP.c_str());//IP地址
+	sprintf(pIPInfo->submask,"%s",StrMask.c_str());	//子网掩码
+	sprintf(pIPInfo->gateway_addr,"%s",StrGateway.c_str());	//网关
+	sprintf(pIPInfo->dns,"%s",StrDNS.c_str());//DNS地址
 	
 	return true;
 }
@@ -731,7 +830,7 @@ bool jsonStrEvnWriter(int messagetype,char *pstrEnvPam, char *json, int *len)
     strJson +=  "}\n\n\0\0";
 	
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 	return true;
@@ -768,7 +867,7 @@ bool jsonStrSpdWriter(int messagetype,char *pstrSpdPam, char *json, int *len)
 	sprintf(str,"%d",pParm->struck_times);strJson = strJson + "\"struck_times\":"+ str +"\n";	// 雷击次数
     strJson +=  "}\n\n\0\0";
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 	return true;
@@ -830,18 +929,18 @@ bool jsonStrVMCtlParamWriter(int messagetype,char *pstrVMCtl, char *json, int *l
 	for(i=0;i<rsucnt;i++)
 	{
 		sprintf(str,"\"rsu%dip\":\"%s\",\n",i+1,StrRSUIP[i].c_str()); strJson = strJson + str;//RSUIP地址
-		sprintf(str,"\"rsu%dport\":%s,\n",i+1,StrRSUPort[i].c_str()); strJson = strJson + str;//RSU端口
+		sprintf(str,"\"rsu%dport\":\"%s\",\n",i+1,StrRSUPort[i].c_str()); strJson = strJson + str;//RSU端口
 	}
 	strJson = strJson + "\"vehplatecount\":"+ StrVehPlateCount +",\n";	//识别仪数量
 	vehplatecnt=atoi(StrVehPlateCount.c_str());
 	for(i=0;i<vehplatecnt;i++)
 	{
 		sprintf(str,"\"vehplate%dip\":\"%s\",\n",i+1,StrVehPlateIP[i].c_str()); strJson = strJson + str;//识别仪地址
-		sprintf(str,"\"vehplate%dport\":%s,\n",i+1,StrVehPlatePort[i].c_str()); strJson = strJson + str;//识别仪端口
+		sprintf(str,"\"vehplate%dport\":\"%s\",\n",i+1,StrVehPlatePort[i].c_str()); strJson = strJson + str;//识别仪端口
 		sprintf(str,"\"vehplate%dkey\":\"%s\",\n",i+1,StrVehPlateKey[i].c_str()); strJson = strJson + str;//识别仪用户名密码
 	}
 	strJson = strJson + "\"camip\":\""+ StrCAMIP +"\",\n";	//监控摄像头IP地址
-	sprintf(str,"\"camport\":%s,\n",StrCAMPort.c_str()); strJson = strJson + str;//监控摄像头端口
+	sprintf(str,"\"camport\":\"%s\",\n",StrCAMPort.c_str()); strJson = strJson + str;//监控摄像头端口
 	strJson = strJson + "\"camkey\":\""+ StrCAMKey +"\",\n";	//监控摄像头用户名密码
 	
 	strJson = strJson + "\"firewareip\":\""+ StrFireWareIP +"\",\n";	//防火墙IP
@@ -863,9 +962,9 @@ bool jsonStrVMCtlParamWriter(int messagetype,char *pstrVMCtl, char *json, int *l
 	{
 		sprintf(str,"\"poweraddr%d\":\"%s\",\n",i+1,StrAdrrPower[i].c_str()); strJson = strJson + str;//电源板1的地址
 	}
-	for(i=0;i<vehplatecnt;i++)
+	for(i=0;i<SWITCH_COUNT;i++)
 	{
-		sprintf(str,"\"doseq%d\":\"%s\",\n",i+1,StrDoSeq[i].c_str()); strJson = strJson + str;//车牌识别映射DO
+		sprintf(str,"\"%s\":\"%s\",\n",StrDeviceNameSeq[i].c_str(),StrDoSeq[i].c_str()); strJson = strJson + str;//设备映射DO
 	}
 	
 	strJson = strJson + "\"devicetype\":\""+ StrdeviceType +"\",\n";	//设备型号900~919
@@ -875,7 +974,7 @@ bool jsonStrVMCtlParamWriter(int messagetype,char *pstrVMCtl, char *json, int *l
 	
     strJson +=  "}\n\n\0\0";
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 	return true;
@@ -927,20 +1026,26 @@ bool jsonStrRsuWriter(int messagetype,char *json, int *len)
 	}
 	sprintf(str,"\"rsu_controlcount\":%d,\n",stuRsuControl.ControlCount);strJson = strJson + str;	//控制器数量
 	sprintf(str,"\"rsu_controlstatus\":%d,\n",stuRsuControl.ControlStatusN[0]);strJson = strJson + str; //工作状态
-	sprintf(str,"\"rsu_antennacount\":%d,\n",stuRsuControl.AntennaCount);strJson = strJson + str;	//天线数量
-	for(i=0;i<stuRsuControl.AntennaCount;i++)
+	if(stuRsuControl.AntennaCount>0)
 	{
-		sprintf(str,"\"antenna%d_status\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Status);strJson += str;		//38 天线i 状态
-		sprintf(str,"\"antenna%d_power\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Power);strJson += str; //39 天线i 功率
-		sprintf(str,"\"antenna%d_channel\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Channel);strJson += str; //40 天线i 信道号
-		if(i<stuRsuControl.AntennaCount-1)
-			{sprintf(str,"\"antenna%d_controlstate\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Control_state);strJson += str;} 	//41 天线i 开关状态
-		else if(i==stuRsuControl.AntennaCount-1)
-			{sprintf(str,"\"antenna%d_controlstate\": %d\n", i+1,stuRsuControl.AntennaInfoN[i].Control_state);strJson += str;}		//41 天线i 开关状态
+		sprintf(str,"\"rsu_antennacount\":%d,\n",stuRsuControl.AntennaCount);strJson = strJson + str;	//天线数量
+		for(i=0;i<stuRsuControl.AntennaCount;i++)
+		{
+			sprintf(str,"\"antenna%d_status\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Status);strJson += str;		//38 天线i 状态
+			sprintf(str,"\"antenna%d_power\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Power);strJson += str; //39 天线i 功率
+			sprintf(str,"\"antenna%d_channel\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Channel);strJson += str; //40 天线i 信道号
+			if(i<stuRsuControl.AntennaCount-1)
+				{sprintf(str,"\"antenna%d_controlstate\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Control_state);strJson += str;} 	//41 天线i 开关状态
+			else if(i==stuRsuControl.AntennaCount-1)
+				{sprintf(str,"\"antenna%d_controlstate\": %d\n", i+1,stuRsuControl.AntennaInfoN[i].Control_state);strJson += str;}		//41 天线i 开关状态
+		}
 	}
+	else
+		{sprintf(str,"\"rsu_antennacount\":%d\n",stuRsuControl.AntennaCount);strJson = strJson + str;}	//天线数量
+
 	strJson +=	"}\n\n\0\0";
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 	return true;
@@ -977,7 +1082,7 @@ bool jsonStrVehPlateWriter(int messagetype,char *json, int *len)
 	for(i=0;i<vehplatecnt;i++)
 	{
 		sprintf(str,"\"vehplate%d_ip\":\"%s\",\n",i+1,StrVehPlateIP[i].c_str());strJson+=str;	//摄相机IP
-		sprintf(str,"\"vehplate%d_port\":%s,\n",i+1,StrVehPlatePort[i].c_str());strJson+=str;	//识别仪端口
+		sprintf(str,"\"vehplate%d_port\":\"%s\",\n",i+1,StrVehPlatePort[i].c_str());strJson+=str;	//识别仪端口
 		sprintf(str,"\"vehplate%d_key\":\"%s\",\n",i+1,StrVehPlateKey[i].c_str());strJson+=str;	//用户名密码
 		sprintf(str,"\"vehplate%d_status\":%s,\n",i+1,mTIPcamState[i].statuscode.c_str());strJson+=str;	//摄相机状态编码 0-正常 1-异常
 		sprintf(str,"\"vehplate%d_errcode\":%s,\n",i+1,mTIPcamState[i].errcode.c_str());strJson+=str;	//正常时为0，状态异常时为厂商自定义的错误代码
@@ -994,7 +1099,7 @@ bool jsonStrVehPlateWriter(int messagetype,char *json, int *len)
 	
 	strJson +=	"}\n\n\0\0";
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 	return true;
@@ -1095,7 +1200,7 @@ bool jsonStrUpsWriter(int messagetype,char *pstrUpsPam, char *json, int *len)
     strJson +=  "}\n\n\0\0";
 	
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 
@@ -1131,7 +1236,7 @@ bool SetjsonReceiveOKStr(int messagetype,char *json, int *len)
 
 	strJson +=	"}\n\n\0\0";
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 
@@ -1172,7 +1277,7 @@ bool jsonStrAirCondWriter(int messagetype,char *pstPam, char *json, int *len)
 
     strJson +=  "}\n\n\0\0";
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 
@@ -1186,6 +1291,7 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 	char str[100],sDateTime[30];
 	int i,j; 
 	static int recordno=0;
+	int va_meter_bd,phase;
 	
     time_t nSeconds;
     struct tm * pTM;
@@ -1210,18 +1316,31 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 	strJson = strJson + "\"rsu_count\": " + StrRSUCount + ",\n";	//RSU数量
 //	strJson = strJson + "\"antenna_count\": " + stuRsuControl.AntennaCount + ",\n";	//天线头数量
 
-	for(i=0;i<VEHPLATE_NUM-1;i++)	//前面N-1路用作车牌识别
+	for(i=0;i<SWITCH_COUNT;i++) //开关数量
 	{
-		if(stuVA_Meter_Param[0].phase[i].vln/100.0<5.0)
+		va_meter_bd=i/VA_METER_BD_MAX_NUM;
+		phase=i%VA_METER_BD_MAX_NUM;
+		if(stuVA_Meter_Param[va_meter_bd].phase[phase].vln/100.0<5.0)
+			sprintf(str,"\"do%d_status\":0,\n",i+1); //断电
+		else 
+			sprintf(str,"\"do%d_status\":1,\n",i+1); //通电
+		strJson = strJson + str;
+		sprintf(str,"\"do%d_vol\":%.3f,\n",i+1,stuVA_Meter_Param[va_meter_bd].phase[phase].vln/100.0); strJson = strJson + str;//电压
+		sprintf(str,"\"do%d_amp\":%.3f,\n",i+1,stuVA_Meter_Param[va_meter_bd].phase[phase].amp/1000.0); strJson = strJson + str;//电流
+	}
+/*	for(i=0;i<VEHPLATE_NUM;i++)	//前面用作车牌识别
+	{
+		va_meter_bd=i/VA_METER_BD_MAX_NUM;
+		phase=i%VA_METER_BD_MAX_NUM;
+		if(stuVA_Meter_Param[va_meter_bd].phase[phase].vln/100.0<5.0)
 			sprintf(str,"\"vehplate%d\":0,\n",i+1);	//断电
 		else 
 			sprintf(str,"\"vehplate%d\":1,\n",i+1);	//通电
 		strJson = strJson + str;
-		sprintf(str,"\"vehplate%d_vol\":%.3f,\n",i+1,stuVA_Meter_Param[0].phase[i].vln/100.0); strJson = strJson + str;//电压
-		sprintf(str,"\"vehplate%d_amp\":%.3f,\n",i+1,stuVA_Meter_Param[0].phase[i].amp/1000.0); strJson = strJson + str;//电流
-//		sprintf(str,"\"vehplate%d_enable:\":%d,\n",i+1,stuVA_Meter_Param[0].phase[i].enable); strJson = strJson + str;//电流
+		sprintf(str,"\"vehplate%d_vol\":%.3f,\n",i+1,stuVA_Meter_Param[va_meter_bd].phase[phase].vln/100.0); strJson = strJson + str;//电压
+		sprintf(str,"\"vehplate%d_amp\":%.3f,\n",i+1,stuVA_Meter_Param[va_meter_bd].phase[phase].amp/1000.0); strJson = strJson + str;//电流
 	}
-	for(i=VEHPLATE_NUM-1;i<VEHPLATE_NUM;i++)	//最后一路用作RSU控制器
+	for(i=0;i<RSUCTL_NUM;i++)	//RSU控制器
 	{
 		if(stuVA_Meter_Param[0].phase[i].vln/100.0<5.0)
 			sprintf(str,"\"rsucontrlor%d\":0,\n",i+1-11);	//断电
@@ -1230,8 +1349,7 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 		strJson = strJson + str;
 		sprintf(str,"\"rsucontrlor%d_vol\":%.3f,\n",i+1-11,stuVA_Meter_Param[0].phase[i].vln/100.0); strJson = strJson + str;//电压
 		sprintf(str,"\"rsucontrlor%d_amp\":%.3f,\n",i+1-11,stuVA_Meter_Param[0].phase[i].amp/1000.0); strJson = strJson + str;//电流
-//		sprintf(str,"\"rsucontrlor%d_enable:\":%d,\n",i+1,stuVA_Meter_Param[0].phase[i].enable); strJson = strJson + str;//电流
-	}
+	}*/
 	sprintf(str,"\"frontdoorlock\":%d,\n",lockerHw_Param[0]->status); strJson = strJson + str;//前门锁
 	sprintf(str,"\"backdoorlock\":%d\n",lockerHw_Param[1]->status); strJson = strJson + str;//后门锁
 //	sprintf(str,"\"sidedoorlock\":%d,\n",lockerHw_Param[2]->status); strJson = strJson + str;//侧门锁
@@ -1239,7 +1357,7 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 
 	strJson +=	"}\n\n\0\0";
 
-	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
+//	printf("the json len= %d out = %s\n",strJson.length(), strJson.c_str());
 	*len=strJson.length();
 	memcpy(json,(char*)strJson.c_str(),*len);
 

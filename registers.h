@@ -89,14 +89,24 @@ typedef unsigned int      	UINT32;
 #define VEHPLATE_NUM 12
 //预留4路RSU控制器
 #define RSUCTL_NUM 4
+//预留16路天线
+#define ANTENNA_NUM 16
+//预留1台交换机
+#define IPSWITCH_NUM 1
+//预留1台防火墙
+#define FIREWARE_NUM 1
+//备用do 2路
+#define BACKUP_DO_NUM 2
 
 // 最大支持6个伏安表, 每个伏安表为6组电流电压值
 #define VA_METER_BD_NUM		6
 #define VA_PHASE_NUM 6
-//最大支持3路电子门锁
-#define LOCK_NUM			3
+//最大支持4路电子门锁
+#define LOCK_NUM			4
 //最大支持3层电源板
 #define POWER_BD_NUM			3
+//最大支持36路开关数量
+#define SWITCH_COUNT	36			
 
 /*功能码*/
 #define	READ_REGS				0x03           //读寄存器
@@ -135,9 +145,9 @@ typedef unsigned int      	UINT32;
 #define	ACT_HOLD		0           //保持状态
 #define	ACT_CLOSE		1           //分闸
 #define	ACT_OPEN		2           //合闸
+#define	ACT_HOLD_FF		0           //保持状态
 
 /*使能定义*/
-#define SWITCH_COUNT	12			//开关数量
 #define	SWITCH_ON		0xFF00           //合闸
 #define	SWITCH_OFF		0xFF01           //分闸
 
@@ -439,7 +449,7 @@ typedef struct vmctl_params_struct
     
     char RSUCount[5];            //RSU数量
     char RSUIP[RSUCTL_NUM][20];            //RSU控制器IP地址
-    char RSUPort[RSUCTL_NUM][20];          //RSU控制器端口
+    char RSUPort[RSUCTL_NUM][6];          //RSU控制器端口
     char VehPlateCount[5];            //识别仪数量
     char VehPlateIP[VEHPLATE_NUM][20];      //识别仪IP地址(预留12路)
     char VehPlatePort[VEHPLATE_NUM][20];    //识别仪端口(预留12路)
@@ -448,17 +458,18 @@ typedef struct vmctl_params_struct
     char CAMPort[20];          //监控摄像头端口
     char CAMKey[20];            //监控摄像头用户名密码
 
-    char FireWareIP[20];       //防火墙地址
+    char FireWareIP[20];       //防火墙地址(预留2台)
     char FireWareGetPasswd[20];   //防火墙get密码
     char FireWareSetPasswd[20];   //防火墙set密码
-    char SwitchIP[20];         //交换机地址
+    char SwitchIP[20];         //交换机地址(预留2台)
     char SwitchGetPasswd[20];     //交换机get密码
     char SwitchSetPasswd[20];     //交换机set密码
     
-    char LockAddr[LOCK_NUM][20];         //门锁地址	最多3把锁
-    char VameterAddr[VA_METER_BD_NUM][20];     //电能表地址 最多6个表 每层2个
-    char PowerAddr[POWER_BD_NUM][20];       //电源板地址 最多3层
-	char DoSeq[VEHPLATE_NUM][4];	// 车牌识别DO映射 最多12路车牌识别
+    char LockAddr[LOCK_NUM][4];         //门锁地址	最多4把锁
+    char VameterAddr[VA_METER_BD_NUM][4];     //电能表地址 最多6个表 每层2个
+    char PowerAddr[POWER_BD_NUM][4];       //电源板地址 最多3层
+    char DeviceNameSeq[SWITCH_COUNT][20];	//设备名称的配置 最多36个设备
+    char DoSeq[SWITCH_COUNT][4];	//设备名称与 DO映射 最多36路开关，与设备名称对应
 
     //硬件信息
     char deviceType[20];		//设备型号900~919
@@ -482,7 +493,14 @@ typedef struct Remote_Control_struct	//
 	UINT16 door_do;				//1501 电子门锁 0xFF00: 关锁;0xFF01: 开锁
 	UINT16 autoreclosure;		//1502 自动重合闸0xFF00: 遥合;0xFF01: 遥分
 	
-	UINT16 vehplate[SWITCH_COUNT];			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 vehplate[VEHPLATE_NUM];			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 rsucontrlor[RSUCTL_NUM];			//rsu 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 antenna[ANTENNA_NUM];			//天线 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 fireware[FIREWARE_NUM];			//防火墙 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 ipswitch[IPSWITCH_NUM];			//交换机 0xFF00: 遥合;0xFF01: 遥分
+	UINT16 backupdo[BACKUP_DO_NUM];			//备用do 0xFF00: 遥合;0xFF01: 遥分
+	
+	UINT16 doseq[SWITCH_COUNT];			//备用do 0xFF00: 遥合;0xFF01: 遥分
 
 	UINT16 SysReset;			//系统重启 1548
 	UINT16 FrontDoorCtrl;			//前门电子门锁 0：保持 1：关锁：2：开锁
@@ -496,6 +514,10 @@ typedef struct Remote_Control_struct	//
 	UINT16 aircoldloop; 	//空调制冷回差//1222					10
 	UINT16 airhotstartpoint;		//空调制热点//1223				15
 	UINT16 airhotloop;		//空调制热回差//1224					10
+	
+	int hwcoolingdevicesmodectl;		//温控模式				0：保持；1：纯风扇模式；2：纯空调模式；3：智能模式；
+	int hwdcairpowerontemppointctl;		//空调开机温度点 255:保持； -20-80（有效）；45(缺省值)
+	int hwdcairpowerofftemppointctl;		//空调关机温度点  		  255:保持； -20-80（有效）；37(缺省值)
 }REMOTE_CONTROL;
 
 //空调参数结构体

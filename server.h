@@ -2,7 +2,7 @@
 #define __SERVER_H__
 
 #define NETCMD_HEADERLEN     13
-#define NETPACKET_MAXLEN     1024*7
+#define NETPACKET_MAXLEN     1024*10
 //#define IPV4_LEN 15
 
 #define JSON_LEN 10*1024
@@ -16,7 +16,7 @@ typedef enum NETCMD_TYPE
     NETCMD_NETWORK    = 2,			//设置网络
     NETCMD_PING       = 3,       	//保持连接指令
     NETCMD_REBOOT     = 4,       	//重启设备指令
-    NETCMD_STATE      = 5,		 	//获取状态
+    NETCMD_CONFIG_NETWORK = 5,		//设置网络
     NETCMD_CONTROLERID= 6,			//获取设备ID
     NETCMD_CONFIG_PARA= 7,			//设置参数
     NETCMD_SEND_DATA  = 8,			//发送数据

@@ -518,7 +518,6 @@ void *snmpthread(void *param)
 				{
 					printf("ASN_OCTET_STR len=%d, str=%s\n",vars->val_len,vars->val.string);
 					memcpy(sp, vars->val.string, vars->val_len);
-//					sp[vars->val_len] = '/0';
 					sp[vars->val_len] = '\0';
 					printf("value #%d is a string: %s\n", count++, sp);
 					UpdataHUAWEIGantryStr(sp,vars->val_len+1,(EM_HUAWEIGantry)IntHUAWEIGantry);
@@ -844,6 +843,16 @@ void initHUAWEIGantry()
 	//直流空调(新增加)
 	HUAWEIDevValue.strhwDcAirRunTime="2147483647";				//空调运行时间
 	HUAWEIDevValue.strhwCoolingDevicesMode="2147483647";			//温控模式
+	
+	//2019-08-20新增
+	HUAWEIDevValue.strhwAcbGroupBatRunningState="2147483647";		//电池状态
+	HUAWEIDevValue.strhwDcAirEquipAddress="2147483647";				//空调地址
+	HUAWEIDevValue.strhwTemHumEquipAddress="2147483647";			//温湿度地址
+	//单个锂电池2019-08-20新增
+	HUAWEIDevValue.strhwAcbBatVolt="2147483647";					//单个电池电压
+	HUAWEIDevValue.strhwAcbBatCurr="2147483647";					//单个电池电流
+	HUAWEIDevValue.strhwAcbBatSoh="2147483647";						//单个电池串SOH
+	HUAWEIDevValue.strhwAcbBatCapacity="2147483647";				//单个电池容量
 	
     //防火墙
     HUAWEIDevValue.strhwEntityCpuUsage="2147483647";                //CPU 

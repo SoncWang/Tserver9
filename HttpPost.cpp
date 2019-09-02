@@ -239,7 +239,9 @@ int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag)
         curl_easy_setopt(pCurl, CURLOPT_USERPWD, strkey.c_str());
         curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
     }
-
+        //是否设置CURLAUTH_BASIC密码
+       // curl_easy_setopt(pCurl, CURLOPT_USERPWD, "hdcam:hdcam");
+       // curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 
 
     res = curl_easy_perform(pCurl);
@@ -290,8 +292,6 @@ int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag)
 
 
 }
-
-
 
 
 

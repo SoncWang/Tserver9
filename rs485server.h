@@ -19,7 +19,8 @@
 #define CARD_NUM		5	// 暂时为5张卡
 #define LOCKER_LOOP_NUM	10	// 电子锁轮询循环计数
 
-#define DOOR_LOCK_ADDR_1		91			// address of the LOCKER,91-99
+#define DOOR_LOCK_ADDR_1		91			// address of the LOCKER
+#define DOOR_LOCK_ADDR_2		92			// address of the LOCKER
 
 /*电源控制器地址*/
 #define POWER_CTRL_ADDR_1			71		/*电源控制器地址*/
@@ -86,7 +87,7 @@ typedef enum
 	WAIT_NONE = 0,
 	WAIT_LOCKER_1_MSG,
 	WAIT_LOCKER_2_MSG,
-	WAIT_LOCKER_3_MSG,
+	WAIT_LOCKER_3_MSG,	
 	WAIT_LOCKER_4_MSG,	// 最多支持4把电子锁
 	WAIT_VA_DATA_1_MSG,
 	WAIT_VA_DATA_2_MSG,
@@ -246,9 +247,9 @@ extern UINT32	power_ctrl_flag[POWER_BD_MAX_NUM];
 extern UINT8 actual_locker_num;
 extern UINT8 actual_485dev_num;
 extern RS485_Reg_Table Var_Table[RS485_DEV_MAX_NUM];
-extern string StrAdrrLock[LOCK_MAX_NUM];	//门锁1的地址
-extern string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器1的地址
-extern string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板1的地址
+extern string StrAdrrLock[LOCK_MAX_NUM];	//门锁的地址
+extern string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器的地址
+extern string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板的地址
 extern string StrDoSeq[SWITCH_COUNT];
 extern UINT16 DoSeq[SWITCH_COUNT];
 extern int *polling_arr;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志

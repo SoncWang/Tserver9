@@ -1,13 +1,13 @@
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <stdlib.h> 
+#include <unistd.h>  
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <fcntl.h> 
 #include <termios.h>
-#include <errno.h>
-#include <limits.h>
+#include <errno.h>   
+#include <limits.h> 
 #include <asm/ioctls.h>
 #include <time.h>
 #include <pthread.h>
@@ -17,7 +17,7 @@
 #include "comserver.h"
 #include "MyCritical.h"
 #include <string>
-#include <semaphore.h>
+#include <semaphore.h>  
 #include "Protocol.h"
 #include "config.h"
 #include "rs485server.h"
@@ -60,9 +60,8 @@ string StrCAMKey;	//监控摄像头用户名密码
 char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
-
 string StrdeviceType="LTKJ-VMCTRL-101";	//设备型号
-string StrVersionNo="V1.00.00" ;	//主程序版本号
+string StrVersionNo="V1.00.01" ;	//主程序版本号
 string StrSoftDate="2019-07-01" ;	//版本日期
 
 string StrCabinetType;		//机柜类型
@@ -84,6 +83,9 @@ string StrSwitchIP ;//交换机IP
 string StrSwitchGetPasswd ;//交换机get密码
 string StrSwitchSetPasswd ;//交换机set密码
 
+extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
+extern string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
+
 int Writeconfig(void);
 int Setconfig(string StrKEY,string StrSetconfig) ;
 int WriteWificonfig(void);
@@ -96,7 +98,7 @@ string getstring(string str,string strkey)
   lenpos = str.find(strkey) ;
   if(lenpos >= 0)
   {
-      str = str.substr(lenpos+strkey.length()) ;
+      str = str.substr(lenpos+strkey.length()) ; 
   }
   else
      return strget ;
@@ -104,12 +106,12 @@ string getstring(string str,string strkey)
   lenpos = str.find('\n') ;
   if(lenpos >= 0)
   {
-      str = str.substr(0,lenpos) ;
+      str = str.substr(0,lenpos) ; 
       strget = str ;
   }
   else
      return strget ;
-
+  
 
   return strget ;
 }
@@ -117,13 +119,14 @@ string getstring(string str,string strkey)
 
 int GetConfig(void)
 {
-    int i,vehplatecnt,rsucnt;
-	char key[128];
-	char strbuf[1501];
+    int i,j,vehplatecnt,rsucnt;
+	char key[128],devicename[128];
+	char *strbuf; 
 	string strvalue;
-    memset(strbuf,0x00,1501) ;
+	int isize;
+	char stripbuf[1501];
 
-    char strwifibuf[1001];
+    char strwifibuf[1001]; 
     memset(strwifibuf,0x00,1001) ;
 
     StrID  = "" ;			//硬件ID
@@ -177,12 +180,12 @@ int GetConfig(void)
 	StrPosId = "";			//ETC 门架序号
 	StrDirection = "";		//行车方向
 	StrDirDescription = "";	//行车方向说明
-
+	
 //	StrdeviceType = "";		//设备型号
 //	StrVersionNo = "" ;		//主程序版本号
     StrWIFIUSER = "";		//WIIFI用户名
     StrWIFIKEY = "" ;		//WIIFI密码
-
+    
 	for (i = 0; i < LOCK_MAX_NUM; i++)
 	{
 		StrAdrrLock[i] = "" ;			//门锁地址
@@ -195,7 +198,7 @@ int GetConfig(void)
 	{
 		StrAdrrPower[i] = "" ;			//电源板的地址
 	}
-
+	
     ConfigCri.Lock();
     //read config
     FILE* fdd ;
@@ -205,8 +208,23 @@ int GetConfig(void)
         ConfigCri.UnLock();
         return 1;
     }
-    fread(strbuf,1,1500,fdd);
+	fseek(fdd,0,SEEK_END);
+	isize = ftell(fdd);
+	strbuf=(char*)malloc(isize);
+	fseek(fdd,0,SEEK_SET);
+    fread(strbuf,1,isize,fdd);
     fclose(fdd);
+
+
+    FILE* ipfd ;
+    if((ipfd=fopen("/home/root/net/netconfig", "rb"))==NULL)
+    {
+        printf("read config erro\r\n");
+        ConfigCri.UnLock();
+        return 1;
+    }
+    fread(stripbuf,1,1500,ipfd);
+    fclose(ipfd);
 
 
 //    StrVersionNo = VERSIONNO ;
@@ -215,12 +233,27 @@ int GetConfig(void)
     printf("-----config----\n%s\n----end config----\n",strbuf) ;
     STRCONFIG = strbuf ;
 
-    printf("-----wpa----\n%s\n----end config----\n",strwifibuf) ;
+    printf("-----netconfig----\n%s\n----end netconfig----\n",stripbuf) ;
     STRWIFIWAP = strwifibuf ;
-
+    
 
     string StrConfig = STRCONFIG ;
     string Strkey ;
+
+//  netconfig 读取
+    string StrIpConfig = stripbuf;
+    Strkey = "IP=";
+    StrIP = getstring(StrIpConfig,Strkey) ;
+
+    Strkey = "Mask=";
+    StrMask = getstring(StrIpConfig,Strkey) ;
+
+    Strkey = "Gateway=";
+    StrGateway = getstring(StrIpConfig,Strkey) ;
+
+    Strkey = "DNS=";
+    StrDNS = getstring(StrIpConfig,Strkey) ;
+
 
     Strkey = "ID=";
     StrID = getstring(StrConfig,Strkey) ;
@@ -231,6 +264,10 @@ int GetConfig(void)
     Strkey = "DHCP=";
     StrDHCP = getstring(StrConfig,Strkey) ;
 
+//end netconfig 读取
+
+
+/*
     Strkey = "IP=";
     StrIP = getstring(StrConfig,Strkey) ;
 
@@ -243,6 +280,8 @@ int GetConfig(void)
     Strkey = "DNS=";
     StrDNS = getstring(StrConfig,Strkey) ;
 
+    */
+
     Strkey = "HWServer=";
     StrHWServer = getstring(StrConfig,Strkey) ;
 
@@ -251,7 +290,7 @@ int GetConfig(void)
 
     Strkey = "HWSetPasswd=";
     StrHWSetPasswd = getstring(StrConfig,Strkey) ;//SNMP SET 密码
-
+    
     Strkey = "ServerURL1=";
     StrServerURL1 = getstring(StrConfig,Strkey) ;
 
@@ -266,45 +305,45 @@ int GetConfig(void)
 
     Strkey = "RSUCount=";
     StrRSUCount = getstring(StrConfig,Strkey) ;//RSU数量
-    rsucnt=atoi(StrRSUCount.c_str());
+	rsucnt=atoi(StrRSUCount.c_str());
 
 	for(i=0;i<rsucnt;i++)
 	{
 		sprintf(key,"RSU%dIP=",i+1);
 	    StrRSUIP[i] = getstring(StrConfig,key) ;//RSU IP 地址
 	    sprintf(gsRSUIP[i],StrRSUIP[i].c_str());//RSUIP地址
-
+	    
 		sprintf(key,"RSU%dPort=",i+1);
 	    StrRSUPort[i] = getstring(StrConfig,key) ;//RSU端口
 	    sprintf(gsRSUPort[i],StrRSUPort[i].c_str());//RSU端口
 
 	}
-
+	
     Strkey = "VehPlateCount=";
     StrVehPlateCount = getstring(StrConfig,Strkey) ;//识别仪数量
 	vehplatecnt=atoi(StrVehPlateCount.c_str());
-
+	
 	for(i=0;i<vehplatecnt;i++)
 	{
 		sprintf(key,"VehPlate%dIP=",i+1);
 	    StrVehPlateIP[i] = getstring(StrConfig,key) ;//识别仪IP地址
-
+	    
 		sprintf(key,"VehPlate%dPort=",i+1);
 	    StrVehPlatePort[i] = getstring(StrConfig,key) ;//识别仪端口
-
+	    
 		sprintf(key,"VehPlate%dKey=",i+1);
 	    StrVehPlateKey[i] = getstring(StrConfig,key) ;//识别仪用户名密码
 	}
-
+    
     Strkey = "CAMIP=";
     StrCAMIP = getstring(StrConfig,Strkey) ;//监控摄像头IP地址
-
+    
     Strkey = "CAMPort=";
     StrCAMPort = getstring(StrConfig,Strkey) ;//监控摄像头端口
-
+	
     Strkey = "StrCAMKey=";
     StrCAMKey = getstring(StrConfig,Strkey) ;//监控摄像头用户名密码
-
+    
     Strkey = "CabinetType=";
     StrCabinetType = getstring(StrConfig,Strkey) ;//机柜类型
 
@@ -328,26 +367,26 @@ int GetConfig(void)
     Strkey = "SwitchSetPasswd=";
     StrSwitchSetPasswd = getstring(StrConfig,Strkey) ;//交换机set密码
 
-
+    
 	//门架信息
     Strkey = "FlagNetRoadID=";
     StrFlagNetRoadID = getstring(StrConfig,Strkey) ;//ETC 门架路网编号
-
+    
     Strkey = "FlagRoadID=";
     StrFlagRoadID = getstring(StrConfig,Strkey) ;//ETC 门架路段编号
-
+    
     Strkey = "FlagID=";
     StrFlagID = getstring(StrConfig,Strkey) ;//ETC 门架编号
-
+    
     Strkey = "PosId=";
     StrPosId = getstring(StrConfig,Strkey) ;//ETC 门架序号
-
+    
     Strkey = "Direction=";
     StrDirection = getstring(StrConfig,Strkey) ;//行车方向
-
+    
     Strkey = "DirDescription=";
     StrDirDescription = getstring(StrConfig,Strkey) ;//行车方向说明
-
+	
 /*
     Strkey = "WIFIUSER=";
     StrWIFIUSER = getstring(StrConfig,Strkey) ;
@@ -377,28 +416,134 @@ int GetConfig(void)
 		StrAdrrPower[i] = getstring(StrConfig,key);
 	}
 
-	for (i = 0; i < VEHPLATE_NUM; i++)
-	{
-		sprintf(key,"VEHPLATE%d_DO=",i+1);
-		strvalue=getstring(StrConfig,key);
-		if(strvalue!="")
+/*		//车牌识别映射DO
+		for (i = 0; i < VEHPLATE_NUM; i++)
 		{
-			StrDoSeq[i] = strvalue;
+			sprintf(key,"VEHPLATE%d_DO=",i+1);
+			strvalue=getstring(StrConfig,key);
+			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+			if(strvalue!="")
+			{
+				
+				StrDeviceNameSeq[j]=key;	//设备名
+				StrDoSeq[j] = strvalue; 	//对应DO
+			}
+		}*/
+		
+	//DO映射设备，最大支持36路DO
+//	for (j = 0; j < SWITCH_COUNT; j++)
+	{
+//printf("j=%d\n",j);
+		//车牌识别映射DO
+		j=0;
+		for (i = 0; i < VEHPLATE_NUM; i++)
+		{
+			sprintf(key,"VEHPLATE%d_DO=",i+1);
+			sprintf(devicename,"vehplate%d_do",i+1);
+			strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+			if(strvalue!="")
+			{
+				
+				StrDeviceNameSeq[j]=devicename; //设备名
+				StrDoSeq[j] = strvalue; 	//对应DO
+				j++;
+			}
+		}
+		//RSU映射DO
+		for (i = 0; i < RSUCTL_NUM; i++)
+		{
+			sprintf(key,"RSU%d_DO=",i+1);
+			sprintf(devicename,"rsu%d_do",i+1);
+			strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+			if(strvalue!="")
+			{
+				
+				StrDeviceNameSeq[j]=devicename; //设备名
+				StrDoSeq[j] = strvalue; 	//对应DO
+				j++;
+			}
+		}
+		//天线头映射DO
+		for (i = 0; i < ANTENNA_NUM; i++)
+		{
+			sprintf(key,"ANTENNA%d_DO=",i+1);
+			sprintf(devicename,"antenna%d_do",i+1);
+			strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+			if(strvalue!="")
+			{
+				
+				StrDeviceNameSeq[j]=devicename; //设备名
+				StrDoSeq[j] = strvalue; 	//对应DO
+				j++;
+			}
+		}
+		//防火墙映射DO
+		for (i = 0; i < FIREWARE_NUM; i++)
+		{
+			sprintf(key,"FIREWARE%d_DO=",i+1);
+			sprintf(devicename,"fireware%d_do",i+1);
+			strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+			if(strvalue!="")
+			{
+				
+				StrDeviceNameSeq[j]=devicename; //设备名
+				StrDoSeq[j] = strvalue; 	//对应DO
+				j++;
+			}
+		}
+		//交换机映射DO
+		for (i = 0; i < IPSWITCH_NUM; i++)
+		{
+			sprintf(key,"IPSWITCH%d_DO=",i+1);
+			sprintf(devicename,"ipswitch%d_do",i+1);
+			strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+			if(strvalue!="")
+			{
+				
+				StrDeviceNameSeq[j]=devicename; //设备名
+				StrDoSeq[j] = strvalue; 	//对应DO
+				j++;
+			}
+		}
+		//备用DO
+		for (i = 0; i < BACKUP_DO_NUM; i++)
+		{
+			sprintf(key,"BACKUP%d_DO=",i+1);
+			sprintf(devicename,"backup%d_do",i+1);
+			strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+			if(strvalue!="")
+			{
+				
+				StrDeviceNameSeq[j]=devicename; //设备名
+				StrDoSeq[j] = strvalue; 	//对应DO
+				j++;
+			}
 		}
 	}
-
-    ConfigCri.UnLock();
-    return 0 ;
+/*for (i = 0; i < SWITCH_COUNT; i++)
+{
+printf("config StrDeviceNameSeq[%d]=%s,StrDoSeq[%d]=%s\n",i,StrDeviceNameSeq[i].c_str(),i,StrDoSeq[i].c_str());
+}
+printf("j=%d\n",j);*/
+	ConfigCri.UnLock();
+	free(strbuf);
+	return 0 ;
 }
 
 
 
 int Setconfig(string StrKEY,string StrSetconfig)
 {
-    string setconfig = "";
+    string setconfig = ""; 
     string strstart = "";
     string strend = "";
-
+    
     ConfigCri.Lock();
     setconfig =  STRCONFIG ;
 
@@ -406,14 +551,14 @@ int Setconfig(string StrKEY,string StrSetconfig)
     lenpos = setconfig.find(StrKEY) ;
     if(lenpos >= 0)
     {
-       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ;
+       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ; 
     }
     else
     {
        ConfigCri.UnLock();
        return 1 ;
     }
-
+ 
     lenpos = setconfig.find('\n',lenpos) ;
     if(lenpos >= 0)
     {
@@ -442,24 +587,24 @@ int Writeconfig(void)
        ConfigCri.UnLock();
        return 1 ;
     }
-
+	
 //printf("setconfig=%s\r\n",setconfig.c_str() );
     int len = setconfig.length();
     fwrite(setconfig.c_str(),len, 1, fdd);
     fflush(fdd);
     fclose(fdd);
     ConfigCri.UnLock();
-
+    
     return 0 ;
 
 }
 
 int SetWificonfig(string StrKEY,string StrSetconfig)
 {
-    string setconfig = "";
+    string setconfig = ""; 
     string strstart = "";
     string strend = "";
-
+    
     ConfigCri.Lock();
     setconfig =  STRWIFIWAP ;
 
@@ -467,14 +612,14 @@ int SetWificonfig(string StrKEY,string StrSetconfig)
     lenpos = setconfig.find(StrKEY) ;
     if(lenpos >= 0)
     {
-       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ;
+       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ; 
     }
     else
     {
        ConfigCri.UnLock();
        return 1 ;
     }
-
+ 
     lenpos = setconfig.find('\n',lenpos) ;
     if(lenpos >= 0)
     {
@@ -509,6 +654,36 @@ int WriteWificonfig(void)
     fflush(fdd);
     fclose(fdd);
     ConfigCri.UnLock();
+    
+    return 0 ;
+
+}
+
+
+//单独写网络配置文件
+int WriteNetconfig(char *configbuf,int configlen)
+{
+    int ret = 0;
+    ConfigCri.Lock();
+    FILE* fdd ;
+    fdd	= fopen("/opt/netconfig", "wb");
+    if(fdd == NULL)
+    {
+       ConfigCri.UnLock();
+       return 1 ;
+    }
+
+    ret = fwrite(configbuf,configlen, 1, fdd);
+    fflush(fdd);
+    fclose(fdd);
+    ConfigCri.UnLock();
+
+    if(ret > 0)
+    {
+        //覆盖/home/root/net/netconfig
+        system("wr cp /opt/netconfig /home/root/net/");
+    }
+
 
     return 0 ;
 

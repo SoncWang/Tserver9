@@ -13,6 +13,7 @@
 
 bool jsonReader(std::string json, std::map<std::string, std::string> &out);
 bool jsonWriter(std::map<std::string, std::string> in, std::string &json);
+bool jsonstrIpInfoReader(char* jsonstr, int len, UINT8 *pstIPPam);//8 IP地址
 bool jsonStrEvnWriter(int messagetype,char *pstrEnvPam, char *json, int *len);//9 环境寄存器参数
 bool jsonStrUpsWriter(int messagetype,char *pstrUpsPam, char *json, int *len);//10 UPS参数
 bool jsonStrSpdWriter(int messagetype,char *pstrUpsPam, char *json, int *len);//11 防雷器寄存器参数

@@ -141,7 +141,7 @@ void http_handler_post_msg(struct evhttp_request *req,void *arg)
 	memset(jsonPack,0,JSON_LEN);
 	jsonPackLen=0;
 	jsonStrReader(buf,strlen(buf),jsonPack,&jsonPackLen);
-	printf("jsonPack len:%d out:%s\n",jsonPackLen,jsonPack);
+	//printf("jsonPack len:%d out:%s\n",jsonPackLen,jsonPack);
 	
     //回响�?    
     struct evbuffer *retbuff = NULL;
