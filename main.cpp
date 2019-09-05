@@ -376,9 +376,6 @@ int main(void)
 	init_IpScan();
     while(1)
     {
-		if(stuRemote_Ctrl->SysReset==SYSRESET)					//系统重启 
-			system("reboot") ;
-		
 		write(WDTfd, "\0", 1);
 		sleep(5);
     }

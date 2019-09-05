@@ -145,7 +145,9 @@ typedef unsigned int      	UINT32;
 #define	ACT_HOLD		0           //保持状态
 #define	ACT_CLOSE		1           //分闸
 #define	ACT_OPEN		2           //合闸
-#define	ACT_HOLD_FF		0           //保持状态
+#define	ACT_SOFTWARERST 3           //软重启
+#define	ACT_HARDWARERST 4           //断电重启
+#define	ACT_HOLD_FF		255           //保持状态
 
 /*使能定义*/
 #define	SWITCH_ON		0xFF00           //合闸

@@ -28,6 +28,7 @@ void SetjsonTableStr(char* table, string &mstrjson);//17 门架运行状态
 bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl);//18 json解析到结构体
 bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len);	//19回路电压电流开关状态
 bool jsonStrHWCabinetWriter(int messagetype,char *pstPam, char *json, int *len);				//20 华为机柜状态
+void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &mstrjson);		//22 门禁开关锁请求					//22 门禁开关锁请求
 bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout);
 bool SetjsonReceiveOKStr(int messagetype,char *json, int *len);
 bool jsonIPCamReader(char* jsonstr, int len);

@@ -49,9 +49,12 @@ static UINT32 last_card = 0;
 
 
 //UINT8 actual_locker_num = 0;
+extern string StrServerURL1;	//服务端URL1
+extern string StrServerURL2;	//服务端URL2
 
 extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_MAX_NUM];	//门锁状态结构体
 extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_NUM];		//伏安表电压电流结构体
+extern REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
 
 string StrAdrrLock[LOCK_MAX_NUM];	//门锁1的地址
 
@@ -61,6 +64,7 @@ string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
 UINT16 DoSeq[SWITCH_COUNT]={0,};	// 另外定义一个专门用来存储映射的数组,stuRemote_Ctrl会被清0
 
+extern void RemoteControl(UINT8* pRCtrl);
 
 int *polling_arr;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
 int *polling_subarr;
@@ -569,6 +573,9 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 	UINT16* pointer = &(lockerHw_Param[0]->status);
 	UINT8* pid = &(lockerHw_Param[0]->id[0]);
 	UINT32 card_read = 0;
+	string jsonstr;
+    string mstrkey = ""; //没有用户名和密码：则为“”；
+	REMOTE_CONTROL *pRCtrl;
 
 	if((len == (LOCKER_REG_NUM*2+5)))
 	{
@@ -619,8 +626,29 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 	int j ;//for(j=0;j<(LOCKER_REG_NUM-FIXED_NUM)*2;j++) printf("0x%02x ",lockerHw_Param->id[j]);
 	printf("0x%08x" ,card_read);printf("\r\n");
 
-
-	for (j=0;j<CARD_NUM;j++)
+	if((card_read!=0) && (last_cnt[addr_base] >= lockerHw_Param[addr_base]->report_cnt)	)//读取到卡号
+	{
+		SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,card_read,addr,jsonstr);
+		printf("DealLockerMsg jsonstr=%s\n" ,jsonstr.c_str());
+		NetSendParm(NETCMD_DEAL_LOCKER, (char*)jsonstr.c_str(), jsonstr.length());
+		if(StrServerURL1.length()>0)			//上报利通后台
+		{
+		   HttpPostParm(StrServerURL1,jsonstr,mstrkey,HTTPGET);
+		   pRCtrl=stuRemote_Ctrl;
+		   memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+		   jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+		   RemoteControl((UINT8*)pRCtrl);
+		}   
+		if(StrServerURL2.length()>0)			//上报新粤后台
+		{
+		   HttpPostParm(StrServerURL2,jsonstr,mstrkey,HTTPGET);
+		   pRCtrl=stuRemote_Ctrl;
+		   memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+		   jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+		   RemoteControl((UINT8*)pRCtrl);
+		}
+	}
+/*	for (j=0;j<CARD_NUM;j++)
 	{
 		if (locker_opened[addr_base] == 0)
 		{
@@ -633,7 +661,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 				break;
 			}
 		}
-	}
+	}*/
 	last_cnt[addr_base] = lockerHw_Param[addr_base]->report_cnt;
 	return 1 ;
 }
@@ -656,15 +684,15 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 
 	if(len == (REAL_DATA_NUM*2+5))
 	{
-//		printf("va begain\r\n");
+		printf("va begain\r\n");
 		/*第5相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[0].vln;
 		for(i = 35;i <= 36;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-35));
 		}
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].vln);printf("\r\n");
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].amp);printf("\r\n");
 
 		/*第4相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[1].vln;
@@ -672,8 +700,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-28));
 		}
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].vln);printf("\r\n");
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].amp);printf("\r\n");
 
 		/*第3相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[2].vln;
@@ -681,8 +709,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-21));
 		}
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].vln);printf("\r\n");
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].amp);printf("\r\n");
 
 		/*第2相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[3].vln;
@@ -690,8 +718,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-14));
 		}
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].vln);printf("\r\n");
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].amp);printf("\r\n");
 
 		/*第1相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[4].vln;
@@ -699,8 +727,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-7));
 		}
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].vln);printf("\r\n");
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].amp);printf("\r\n");
 
 		/*第0相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[5].vln;
@@ -708,8 +736,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
 		}
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].vln);printf("\r\n");
-//		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].amp);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].vln);printf("\r\n");
+		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].amp);printf("\r\n");
 	}
 }
 

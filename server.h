@@ -31,7 +31,9 @@ typedef enum NETCMD_TYPE
     NETCMD_FLAGRUNSTATUS  = 17,		//门架运行状态
     NETCMD_REMOTE_CONTROL = 18,		//遥控设备
     NETCMD_SWITCH_STATUS = 19,		//回路开关状态
-	NETCMD_HWCABINET_STATUS = 20	//华为机柜状态
+	NETCMD_HWCABINET_STATUS = 20,	//华为机柜状态
+	NETCMD_HWCABINET_PARMSET = 21,	//华为机柜参数设置
+	NETCMD_DEAL_LOCKER = 22 		//门禁开关锁请求
 }NETCMD_TYPE;
 
 
@@ -81,6 +83,8 @@ void init_XY_DataPost();
 void init_HTTP_DataGet();
 //初始化socket定时推送线程(推送给小槟)
 void init_SocketNetSend();
+//处理DO重启线程
+void init_DealDoReset();
 
 
 #endif

@@ -105,8 +105,8 @@ void initIPcamState()
 		mTIPcamState[i].factoryid="2147483647"; //摄相机厂商1-宇视2-海康3-大华4-中威5-哈工大6-华为7-北京智通 8-北京信路威
 		mTIPcamState[i].statuscode="2147483647";//摄相机状态编码 0-正常 1-异常
 		mTIPcamState[i].errcode="2147483647";//正常时为0，状态异常时为厂商自定义的错误代码
-		mTIPcamState[i].devicemodel="";//摄相机的设备型号
-		mTIPcamState[i].softversion="";//摄相机的软件版本号
+		mTIPcamState[i].devicemodel="\"\"";//摄相机的设备型号
+		mTIPcamState[i].softversion="\"\"";//摄相机的软件版本号
 		mTIPcamState[i].statustime="";//状态时间
 		mTIPcamState[i].filllight="2147483647";//闪光灯状态 0:正常，1:异常
 		mTIPcamState[i].temperature="2147483647";//摄像枪温度（摄氏度）

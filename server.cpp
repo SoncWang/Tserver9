@@ -55,6 +55,7 @@ void AirCondControl(UINT8* pRCtrl);
 void RemoteControl(UINT8* pRCtrl);
 extern void WriteLog(char* str);
 extern void myprintf(char* str);
+int RebootIpCam(int Ipcamindex);
 
 extern ENVI_PARAMS *stuEnvi_Param;		// 环境数据结构体
 extern UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
@@ -852,6 +853,19 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = jsonPackLen;
 			}
 			break;
+		case NETCMD_DEAL_LOCKER:			//22  门禁开关锁请求
+			if(pCMD->status==SFLAG_WRITE)
+			{
+				memset(pRecvBuf,0,JSON_LEN);
+				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
+				REMOTE_CONTROL *pRCtrl=stuRemote_Ctrl;
+				memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+				jsonstrRCtrlReader(pRecvBuf,pCMD->datalen,(UINT8 *)pRCtrl);//将json字符串转换成结构体
+				RemoteControl((UINT8*)pRCtrl);
+				sprintf(pCMD->data,"执行命令->执行成功!\n");
+				pCMD->datalen = strlen(pCMD->data);
+			}
+			break;
 		default:
 			break;
 
@@ -981,28 +995,26 @@ void RemoteControl(UINT8* pRCtrl)
 			 //如果未被配置,则不控制
 			 if (seq_temp != NULL_VAR)
 			 {
-				 seq_temp = seq_temp%SINGLE_REMOTE_NUM;
-				 seq = seq_temp/SINGLE_REMOTE_NUM;
+				 seq_temp = i%SINGLE_REMOTE_NUM;
+				 seq = i/SINGLE_REMOTE_NUM;
 				 printf("seq_temp0x%02x=0x%02x,seq=%d\r\n",i,seq_temp,seq);
 				 power_ctrl_flag[seq] |= LBIT(POWER_1_CTRL_CLOSE+2*seq_temp);
 				 printf("power_ctrl_flagseq=0x%04x\r\n",power_ctrl_flag[seq]);
 			 }
-//			 usleep(2000);
 		 }
-		 if(pstuRCtrl->doseq[i]==ACT_OPEN)			 //车牌识别1合闸
+		 if(pstuRCtrl->doseq[i]==ACT_OPEN)			 //DO合闸
 		 {
 			 seq_temp = DoSeq[i];
 			 printf("DoSeq=0x%02x\r\n",DoSeq[i]);
 			 //如果未被配置,则不控制
 			 if (seq_temp != NULL_VAR)
 			 {
-				 seq_temp = seq_temp%SINGLE_REMOTE_NUM;
-				 seq = seq_temp/SINGLE_REMOTE_NUM;
+				 seq_temp = i%SINGLE_REMOTE_NUM;
+				 seq = i/SINGLE_REMOTE_NUM;
 				 printf("seq_temp0x%02x=0x%02x,seq=%d\r\n",i,seq_temp,seq);
 				 power_ctrl_flag[seq] |= LBIT(POWER_1_CTRL_OPEN+2*seq_temp);
 				 printf("power_ctrl_flagseq=0x%04x\r\n",power_ctrl_flag[seq]);
 			 }
-//			 usleep(2000);
 		 }
 	 }
  
@@ -1010,50 +1022,107 @@ void RemoteControl(UINT8* pRCtrl)
 //	if(pstuRCtrl->SysReset==SYSRESET)					//系统重启 
 //		system("reboot") ;
 	
-	if(pstuRCtrl->FrontDoorCtrl==SWITCH_OFF)					//开锁
+	if(pstuRCtrl->FrontDoorCtrl==ACT_UNLOCK)					//开锁
  	{
+printf("FrontDoorCtrl ACT_UNLOCK"); 	
 		locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
 		usleep(2000);
 	}
-	if(pstuRCtrl->FrontDoorCtrl==SWITCH_ON)					//关锁
+	if(pstuRCtrl->FrontDoorCtrl==ACT_LOCK)					//关锁
  	{
+printf("FrontDoorCtrl ACT_LOCK");	
  		locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
 		usleep(2000);
 	}
-	if(pstuRCtrl->BackDoorCtrl==SWITCH_OFF)					//开锁
+	if(pstuRCtrl->BackDoorCtrl==ACT_UNLOCK)					//开锁
  	{
+printf("BackDoorCtrl ACT_UNLOCK");	
  		locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
 		usleep(2000);
 	}
-	if(pstuRCtrl->BackDoorCtrl==SWITCH_ON)					//关锁
+	if(pstuRCtrl->BackDoorCtrl==ACT_LOCK)					//关锁
  	{
+printf("BackDoorCtrl ACT_LOCK")	;
  		locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
 		usleep(2000);
 	}
-	if(pstuRCtrl->SideDoorCtrl==SWITCH_OFF)					//开锁
+	if(pstuRCtrl->SideDoorCtrl==ACT_UNLOCK)					//开锁
  	{
+printf("SideDoorCtrl ACT_UNLOCK");	
  		locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_UNLOCK);
 		usleep(2000);
 	}
-	if(pstuRCtrl->SideDoorCtrl==SWITCH_ON)					//关锁
+	if(pstuRCtrl->SideDoorCtrl==ACT_LOCK)					//关锁
  	{
+printf("SideDoorCtrl ACT_LOCK"); 
  		locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_LOCK);
 		usleep(2000);
 	}
 	if(pstuRCtrl->hwcoolingdevicesmodectl!=ACT_HOLD)					//温控模式   	0：保持；1：纯风扇模式；2：纯空调模式；3：智能模式；
  	{
  		sprintf(value,"%d",pstuRCtrl->hwcoolingdevicesmodectl);
+		printf("RemoteControl 温控模式=%s\n",value);		
 		SnmpSetOid(hwCoolingDevicesModeCtl,value);
 	}
 	if(pstuRCtrl->hwdcairpowerontemppointctl!=ACT_HOLD_FF)			//空调开机温度点 		255:保持； -20-80（有效）；45(缺省值)
 	{
  		sprintf(value,"%d",pstuRCtrl->hwdcairpowerontemppointctl);
+		printf("RemoteControl 空调开机温度点=%s\n",value); 	
 		SnmpSetOid(hwDcAirPowerOnTempPointCtl,value);
 	}
-	if(pstuRCtrl->hwdcairpowerofftemppointctl!=ACT_HOLD_FF)					//温控模式	0：保持；1：纯风扇模式；2：纯空调模式；3：智能模式；
+	if(pstuRCtrl->hwdcairpowerofftemppointctl!=ACT_HOLD_FF)					//空调关机温度点 		  255:保持； -20-80（有效）；37(缺省值)
  	{
  		sprintf(value,"%d",pstuRCtrl->hwdcairpowerofftemppointctl);
-		SnmpSetOid(hwDcAirPowerOffTempPointCtl,value);//空调关机温度点 		  255:保持； -20-80（有效）；37(缺省值)
+		printf("RemoteControl 空调关机温度点=%s\n",value); 	
+		SnmpSetOid(hwDcAirPowerOffTempPointCtl,value);
+	}
+}
+
+void DealDoReset(REMOTE_CONTROL *pstuRCtrl)
+{
+	int i,j;
+	string StrDev;
+	char dev[30];
+	int seq = 0;
+	UINT16 seq_temp = 0;
+	
+	if(stuRemote_Ctrl->SysReset==SYSRESET)					//系统重启 
+		system("reboot") ;
+	for (i = 0; i < SWITCH_COUNT; i++)
+	{
+		if(pstuRCtrl->doseq[i]==ACT_HARDWARERST)	//断电重启
+		{
+			seq_temp = DoSeq[i];
+			printf("DoSeq=0x%02x\r\n",DoSeq[i]);
+			//如果未被配置,则不控制
+			if (seq_temp != NULL_VAR)
+			{
+				seq_temp = i%SINGLE_REMOTE_NUM;
+				seq = i/SINGLE_REMOTE_NUM;
+				printf("seq_temp0x%02x=0x%02x,seq=%d\r\n",i,seq_temp,seq);
+				power_ctrl_flag[seq] |= LBIT(POWER_1_CTRL_CLOSE+2*seq_temp);
+				printf("power_ctrl_flagseq=0x%04x\r\n",power_ctrl_flag[seq]);
+				sleep(2);
+				printf("seq_temp0x%02x=0x%02x,seq=%d\r\n",i,seq_temp,seq);
+				power_ctrl_flag[seq] |= LBIT(POWER_1_CTRL_OPEN+2*seq_temp);
+				printf("power_ctrl_flagseq=0x%04x\r\n",power_ctrl_flag[seq]);
+			}
+			pstuRCtrl->doseq[i]=ACT_HOLD;
+		}
+		if(pstuRCtrl->doseq[i]==ACT_SOFTWARERST)	//软件重启
+		{
+			for(j=0;j<atoi(StrVehPlateCount.c_str());j++)
+			{
+				sprintf(dev,"vehplate%d_do",j+1);
+				StrDev=dev;
+				if(StrDeviceNameSeq[i]==StrDev)
+				{
+					printf("do%d  reboot %s\n",i,dev);
+					RebootIpCam(j);
+				}
+			}
+			pstuRCtrl->doseq[i]==ACT_HOLD;
+		}
 	}
 }
 
@@ -1173,6 +1242,27 @@ void init_SocketNetSend()
 {
 	pthread_t m_SoketNetSendthread ;
 	pthread_create(&m_SoketNetSendthread,NULL,SocketNetSendthread,NULL);
+}
+
+
+void *DealDoResetthread(void *param)
+{
+
+    string mStrdata;
+	while(1)
+	{
+    	DealDoReset(stuRemote_Ctrl);							//处理DO重启
+		
+		sleep(1);
+	}
+
+	return 0 ;
+}
+
+void init_DealDoReset()
+{
+	pthread_t m_DealDoResetthread ;
+	pthread_create(&m_DealDoResetthread,NULL,DealDoResetthread,NULL);
 }
 
 
