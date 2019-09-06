@@ -45,7 +45,8 @@
 /*而电压电流传感器的回复数据有VA_DATA_NUM=42个,加上回复延时共80ms左右，完全是够的*/
 /*350ms,缩短时间,如果是4把锁轮询要快,最差的情况为4把锁全部配置,加上一次其它轮询共*/
 /*350ms*5 = 1.75s,而1.4s是常态*/
-#define INTERVAL_TIME		350000
+#define INTERVAL_TIME			350000
+#define DEV_INTERVAL_TIME		360000		/*360ms,错开一点*/
 
 /*VOLT-AMP sampling definition*/
 #define REAL_DATA_NUM			42  	/*需实时更新数据长度，0x69-0x40*/
@@ -56,6 +57,16 @@
 
 #define ENABLE					1
 #define DISABLE					0
+
+/*The name of the RS485 coms*/
+typedef enum
+{
+	RS485_1 = 0,
+	RS485_2,
+	RS485_NUM
+}RS485_COM_LIST;
+
+
 
 /*The name of the RS485 devices*/
 typedef enum
@@ -87,7 +98,7 @@ typedef enum
 	WAIT_NONE = 0,
 	WAIT_LOCKER_1_MSG,
 	WAIT_LOCKER_2_MSG,
-	WAIT_LOCKER_3_MSG,	
+	WAIT_LOCKER_3_MSG,
 	WAIT_LOCKER_4_MSG,	// 最多支持4把电子锁
 	WAIT_VA_DATA_1_MSG,
 	WAIT_VA_DATA_2_MSG,
@@ -256,19 +267,19 @@ extern int *polling_arr;		// 注意存储的是Var_Table中被使能的status,�
 extern int *polling_subarr;
 
 
-void rs485init(void) ;
-UINT16 SendCom4RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code);
-int DealComm485(unsigned char *buf,unsigned short int len);
+void rs485init(void);
+int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq);
 void lockerPollingInit();
-void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char seq);
+void comm_VAData_analyse(unsigned char *buf,unsigned short int len,RS485_COM_LIST seq);
 int DealLockerMsg(unsigned char *buf,unsigned short int len);
 void Rs485_table_set(UINT16 name, UINT16 enable, UINT16 position, UINT16 address);
 UINT16 Rs485_table_enable_get(UINT16 name);
-int Power_ctrl_process(UINT32 *pctrl_flag, RS485_DEV_LIST dev_name);
+int Power_ctrl_process(UINT32 *pctrl_flag, UINT32 *pread_flag, RS485_DEV_LIST dev_name);
 int Locker_ctrl_process(UINT32 *pctrl_flag, RS485_DEV_LIST dev_name);
 int Dev_polling_process(UINT32 *pcomm_flag);
-int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT);
-
+int Power_readback_process(UINT32 *pread_flag, UINT32 *pcomm_flag, RS485_DEV_LIST dev_name);
+void *Locker_DataPollingthread(void *param);
+void lockerDataMalloc(void);
 
 #endif
 

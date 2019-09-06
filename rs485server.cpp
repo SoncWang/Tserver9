@@ -15,6 +15,8 @@
 #include <string.h>
 #include "comport.h"
 #include "rs485server.h"
+#include "rs485Com3.h"
+#include "rs485Com4.h"
 #include "MyCritical.h"
 #include <string>
 #include <semaphore.h>
@@ -25,19 +27,14 @@
 
 /*Global definition*/
 using namespace std;
-CComPort *mComPort3 = NULL ;   	//RS485对应串口4,轮询计量设备
-CComPort *mComPort4 = NULL;		//RS485对应串口5,轮询电子锁,最多4把锁
-CMyCritical Com3Cri;
-CMyCritical Com4Cri;
-CMyCritical Com3SendCri;
-CMyCritical Com4SendCri;
 
-UINT32  comm_flag=0;	// 轮询标志
+UINT32  comm_flag[RS485_NUM] = {0,0};	// 轮询标志
 //UINT32  ctrl_flag;
 UINT32  locker_ctrl_flag=0;	// 电子锁写标志
 UINT32	power_ctrl_flag[POWER_BD_MAX_NUM] = {0,0,0};
-UINT8  WAIT_response_flag=0;
-UINT8 Recive_Flag = 0;			/* 接收标志*/
+UINT32	power_read_flag[POWER_BD_MAX_NUM] = {0,0,0};	// 控制一次电压电流通断后马上读一次数据
+UINT8  WAIT_response_flag[RS485_NUM]={0,0};
+UINT8 Recive_Flag[RS485_NUM] = {0,0};			/* 接收标志*/
 UINT8 actual_locker_num = 0;
 UINT8 actual_485dev_num = 0;
 
@@ -180,363 +177,17 @@ UINT16 Rs485_table_enable_get(UINT16 name)
 	return Var_Table[name].enable;
 }
 
-
-/*模块化电源控制的处理*/
-int Power_ctrl_process(UINT32 *pctrl_flag, RS485_DEV_LIST dev_name)
+/*和电子锁有关的变量初始化*/
+void lockerDataMalloc(void)
 {
-	int i;
-	for(i=0; i<12; i++)
-	{
-		if (*pctrl_flag & (LBIT(POWER_1_CTRL_CLOSE+2*i)))
-		{
-			*pctrl_flag &= ~(LBIT(POWER_1_CTRL_CLOSE+2*i));
-			if (Rs485_table_enable_get(dev_name))		// 配置文件中是否配置使能
-			{
-				WAIT_response_flag = WAIT_POWER_1_CTRL_CLOSE_RES+2*i;
-				SendCom4RCtlReg(Var_Table[dev_name].addr,FORCE_COIL,VPLATE1_REG+i,SWITCH_OFF);
-			}
-			return 0;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
-		}
-		else if (*pctrl_flag & (LBIT(POWER_1_CTRL_OPEN+2*i)))
-		{
-			*pctrl_flag &= ~(LBIT(POWER_1_CTRL_OPEN+2*i));
-			if (Rs485_table_enable_get(dev_name))
-			{
-				WAIT_response_flag = WAIT_POWER_1_CTRL_OPEN_RES+2*i;
-				SendCom4RCtlReg(Var_Table[dev_name].addr,FORCE_COIL,VPLATE1_REG+i,SWITCH_ON);
-			}
-			return 0;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
-		}
-	}
-	return 1;
+	/*与电子锁有关的变量进行动态分配*/
+	locker_opened = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
+	memset(locker_opened,0,sizeof(UINT16)*actual_locker_num);
+	last_cnt = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
+	memset(last_cnt,0,sizeof(UINT16)*actual_locker_num);
 }
 
-
-/*模块化电子锁控制的处理*/
-int Locker_ctrl_process(UINT32 *pctrl_flag, RS485_DEV_LIST dev_name)
-{
-	int i;
-	for(i=0; i<LOCK_MAX_NUM; i++)
-	{
-		if (*pctrl_flag & LBIT(LOCKER_1_CTRL_UNLOCK+2*i))
-		{
-			*pctrl_flag &= ~(LBIT(LOCKER_1_CTRL_UNLOCK+2*i));
-			if (Rs485_table_enable_get(dev_name+i))
-			{
-				WAIT_response_flag = WAIT_LOCKER_1_UNLOCK_RES+2*i;
-				SendCom4RCtlReg(Var_Table[dev_name+i].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
-			}
-			return 0;
-		}
-		else if (*pctrl_flag & LBIT(LOCKER_1_CTRL_LOCK+2*i))
-		{
-			locker_ctrl_flag &= ~(LBIT(LOCKER_1_CTRL_LOCK+2*i));
-			if (Rs485_table_enable_get(dev_name+i))
-			{
-				WAIT_response_flag = WAIT_LOCKER_1_LOCK_RES+2*i;
-		 		SendCom4RCtlReg(Var_Table[dev_name+i].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
-			}
-			return 0;
-		}
-	}
-	return 1;
-}
-
-
-/*模块化485设备的轮询处理*/
-int Dev_polling_process(UINT32 *pcomm_flag)
-{
-	int i;
-	for(i=LOCKER_1; i <= VA_METER_6; i++)
-	{
-		if (*pcomm_flag & LBIT(i))
-		{
-			*pcomm_flag &= ~(LBIT(i));
-			if (Rs485_table_enable_get(i))
-			{
-				switch(i)
-				{
-				case (LOCKER_1):
-				case (LOCKER_2):
-				case (LOCKER_3):
-					// 门锁统一处理
-					WAIT_response_flag = WAIT_LOCKER_1_MSG+i;
-					SendCom4ReadReg(Var_Table[i].addr,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
-					break;	//注意这里的break只是跳出switch, 而不是跳出for
-
-				case (VA_METER_1):
-				case (VA_METER_2):
-				case (VA_METER_3):
-				case (VA_METER_4):
-				case (VA_METER_5):
-				case (VA_METER_6):
-					// 门锁统一处理, RES标志混合处理，要特别小心
-					WAIT_response_flag = WAIT_VA_DATA_1_MSG+(i-VA_METER_1);
-					SendCom4ReadReg(Var_Table[i].addr, READ_REGS, VA_REG, VA_DATA_NUM);
-					break;	//注意这里的break只是跳出switch, 而不是跳出for
-
-				default:
-					break;
-				}
-			}
-			return 0;		// 处理一个后直接返回，下一个循环再处理另外一个标志位
-		}
-	}
-	return 1;
-}
-
-
-
-void *Locker_DataPollingthread(void *param)
-{
-	param = NULL;
-	int i;
-	static UINT16 polling_counter = 0;
-	static UINT16 loop_cnt = 0;			// 表明电子锁的轮询循环次数,超过阈值轮询其它的设备
-	static UINT16 sub_poll_counter = 0;
-	static UINT16 dev_485_entry = 0;
-
-	while(1)
-	{
-		if ((locker_ctrl_flag&BITS_MSK_GET(0,LOCKER_CTRL_NUM)) || (power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))
-			 || (power_ctrl_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM)) || (power_ctrl_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM)))
-		{
-			comm_flag = 0;
-//			printf("power_ctrl_flag0485=0x%04x\r\n",power_ctrl_flag[0]);
-		}
-		else
-		{
-			if(dev_485_entry)
-			{
-				dev_485_entry = 0;
-				// 其它的485设备
-				if (sub_poll_counter < actual_485dev_num)
-				{
-					/*加个判断保险一点*/
-					comm_flag |= LBIT(polling_subarr[sub_poll_counter]);
-//					printf("comm_flag=0x%04x\r\n",comm_flag);
-				}
-				sub_poll_counter++;
-				if (sub_poll_counter >= actual_485dev_num)
-				{
-//					printf("subroll over0x%02x" ,sub_poll_counter);printf("\r\n");
-					sub_poll_counter = 0;
-				}
-			}
-			else
-			{
-				// 主轮询, 电子锁
-				if (polling_counter < actual_locker_num)
-				{
-					comm_flag |= LBIT(polling_arr[polling_counter]);
-//					printf("comm_flag=0x%04x\r\n",comm_flag);
-				}
-				polling_counter++;
-				if (polling_counter >= actual_locker_num)
-				{
-//					printf("\r\npoling over");
-//					printf("0x%02x" ,polling_counter);printf("\r\n");
-					polling_counter = 0;
-					loop_cnt++;
-					if (loop_cnt >= LOCKER_LOOP_NUM)
-					{
-						loop_cnt = 0;
-						dev_485_entry =1; // 其它设备轮询一次
-					}
-				}
-			}
-		}
-
-		// 如果没有收到回复数据,这里会一直进不来,要用带timeout的信号量
-		//if (!WAIT_response_flag)
-		{
-			// 控制,优先处理DO
-			if (power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
-			{
-				Power_ctrl_process(&power_ctrl_flag[0],POWER_BD_1);
-				#if 0
-				for(i=0; i<12; i++)
-				{
-					if (power_ctrl_flag[0] & (LBIT(POWER_1_CTRL_CLOSE+2*i)))
-					{
-						power_ctrl_flag[0] &= ~(LBIT(POWER_1_CTRL_CLOSE+2*i));
-						if (Rs485_table_enable_get(POWER_BD_1))
-						{
-							WAIT_response_flag = WAIT_POWER_1_CTRL_CLOSE_RES+2*i;
-							SendCom4RCtlReg(Var_Table[POWER_BD_1].addr,FORCE_COIL,VPLATE1_REG+i,SWITCH_OFF);
-						}
-						break;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
-					}
-					else if (power_ctrl_flag[0] & (LBIT(POWER_1_CTRL_OPEN+2*i)))
-					{
-						power_ctrl_flag[0] &= ~(LBIT(POWER_1_CTRL_OPEN+2*i));
-						if (Rs485_table_enable_get(POWER_BD_1))
-						{
-							WAIT_response_flag = WAIT_POWER_1_CTRL_OPEN_RES+2*i;
-							SendCom4RCtlReg(Var_Table[POWER_BD_1].addr,FORCE_COIL,VPLATE1_REG+i,SWITCH_ON);
-						}
-						break;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
-					}
-				}
-				#endif
-			}
-			else if (power_ctrl_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
-			{
-				Power_ctrl_process(&power_ctrl_flag[1],POWER_BD_2);
-			}
-			else if (power_ctrl_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
-			{
-				Power_ctrl_process(&power_ctrl_flag[2],POWER_BD_3);
-			}
-
-			else if (locker_ctrl_flag&BITS_MSK_GET(0,LOCKER_CTRL_NUM))			// 怕高位被意外置位跳不出来
-			{
-				Locker_ctrl_process(&locker_ctrl_flag,LOCKER_1);
-			}
-			else if (comm_flag &BITS_MSK_GET(LOCKER_1,VA_METER_6+1))
-			{
-				Dev_polling_process(&comm_flag);
-			}
-#if 0
-			else if (locker_ctrl_flag & LBIT(LOCKER_1_CTRL_UNLOCK))
-			{
-				locker_ctrl_flag &= ~(LBIT(LOCKER_1_CTRL_UNLOCK));
-				if (Rs485_table_enable_get(LOCKER_1))
-				{
-					WAIT_response_flag = WAIT_LOCKER_1_UNLOCK_RES;
-					SendCom4RCtlReg(Var_Table[LOCKER_1].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
-				}
-			}
-			else if (locker_ctrl_flag & LBIT(LOCKER_1_CTRL_LOCK))
-			{
-				locker_ctrl_flag &= ~(LBIT(LOCKER_1_CTRL_LOCK));
-				if (Rs485_table_enable_get(LOCKER_1))
-				{
-					WAIT_response_flag = WAIT_LOCKER_1_LOCK_RES;
-		 			SendCom4RCtlReg(Var_Table[LOCKER_1].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
-				}
-			}
-
-			else if (locker_ctrl_flag & LBIT(LOCKER_2_CTRL_UNLOCK))
-			{
-				locker_ctrl_flag &= ~(LBIT(LOCKER_2_CTRL_UNLOCK));
-				if (Rs485_table_enable_get(LOCKER_2))
-				{
-					WAIT_response_flag = WAIT_LOCKER_2_UNLOCK_RES;
-		 			SendCom4RCtlReg(Var_Table[LOCKER_2].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
-				}
-			}
-			else if (ctrl_flag & LBIT(LOCKER_2_CTRL_LOCK))
-			{
-				locker_ctrl_flag &= ~(LBIT(LOCKER_2_CTRL_LOCK));
-				if (Rs485_table_enable_get(LOCKER_2))
-				{
-					WAIT_response_flag = WAIT_LOCKER_2_LOCK_RES;
-		 			SendCom4RCtlReg(Var_Table[LOCKER_2].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
-				}
-			}
-			else if (locker_ctrl_flag & LBIT(LOCKER_3_CTRL_UNLOCK))
-			{
-				locker_ctrl_flag &= ~(LBIT(LOCKER_3_CTRL_UNLOCK));
-				if (Rs485_table_enable_get(LOCKER_3))
-				{
-					WAIT_response_flag = WAIT_LOCKER_3_UNLOCK_RES;
-		 			SendCom4RCtlReg(Var_Table[LOCKER_3].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
-				}
-			}
-			else if (ctrl_flag & LBIT(LOCKER_3_CTRL_LOCK))
-			{
-				locker_ctrl_flag &= ~(LBIT(LOCKER_3_CTRL_LOCK));
-				if (Rs485_table_enable_get(LOCKER_3))
-				{
-					WAIT_response_flag = WAIT_LOCKER_3_LOCK_RES;
-		 			SendCom4RCtlReg(Var_Table[LOCKER_3].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
-				}
-			}
-
-			// 轮询
-			else if (comm_flag &LBIT(LOCKER_1_STATUS))
-			{
-				comm_flag &= ~(LBIT(LOCKER_1_STATUS));
-				if (Rs485_table_enable_get(LOCKER_1))
-				{
-					SendCom4ReadReg(Var_Table[LOCKER_1].addr,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
-					WAIT_response_flag = WAIT_LOCKER_1_MSG;
-				}
-			}
-			else if (comm_flag &LBIT(LOCKER_2_STATUS))
-			{
-				comm_flag &= ~(LBIT(LOCKER_2_STATUS));
-				if (Rs485_table_enable_get(LOCKER_2))
-				{
-					SendCom4ReadReg(Var_Table[LOCKER_2].addr,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
-					WAIT_response_flag = WAIT_LOCKER_2_MSG;
-				}
-			}
-			else if (comm_flag &LBIT(LOCKER_3_STATUS))
-			{
-				comm_flag &= ~(LBIT(LOCKER_3_STATUS));
-				if (Rs485_table_enable_get(LOCKER_3))
-				{
-					SendCom4ReadReg(Var_Table[LOCKER_3].addr,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
-					WAIT_response_flag = WAIT_LOCKER_3_MSG;
-				}
-			}
-
-			else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_1))
-			{
-				comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_1));
-				SendCom4ReadReg(stuVA_Meter_Param[0]->address, READ_REGS, VA_REG, VA_DATA_NUM);
-				WAIT_response_flag = WAIT_VA_DATA_1_MSG;
-			}
-
-			else if (comm_flag &LBIT(VOLT_AMP_GET_FLAG_2))
-			{
-				comm_flag &= ~(LBIT(VOLT_AMP_GET_FLAG_2));
-				SendCom4ReadReg(stuVA_Meter_Param[1]->address, READ_REGS, VA_REG, VA_DATA_NUM);
-				WAIT_response_flag = WAIT_VA_DATA_2_MSG;
-			}
-			#endif
-		}
-		usleep(INTERVAL_TIME);		// every 700ms sending
-	}
-	return 0 ;
-}
-
-
-/*A fixed timer to polling the LOCKER */
-void lockerPollingInit()
-{
-	pthread_t m_locker_polling_thread ;
-	pthread_create(&m_locker_polling_thread,NULL,Locker_DataPollingthread,NULL);
-}
-
-
-/******************************************************************************
-*  函数名: void char_to_long(INT8U* buffer,LONG32U* value)
-*
-*  描述: 字符转化为整型
-*
-*
-*
-*  输入:
-*
-*  输出:
-*
-*  返回值:
-*
-*  其它:
-*******************************************************************************/
-void char_to_int(UINT8* buffer,UINT16* value)
-{
-	INTEGER_UNION int_value;
-
-	int_value.b[1] = *(buffer);
-	int_value.b[0] = *(buffer + 1);
-	*value = int_value.i;
-}
-
-
+/**********依赖的通用运算函数************************************************/
 /******************************************************************************
 *  函数名: void char_to_long(INT8U* buffer,LONG32U* value)
 *
@@ -563,6 +214,361 @@ void char_to_long(UINT8* buffer,UINT32* value)
 	}
 	*value = long_value.i;
 }
+
+/******************************************************************************
+*  函数名: void char_to_long(INT8U* buffer,LONG32U* value)
+*
+*  描述: 字符转化为整型
+*
+*
+*
+*  输入:
+*
+*  输出:
+*
+*  返回值:
+*
+*  其它:
+*******************************************************************************/
+void char_to_int(UINT8* buffer,UINT16* value)
+{
+	INTEGER_UNION int_value;
+
+	int_value.b[1] = *(buffer);
+	int_value.b[0] = *(buffer + 1);
+	*value = int_value.i;
+}
+/**********依赖的通用运算函数完毕************************************************/
+/********************************************************************************/
+
+
+/**********接口函数，调用各串口的读写函数********************************************/
+
+/* 电子锁控制 ,指定使用哪个串口->com3*/
+UINT16 SendLockerRCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 Cmd)
+{
+	UINT16 reval;
+	reval = SendCom3RCtlReg(Addr, Func, REFS_ADDR,Cmd);
+	return reval;
+}
+
+int SendLockerReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
+{
+	UINT16 reval;
+	reval = SendCom3ReadReg(Addr, Func, REFS_ADDR, REFS_COUNT);
+	return reval;
+}
+
+/* 电源板DO控制 ,指定使用哪个串口->com4*/
+UINT16 SendPowerRCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 Cmd)
+{
+	UINT16 reval;
+	reval = SendCom4RCtlReg(Addr, Func, REFS_ADDR,Cmd);
+	return reval;
+}
+
+int SendPowerReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
+{
+	UINT16 reval;
+	reval = SendCom4ReadReg(Addr, Func, REFS_ADDR, REFS_COUNT);
+	return reval;
+}
+
+/**********接口函数定义完毕****************************************************************/
+/******************************************************************************************/
+
+
+/*模块化电源控制的处理,输出后马上读取一次*/
+int Power_ctrl_process(UINT32 *pctrl_flag, UINT32 *pread_flag, RS485_DEV_LIST dev_name)
+{
+	int i;
+	for(i=0; i<12; i++)
+	{
+		if (*pctrl_flag & (LBIT(POWER_1_CTRL_CLOSE+2*i)))
+		{
+			*pctrl_flag &= ~(LBIT(POWER_1_CTRL_CLOSE+2*i));
+			*pread_flag |= (LBIT(i));	// 读取标志置位
+			if (Rs485_table_enable_get(dev_name))		// 配置文件中是否配置使能
+			{
+				WAIT_response_flag[RS485_2] = WAIT_POWER_1_CTRL_CLOSE_RES+2*i;
+				SendPowerRCtlReg(Var_Table[dev_name].addr,FORCE_COIL,VPLATE1_REG+i,SWITCH_OFF);
+			}
+			return 0;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
+		}
+		else if (*pctrl_flag & (LBIT(POWER_1_CTRL_OPEN+2*i)))
+		{
+			*pctrl_flag &= ~(LBIT(POWER_1_CTRL_OPEN+2*i));
+			*pread_flag |= (LBIT(i));
+			if (Rs485_table_enable_get(dev_name))
+			{
+				WAIT_response_flag[RS485_2] = WAIT_POWER_1_CTRL_OPEN_RES+2*i;
+				SendPowerRCtlReg(Var_Table[dev_name].addr,FORCE_COIL,VPLATE1_REG+i,SWITCH_ON);
+			}
+			return 0;	// 跳出循环,等待下一个450ms后大循环再来控制，怕485冲突
+		}
+	}
+	return 1;
+}
+
+
+/*模块化电源控制的处理,输出后马上读取一次的处理*/
+int Power_readback_process(UINT32 *pread_flag, UINT32 *pcomm_flag, RS485_DEV_LIST dev_name)
+{
+	int i;
+	RS485_DEV_LIST temp = dev_name;
+
+	// 全部判读后一次性置位
+	for(i=0; i<12; i++)
+	{
+		if (*pread_flag & (LBIT(i)))
+		{
+			*pread_flag &= ~(LBIT(i));
+			if (i < 6)
+			{
+				temp = dev_name;
+			}
+			else
+			{
+				// 是7~12路，下一个电压电流传感器
+				temp = (RS485_DEV_LIST)(dev_name +1);
+			}
+			if (Rs485_table_enable_get((UINT16)temp))
+			{
+				*pcomm_flag |= LBIT(temp);
+			}
+			return 0;
+		}
+	}
+	return 1;
+}
+
+
+
+/*模块化电子锁控制的处理*/
+int Locker_ctrl_process(UINT32 *pctrl_flag, RS485_DEV_LIST dev_name)
+{
+	int i;
+	for(i=0; i<LOCK_MAX_NUM; i++)
+	{
+		if (*pctrl_flag & LBIT(LOCKER_1_CTRL_UNLOCK+2*i))
+		{
+			*pctrl_flag &= ~(LBIT(LOCKER_1_CTRL_UNLOCK+2*i));
+			if (Rs485_table_enable_get(dev_name+i))
+			{
+				WAIT_response_flag[RS485_1] = WAIT_LOCKER_1_UNLOCK_RES+2*i;
+				SendLockerRCtlReg(Var_Table[dev_name+i].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_UNLOCK);
+			}
+			return 0;
+		}
+		else if (*pctrl_flag & LBIT(LOCKER_1_CTRL_LOCK+2*i))
+		{
+			locker_ctrl_flag &= ~(LBIT(LOCKER_1_CTRL_LOCK+2*i));
+			if (Rs485_table_enable_get(dev_name+i))
+			{
+				WAIT_response_flag[RS485_1] = WAIT_LOCKER_1_LOCK_RES+2*i;
+		 		SendLockerRCtlReg(Var_Table[dev_name+i].addr,SINGLE_WRITE_HW,DOOR_LOCK_REG,REMOTE_LOCK);
+			}
+			return 0;
+		}
+	}
+	return 1;
+}
+
+
+/*电子锁设备的轮询处理*/
+int Locker_polling_process(UINT32 *pcomm_flag)
+{
+	int i;
+	for(i=LOCKER_1; i <= LOCKER_4; i++)
+	{
+		if (*pcomm_flag & LBIT(i))
+		{
+			*pcomm_flag &= ~(LBIT(i));
+			if (Rs485_table_enable_get(i))
+			{
+				switch(i)
+				{
+				case (LOCKER_1):
+				case (LOCKER_2):
+				case (LOCKER_3):
+				case (LOCKER_4):
+					// 门锁统一处理
+					WAIT_response_flag[RS485_1] = WAIT_LOCKER_1_MSG+i;
+					SendLockerReadReg(Var_Table[i].addr,READ_REGS,DOOR_STATUS_REG,LOCKER_REG_NUM);
+					break;	//注意这里的break只是跳出switch, 而不是跳出for
+
+				default:
+					break;
+				}
+			}
+			return 0;		// 处理一个后直接返回，下一个循环再处理另外一个标志位
+		}
+	}
+	return 1;
+}
+
+
+/*模块化485设备的轮询处理*/
+int Dev_polling_process(UINT32 *pcomm_flag)
+{
+	int i;
+	for(i=VA_METER_1; i <= VA_METER_6; i++)
+	{
+		if (*pcomm_flag & LBIT(i))
+		{
+			*pcomm_flag &= ~(LBIT(i));
+			if (Rs485_table_enable_get(i))
+			{
+				switch(i)
+				{
+				case (VA_METER_1):
+				case (VA_METER_2):
+				case (VA_METER_3):
+				case (VA_METER_4):
+				case (VA_METER_5):
+				case (VA_METER_6):
+					// 门锁统一处理, RES标志混合处理，要特别小心
+					WAIT_response_flag[RS485_2] = WAIT_VA_DATA_1_MSG+(i-VA_METER_1);
+					SendPowerReadReg(Var_Table[i].addr, READ_REGS, VA_REG, VA_DATA_NUM);
+					break;	//注意这里的break只是跳出switch, 而不是跳出for
+
+				default:
+					break;
+				}
+			}
+			return 0;		// 处理一个后直接返回，下一个循环再处理另外一个标志位
+		}
+	}
+	return 1;
+}
+
+void *Dev_DataPollingthread(void *param)
+{
+	param = NULL;
+	static UINT16 dataget_cnt = 0;
+	static UINT16 dev_poll_counter = 0;
+
+	while(1)
+	{
+		if ((power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))|| (power_ctrl_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM)) \
+			|| (power_ctrl_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM)) \
+			|| (power_read_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM/2))|| (power_read_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM/2)) \
+			|| (power_read_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM/2)))
+		{
+			comm_flag[RS485_2] = 0;
+//			printf("power_ctrl_flag0485=0x%04x\r\n",power_ctrl_flag[0]);
+		}
+		else
+		{
+			dataget_cnt++;
+			if (dataget_cnt >= 10)
+			{
+				dataget_cnt = 0;
+				// 轮询电压电流传感器数据,3.6s一次
+				if (dev_poll_counter < actual_485dev_num)
+				{
+					comm_flag[RS485_2] |= LBIT(polling_subarr[dev_poll_counter]);
+					printf("comm_flag2=0x%04x\r\n",comm_flag[RS485_2]);
+				}
+				dev_poll_counter++;
+				if (dev_poll_counter >= actual_485dev_num)
+				{
+					printf("\r\ndevpoling over");
+					printf("0x%02x" ,dev_poll_counter);printf("\r\n");
+					dev_poll_counter = 0;
+				}
+			}
+		}
+
+		// 如果没有收到回复数据,这里会一直进不来,要用带timeout的信号量
+		//if (!WAIT_response_flag)
+		{
+			// 控制,优先处理DO
+			if (power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
+			{
+				Power_ctrl_process(&power_ctrl_flag[0],&power_read_flag[0],POWER_BD_1);
+			}
+			else if (power_ctrl_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
+			{
+				Power_ctrl_process(&power_ctrl_flag[1],&power_read_flag[1],POWER_BD_2);
+			}
+			else if (power_ctrl_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
+			{
+				Power_ctrl_process(&power_ctrl_flag[2],&power_read_flag[2],POWER_BD_3);
+			}
+			else if (power_read_flag[0]&BITS_MSK_GET(0,(POWER_CTRL_NUM/2)))
+			{
+				Power_readback_process(&power_read_flag[0],&comm_flag[RS485_2],VA_METER_1);
+				Dev_polling_process(&comm_flag[RS485_2]);
+			}
+			else if (power_read_flag[1]&BITS_MSK_GET(0,(POWER_CTRL_NUM/2)))
+			{
+				Power_readback_process(&power_read_flag[1],&comm_flag[RS485_2],VA_METER_3);
+				Dev_polling_process(&comm_flag[RS485_2]);
+			}
+			else if (power_read_flag[2]&BITS_MSK_GET(0,(POWER_CTRL_NUM/2)))
+			{
+				Power_readback_process(&power_read_flag[2],&comm_flag[RS485_2],VA_METER_5);
+				Dev_polling_process(&comm_flag[RS485_2]);
+			}
+			else if (comm_flag[RS485_2] &BITS_MSK_GET(VA_METER_1,VA_METER_6+1))
+			{
+				Dev_polling_process(&comm_flag[RS485_2]);
+			}
+		}
+		usleep(DEV_INTERVAL_TIME);		// every 3.6s sending
+	}
+	return 0 ;
+}
+
+void *Locker_DataPollingthread(void *param)
+{
+	param = NULL;
+	int i;
+	static UINT16 polling_counter = 0;
+
+	while(1)
+	{
+		if (locker_ctrl_flag&BITS_MSK_GET(0,LOCKER_CTRL_NUM))
+		{
+			comm_flag[RS485_1] = 0;
+			printf("locker_ctrl_flag=0x%04x\r\n",locker_ctrl_flag);
+		}
+		else
+		{
+			// 主轮询, 电子锁
+			if (polling_counter < actual_locker_num)
+			{
+				comm_flag[RS485_1] |= LBIT(polling_arr[polling_counter]);
+				printf("comm_flag=0x%04x\r\n",comm_flag[RS485_1]);
+			}
+			polling_counter++;
+			if (polling_counter >= actual_locker_num)
+			{
+				printf("\r\npoling over");
+				printf("0x%02x" ,polling_counter);printf("\r\n");
+				polling_counter = 0;
+			}
+		}
+
+		// 如果没有收到回复数据,这里会一直进不来,要用带timeout的信号量
+		//if (!WAIT_response_flag)
+		{
+
+			if (locker_ctrl_flag&BITS_MSK_GET(0,LOCKER_CTRL_NUM))			// 怕高位被意外置位跳不出来
+			{
+				Locker_ctrl_process(&locker_ctrl_flag,LOCKER_1);
+			}
+			else if (comm_flag[RS485_1] &BITS_MSK_GET(LOCKER_1,LOCKER_4+1))
+			{
+				Locker_polling_process(&comm_flag[RS485_1]);
+			}
+		}
+		usleep(INTERVAL_TIME);		// every 350ms sending
+	}
+	return 0 ;
+}
+
 
 /*处理电子锁的轮询信息*/
 int DealLockerMsg(unsigned char *buf,unsigned short int len)
@@ -626,7 +632,9 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 	int j ;//for(j=0;j<(LOCKER_REG_NUM-FIXED_NUM)*2;j++) printf("0x%02x ",lockerHw_Param->id[j]);
 	printf("0x%08x" ,card_read);printf("\r\n");
 
-	if((card_read!=0) && (last_cnt[addr_base] >= lockerHw_Param[addr_base]->report_cnt)	)//读取到卡号
+	//上传条件:1.读取到卡号 2.这张卡是第一张卡 report_cnt为1，或者换了一张卡, report_cnt为1
+	if ((card_read!=0) && ((last_cnt[addr_base] >= lockerHw_Param[addr_base]->report_cnt) \
+		||((lockerHw_Param[addr_base]->report_cnt == 1) && (last_cnt[addr_base]==0))))
 	{
 		SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,card_read,addr,jsonstr);
 		printf("DealLockerMsg jsonstr=%s\n" ,jsonstr.c_str());
@@ -638,7 +646,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 		   memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
 		   jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
 		   RemoteControl((UINT8*)pRCtrl);
-		}   
+		}
 		if(StrServerURL2.length()>0)			//上报新粤后台
 		{
 		   HttpPostParm(StrServerURL2,jsonstr,mstrkey,HTTPGET);
@@ -743,9 +751,10 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 
 
 
-int DealComm485(unsigned char *buf,unsigned short int len)
+int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq)
 {
-	switch(Recive_Flag)
+	Recive_Flag[seq] = WAIT_response_flag[seq];	// already received the data.
+	switch(Recive_Flag[seq])
 	{
 		case WAIT_LOCKER_1_MSG:					/*MSG from the locker*/
 		case WAIT_LOCKER_2_MSG:
@@ -777,135 +786,16 @@ int DealComm485(unsigned char *buf,unsigned short int len)
 		break;
 	}
 
-	Recive_Flag = 0;
-	WAIT_response_flag = 0;
+	Recive_Flag[seq] = 0;
+	WAIT_response_flag[seq] = 0;
 	return 0;
 }
 
 
-
-
-void *ComPort4Thread(void *param)
-{
-   param = NULL;
-   int buffPos=0;
-   int len ;
-   unsigned char buf[256] ;
-   while(1)
-   {
-      	len = read(mComPort4->fd, buf+buffPos, 256);
-	  	buffPos = buffPos+len;
-	  	if(buffPos<5) continue;
-
-	  	//CRC
-	  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
-	  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
-		{
-		  printf("CRC error\r\n");
- 		  if(buffPos>=256) buffPos=0;
-
-		  continue ;
-	  	}
-
-      	printf("com4 len=%d\r\n",buffPos) ;
-		Recive_Flag = WAIT_response_flag;	// already received the data.
-
-	  	/*debug the information*/
-	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
-
-	  	DealComm485(buf , buffPos);
-	  	buffPos=0;
-
-      	usleep(5000); //delay 5ms
-   }
-
-   return NULL ;
-}
-
+/* RS485初始化 */
 void rs485init(void)
 {
-	int temp = 0;
-   mComPort4 = new CComPort();
-
-   /*there is only ttysp1 for RS485 now in A287，ttymxc3是串口4*/
-   mComPort4->fd = mComPort4->openSerial((char *)"/dev/ttymxc3",9600);
-//   printf("rs485 status");
-//   printf("0x%02x \r\n",mComPort4->fd);
-   temp = BITS_MSK_GET(0,LOCKER_CTRL_NUM);
-//   printf("debug 0x%02x \r\n",temp);
-   temp = BITS_MSK_GET(0,POWER_CTRL_NUM);
-//   printf("debug 0x%02x \r\n",temp);
-
-   pthread_t m_ComPort4Thread ;
-   pthread_create(&m_ComPort4Thread,NULL,ComPort4Thread,NULL);
-
-   /*与电子锁有关的变量进行动态分配*/
-   locker_opened = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
-   memset(locker_opened,0,sizeof(UINT16)*actual_locker_num);
-   last_cnt = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
-   memset(last_cnt,0,sizeof(UINT16)*actual_locker_num);
+	Rs485Com3Init();
+	Rs485Com4Init();
 }
-
-
-// DDR + FUNC + REFS_ADDR_H + REFS_ADDR_L + MBUS_OPT_CODE_H + MBUS_OPT_CODE_L + CRC(2)
-UINT16 SendCom4RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
-{
-    Com4SendCri.Lock();
-    UINT8 i,j,bytSend[8]={0x00,0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00};
-
-    int len=8;
-
-    bytSend[MBUS_ADDR]        = Addr;
-    bytSend[MBUS_FUNC]        = Func;
-    bytSend[MBUS_REFS_ADDR_H] = (REFS_ADDR&0xFF00) >> 8;
-    bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;
-    bytSend[MBUS_OPT_CODE_H] = (code&0xFF00) >> 8;     // bytSend[MBUS_OPT_CODE_L] =  code&0x00FF;
-	bytSend[MBUS_OPT_CODE_L] =  code&0xFF;
-	//CRC
-    unsigned short int CRC = CRC16(bytSend,len-2) ;
-    bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC
-    bytSend[len-1] =  CRC&0x00FF;           //CRC
-	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
-
-	mComPort4->SendBuf(bytSend,len);
-
-	//memcpy(LastSendBuf,bytSend,len);
-	//LastSendLen=len;
-	//free(bytSend);
-
-    Com4SendCri.UnLock();
-	usleep(5000);//delay 5ms
-	return 0;
-}
-
-int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
-{
-    Com4SendCri.Lock();
-    UINT8 i,j,bytSend[8]={0x00,0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00};
-
-    int len=8;
-    bytSend[MBUS_ADDR]        = Addr;
-    bytSend[MBUS_FUNC]        = Func;	// 0x03
-    bytSend[MBUS_REFS_ADDR_H] = (REFS_ADDR&0xFF00) >> 8;     // Register address
-    bytSend[MBUS_REFS_ADDR_L] =  REFS_ADDR&0x00FF;
-    bytSend[MBUS_REFS_COUNT_H] = (REFS_COUNT&0xFF00) >> 8;  // Register counter
-    bytSend[MBUS_REFS_COUNT_L] =  REFS_COUNT&0x00FF;
-
-    // CRC calculation
-    unsigned short int CRC = CRC16(bytSend,len-2) ;
-    bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC high
-    bytSend[len-1] =  CRC&0x00FF;           //CRC low
-
-	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
-
-	mComPort4->SendBuf(bytSend,len);
-
-    Com4SendCri.UnLock();
-	usleep(5000);	//delay 5ms
-	return 0 ;
-}
-
-
-
-
 
