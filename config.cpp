@@ -39,6 +39,11 @@ string StrMask;			//子网掩码
 string StrGateway;		//网关
 string StrDNS;			//DNS地址
 
+string StrIP2;			//IP2地址
+string StrMask2;			//子网掩码
+string StrGateway2;		//网关
+string StrDNS2;			//DNS地址
+
 string StrHWServer;		//华为服务器地址
 string StrHWGetPasswd;	//SNMP GET 密码
 string StrHWSetPasswd;	//SNMP SET 密码
@@ -53,15 +58,16 @@ string StrVehPlateCount;	//识别仪数量
 string StrVehPlateIP[VEHPLATE_NUM];	//识别仪IP地址
 string StrVehPlatePort[VEHPLATE_NUM];	//识别仪端口
 string StrVehPlateKey[VEHPLATE_NUM];	//识别仪用户名密码
-string StrCAMIP;	//监控摄像头IP地址
-string StrCAMPort;	//监控摄像头端口
-string StrCAMKey;	//监控摄像头用户名密码
+string StrCAMCount;	//监控摄像头数量
+string StrCAMIP[CAM_NUM];	//监控摄像头IP地址
+string StrCAMPort[CAM_NUM];	//监控摄像头端口
+string StrCAMKey[CAM_NUM];	//监控摄像头用户名密码
 
 char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
 string StrdeviceType="LTKJ-VMCTRL-101";	//设备型号
-string StrVersionNo="V1.00.01" ;	//主程序版本号
+string StrVersionNo="V1.00.03" ;	//主程序版本号
 string StrSoftDate="2019-07-01" ;	//版本日期
 
 string StrCabinetType;		//机柜类型
@@ -76,12 +82,14 @@ string StrDirDescription;	//行车方向说明
 string StrWIFIUSER;		//WIIFI用户名
 string StrWIFIKEY;		//WIIFI密码
 
-string StrFireWareIP;         //防火墙IP
-string StrFireWareGetPasswd;  //防火墙get密码
-string StrFireWareSetPasswd;  //防火墙set密码
-string StrSwitchIP ;//交换机IP
-string StrSwitchGetPasswd ;//交换机get密码
-string StrSwitchSetPasswd ;//交换机set密码
+string StrFireWareCount;	//防火墙数量
+string StrFireWareIP[FIREWARE_NUM];         //防火墙IP
+string StrFireWareGetPasswd[FIREWARE_NUM];  //防火墙get密码
+string StrFireWareSetPasswd[FIREWARE_NUM];  //防火墙set密码
+string StrIPSwitchCount;	//交换机数量
+string StrIPSwitchIP[IPSWITCH_NUM] ;//交换机IP
+string StrIPSwitchGetPasswd[IPSWITCH_NUM] ;//交换机get密码
+string StrIPSwitchSetPasswd[IPSWITCH_NUM] ;//交换机set密码
 
 extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 extern string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
@@ -125,6 +133,7 @@ int GetConfig(void)
 	string strvalue;
 	int isize;
 	char stripbuf[1501];
+    char stripbuf2[1501];
 
     char strwifibuf[1001]; 
     memset(strwifibuf,0x00,1001) ;
@@ -160,18 +169,30 @@ int GetConfig(void)
 		StrVehPlatePort[i] = "";	//识别仪1端口
 		StrVehPlateKey[i] = "";	//识别仪用户名密码
 	}
-	StrCAMIP = "";			//监控摄像头IP地址
-	StrCAMPort = "";		//监控摄像头端口
-	StrCAMKey = "";	//监控摄像头用户名密码
+	StrCAMCount = "" ;	//监控摄像头数量
+	for(i=0;i<CAM_NUM;i++)
+	{
+		StrCAMIP[i] = "";			//监控摄像头IP地址
+		StrCAMPort[i] = "";		//监控摄像头端口
+		StrCAMKey[i] = ""; //监控摄像头用户名密码
+	}
 
 	StrCabinetType="";		//机柜类型
 
-	StrFireWareIP="";		  //防火墙IP
-	StrFireWareGetPasswd="";  //防火墙get密码
-	StrFireWareSetPasswd="";  //防火墙set密码
-	StrSwitchIP ="";//交换机IP
-	StrSwitchGetPasswd ="";//交换机get密码
-	StrSwitchSetPasswd ="";//交换机set密码
+	StrFireWareCount = "" ;	//防火墙数量
+	for(i=0;i<FIREWARE_NUM;i++)
+	{
+		StrFireWareIP[i]="";		  //防火墙IP
+		StrFireWareGetPasswd[i]="";  //防火墙get密码
+		StrFireWareSetPasswd[i]="";  //防火墙set密码
+	}
+	StrIPSwitchCount = "" ;	//交换机数量
+	for(i=0;i<IPSWITCH_NUM;i++)
+	{
+		StrIPSwitchIP[i] ="";//交换机IP
+		StrIPSwitchGetPasswd[i] ="";//交换机get密码
+		StrIPSwitchSetPasswd[i] ="";//交换机set密码
+	}
 
 	//门架信息
 	StrFlagNetRoadID = "";	//ETC 门架路网编号
@@ -226,6 +247,18 @@ int GetConfig(void)
     fread(stripbuf,1,1500,ipfd);
     fclose(ipfd);
 
+    FILE* ipfd2 ;
+    if((ipfd2=fopen("/home/root/net/netconfig2", "rb"))==NULL)
+    {
+        printf("read config erro\r\n");
+        //ConfigCri.UnLock();
+       // return 1;
+    }
+    else
+    {
+       fread(stripbuf2,1,1500,ipfd2);
+       fclose(ipfd2);
+    }
 
 //    StrVersionNo = VERSIONNO ;
     printf("Version:%s\n",StrVersionNo.c_str()) ;
@@ -236,8 +269,10 @@ int GetConfig(void)
     printf("-----netconfig----\n%s\n----end netconfig----\n",stripbuf) ;
     STRWIFIWAP = strwifibuf ;
     
+    printf("-----netconfig2----\n%s\n----end netconfig2----\n",stripbuf2) ;
+  
 
-    string StrConfig = STRCONFIG ;
+
     string Strkey ;
 
 //  netconfig 读取
@@ -254,34 +289,29 @@ int GetConfig(void)
     Strkey = "DNS=";
     StrDNS = getstring(StrIpConfig,Strkey) ;
 
-
-    Strkey = "ID=";
-    StrID = getstring(StrConfig,Strkey) ;
-
-    Strkey = "NET=";
-    StrNET = getstring(StrConfig,Strkey) ;
-
-    Strkey = "DHCP=";
-    StrDHCP = getstring(StrConfig,Strkey) ;
-
-//end netconfig 读取
+ //end    netconfig 读取
 
 
-/*
+//  netconfig2 读取
+    string StrIpConfig2 = stripbuf2;
     Strkey = "IP=";
-    StrIP = getstring(StrConfig,Strkey) ;
+    StrIP2 = getstring(StrIpConfig2,Strkey) ;
 
     Strkey = "Mask=";
-    StrMask = getstring(StrConfig,Strkey) ;
+    StrMask2 = getstring(StrIpConfig2,Strkey) ;
 
     Strkey = "Gateway=";
-    StrGateway = getstring(StrConfig,Strkey) ;
+    StrGateway2 = getstring(StrIpConfig2,Strkey) ;
 
     Strkey = "DNS=";
-    StrDNS = getstring(StrConfig,Strkey) ;
+    StrDNS2 = getstring(StrIpConfig2,Strkey) ;
 
-    */
+ //end    netconfig2 读取
 
+
+    string StrConfig = STRCONFIG ;
+    Strkey = "ID=";
+    StrID = getstring(StrConfig,Strkey) ;
     Strkey = "HWServer=";
     StrHWServer = getstring(StrConfig,Strkey) ;
 
@@ -335,37 +365,51 @@ int GetConfig(void)
 	    StrVehPlateKey[i] = getstring(StrConfig,key) ;//识别仪用户名密码
 	}
     
-    Strkey = "CAMIP=";
-    StrCAMIP = getstring(StrConfig,Strkey) ;//监控摄像头IP地址
-    
-    Strkey = "CAMPort=";
-    StrCAMPort = getstring(StrConfig,Strkey) ;//监控摄像头端口
-	
-    Strkey = "StrCAMKey=";
-    StrCAMKey = getstring(StrConfig,Strkey) ;//监控摄像头用户名密码
+    Strkey = "CAMCount=";
+    StrCAMCount = getstring(StrConfig,Strkey) ;//监控摄像头数量
+	for(i=0;i<CAM_NUM;i++)
+	{
+		sprintf(key,"CAM%dIP=",i+1);
+	    StrCAMIP[i] = getstring(StrConfig,key) ;//监控摄像头IP地址
+	    
+		sprintf(key,"CAM%dPort=",i+1);
+	    StrCAMPort[i] = getstring(StrConfig,key) ;//监控摄像头端口
+	    
+		sprintf(key,"CAM%dKey=",i+1);
+	    StrCAMKey[i] = getstring(StrConfig,key) ;//监控摄像头用户名密码
+	}
     
     Strkey = "CabinetType=";
     StrCabinetType = getstring(StrConfig,Strkey) ;//机柜类型
 
     //防火墙配置
-    Strkey = "FireWareIP=";
-    StrFireWareIP = getstring(StrConfig,Strkey) ;//防火墙IP
+    Strkey = "FireWareCount=";
+    StrFireWareCount = getstring(StrConfig,Strkey) ;//防火墙数量
+	for(i=0;i<FIREWARE_NUM;i++)
+	{
+		sprintf(key,"FireWare%dIP=",i+1);
+	    StrFireWareIP[i] = getstring(StrConfig,key) ;//防火墙IP地址
 
-    Strkey = "FireWareGetPasswd=";
-    StrFireWareGetPasswd = getstring(StrConfig,Strkey) ;//防火墙get密码
+		sprintf(key,"FireWare%dGetPasswd=",i+1);
+	    StrFireWareGetPasswd[i] = getstring(StrConfig,key) ;//防火墙get密码
 
-    Strkey = "FireWareSetPasswd=";
-    StrFireWareSetPasswd = getstring(StrConfig,Strkey) ;//防火墙set密码
-
+		sprintf(key,"FireWare%dSetPasswd=",i+1);
+	    StrFireWareSetPasswd[i] = getstring(StrConfig,key) ;//防火墙set密码
+	}
     //交换机配置
-    Strkey = "SwitchIP=";
-    StrSwitchIP = getstring(StrConfig,Strkey) ;//交换机IP
+    Strkey = "SwitchCount=";
+    StrIPSwitchCount = getstring(StrConfig,Strkey) ;//防火墙数量
+	for(i=0;i<IPSWITCH_NUM;i++)
+	{
+		sprintf(key,"Switch%dIP=",i+1);
+	    StrIPSwitchIP[i] = getstring(StrConfig,key) ;//交换机IP地址
 
-    Strkey = "SwitchGetPasswd=";
-    StrSwitchGetPasswd = getstring(StrConfig,Strkey) ;//交换机get密码
+		sprintf(key,"Switch%dGetPasswd=",i+1);
+	    StrIPSwitchGetPasswd[i] = getstring(StrConfig,key) ;//交换机get密码
 
-    Strkey = "SwitchSetPasswd=";
-    StrSwitchSetPasswd = getstring(StrConfig,Strkey) ;//交换机set密码
+		sprintf(key,"Switch%dSetPasswd=",i+1);
+	    StrIPSwitchSetPasswd[i] = getstring(StrConfig,key) ;//交换机set密码
+	}
 
     
 	//门架信息
@@ -416,115 +460,118 @@ int GetConfig(void)
 		StrAdrrPower[i] = getstring(StrConfig,key);
 	}
 
-/*		//车牌识别映射DO
-		for (i = 0; i < VEHPLATE_NUM; i++)
-		{
-			sprintf(key,"VEHPLATE%d_DO=",i+1);
-			strvalue=getstring(StrConfig,key);
-			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
-			if(strvalue!="")
-			{
-				
-				StrDeviceNameSeq[j]=key;	//设备名
-				StrDoSeq[j] = strvalue; 	//对应DO
-			}
-		}*/
-		
 	//DO映射设备，最大支持36路DO
-//	for (j = 0; j < SWITCH_COUNT; j++)
+	//车牌识别映射DO
+	j=0;
+	//RSU映射DO
+	for (i = 0; i < RSUCTL_NUM; i++)
 	{
-//printf("j=%d\n",j);
-		//车牌识别映射DO
-		j=0;
-		for (i = 0; i < VEHPLATE_NUM; i++)
-		{
-			sprintf(key,"VEHPLATE%d_DO=",i+1);
-			sprintf(devicename,"vehplate%d_do",i+1);
-			strvalue=getstring(StrConfig,key);
+		sprintf(key,"RSU%d_DO=",i+1);
+		sprintf(devicename,"rsu%d_do",i+1);
+		strvalue=getstring(StrConfig,key);
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
-			if(strvalue!="")
-			{
-				
-				StrDeviceNameSeq[j]=devicename; //设备名
-				StrDoSeq[j] = strvalue; 	//对应DO
-				j++;
-			}
-		}
-		//RSU映射DO
-		for (i = 0; i < RSUCTL_NUM; i++)
+		if(strvalue!="")
 		{
-			sprintf(key,"RSU%d_DO=",i+1);
-			sprintf(devicename,"rsu%d_do",i+1);
-			strvalue=getstring(StrConfig,key);
-//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
-			if(strvalue!="")
-			{
-				
-				StrDeviceNameSeq[j]=devicename; //设备名
-				StrDoSeq[j] = strvalue; 	//对应DO
-				j++;
-			}
+			
+			StrDeviceNameSeq[j]=devicename; //设备名
+			StrDoSeq[j] = strvalue; 	//对应DO
+			j++;
 		}
-		//天线头映射DO
-		for (i = 0; i < ANTENNA_NUM; i++)
+	}
+	for (i = 0; i < VEHPLATE_NUM; i++)
+	{
+		sprintf(key,"VEHPLATE%d_DO=",i+1);
+		sprintf(devicename,"vehplate%d_do",i+1);
+		strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+		if(strvalue!="")
 		{
-			sprintf(key,"ANTENNA%d_DO=",i+1);
-			sprintf(devicename,"antenna%d_do",i+1);
-			strvalue=getstring(StrConfig,key);
-//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
-			if(strvalue!="")
-			{
-				
-				StrDeviceNameSeq[j]=devicename; //设备名
-				StrDoSeq[j] = strvalue; 	//对应DO
-				j++;
-			}
+			
+			StrDeviceNameSeq[j]=devicename; //设备名
+			StrDoSeq[j] = strvalue; 	//对应DO
+			j++;
 		}
-		//防火墙映射DO
-		for (i = 0; i < FIREWARE_NUM; i++)
+	}
+	for (i = 0; i < CAM_NUM; i++)
+	{
+		sprintf(key,"CAM%d_DO=",i+1);
+		sprintf(devicename,"cam%d_do",i+1);
+		strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+		if(strvalue!="")
 		{
-			sprintf(key,"FIREWARE%d_DO=",i+1);
-			sprintf(devicename,"fireware%d_do",i+1);
-			strvalue=getstring(StrConfig,key);
-//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
-			if(strvalue!="")
-			{
-				
-				StrDeviceNameSeq[j]=devicename; //设备名
-				StrDoSeq[j] = strvalue; 	//对应DO
-				j++;
-			}
+			
+			StrDeviceNameSeq[j]=devicename; //设备名
+			StrDoSeq[j] = strvalue; 	//对应DO
+			j++;
 		}
-		//交换机映射DO
-		for (i = 0; i < IPSWITCH_NUM; i++)
+	}
+	//交换机映射DO
+	for (i = 0; i < IPSWITCH_NUM; i++)
+	{
+		sprintf(key,"IPSWITCH%d_DO=",i+1);
+		sprintf(devicename,"ipswitch%d_do",i+1);
+		strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+		if(strvalue!="")
 		{
-			sprintf(key,"IPSWITCH%d_DO=",i+1);
-			sprintf(devicename,"ipswitch%d_do",i+1);
-			strvalue=getstring(StrConfig,key);
-//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
-			if(strvalue!="")
-			{
-				
-				StrDeviceNameSeq[j]=devicename; //设备名
-				StrDoSeq[j] = strvalue; 	//对应DO
-				j++;
-			}
+			
+			StrDeviceNameSeq[j]=devicename; //设备名
+			StrDoSeq[j] = strvalue; 	//对应DO
+			j++;
 		}
-		//备用DO
-		for (i = 0; i < BACKUP_DO_NUM; i++)
+	}
+	//防火墙映射DO
+	for (i = 0; i < FIREWARE_NUM; i++)
+	{
+		sprintf(key,"FIREWARE%d_DO=",i+1);
+		sprintf(devicename,"fireware%d_do",i+1);
+		strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+		if(strvalue!="")
 		{
-			sprintf(key,"BACKUP%d_DO=",i+1);
-			sprintf(devicename,"backup%d_do",i+1);
-			strvalue=getstring(StrConfig,key);
-//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
-			if(strvalue!="")
-			{
-				
-				StrDeviceNameSeq[j]=devicename; //设备名
-				StrDoSeq[j] = strvalue; 	//对应DO
-				j++;
-			}
+			
+			StrDeviceNameSeq[j]=devicename; //设备名
+			StrDoSeq[j] = strvalue; 	//对应DO
+			j++;
 		}
+	}
+	//ATLAS映射DO
+	for (i = 0; i < ATLAS_NUM; i++)
+	{
+		sprintf(key,"ATLAS%d_DO=",i+1);
+		sprintf(devicename,"atlas%d_do",i+1);
+		strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+		if(strvalue!="")
+		{
+			
+			StrDeviceNameSeq[j]=devicename; //设备名
+			StrDoSeq[j] = strvalue; 	//对应DO
+			j++;
+		}
+	}
+	//天线头映射DO
+	for (i = 0; i < ANTENNA_NUM; i++)
+	{
+		sprintf(key,"ANTENNA%d_DO=",i+1);
+		sprintf(devicename,"antenna%d_do",i+1);
+		strvalue=getstring(StrConfig,key);
+//			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
+		if(strvalue!="")
+		{
+			
+			StrDeviceNameSeq[j]=devicename; //设备名
+			StrDoSeq[j] = strvalue; 	//对应DO
+			j++;
+		}
+	}
+	for (i = j; i < SWITCH_COUNT; i++)		//默认DO
+	{
+		sprintf(key,"do%d_do",i);
+		StrDeviceNameSeq[i]=key; //设备名
+		sprintf(key,"%d",i);
+		StrDoSeq[i] = key; 	//对应DO
 	}
 /*for (i = 0; i < SWITCH_COUNT; i++)
 {
@@ -689,6 +736,34 @@ int WriteNetconfig(char *configbuf,int configlen)
 
 }
 
+
+int WriteNetconfig2(char *configbuf,int configlen)
+{
+    int ret = 0;
+    ConfigCri.Lock();
+    FILE* fdd ;
+    fdd	= fopen("/opt/netconfig2", "wb");
+    if(fdd == NULL)
+    {
+       ConfigCri.UnLock();
+       return 1 ;
+    }
+
+    ret = fwrite(configbuf,configlen, 1, fdd);
+    fflush(fdd);
+    fclose(fdd);
+    ConfigCri.UnLock();
+
+    if(ret > 0)
+    {
+        //覆盖/home/root/net/netconfig2
+        system("wr cp /opt/netconfig2 /home/root/net/");
+    }
+
+
+    return 0 ;
+
+}
 
 
 

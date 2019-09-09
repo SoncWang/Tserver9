@@ -80,30 +80,47 @@ typedef enum
 	hwSmokeSensorStatus=46,				//烟雾传感器状态
 	hwWaterSensorStatus=47,				//水浸传感器状态
 	hwDoorSensorStatus=48,				//门磁传感器状态
-	hwDcAirEquipAddress=49,				//空调地址
-	hwTemHumEquipAddress=50,			//温湿度地址
+    //hwDcAirEquipAddress=49,				//空调地址
+    //hwTemHumEquipAddress=50,			//温湿度地址
 	//单个锂电池
-	hwAcbBatVolt=51,					//单个电池电压
-	hwAcbBatCurr=52,					//单个电池电流
-	hwAcbBatSoh=53,						//单个电池串SOH
-	hwAcbBatCapacity=54,				//单个电池容量
+    hwAcbBatVolt=49,					//单个电池电压
+    hwAcbBatCurr=50,					//单个电池电流
+    hwAcbBatSoh=51,						//单个电池串SOH
+    hwAcbBatCapacity=52,				//单个电池容量
+    //2019-09-05新增
+    hwCtrlSmokeReset=53,				 //控制烟感复位 1,2，255
+    hwCtrlMonEquipReset=54,             //控制单板复位 1,2,255
+
+    hwDcAirEquipAddress=8000,			//空调地址
+    hwTemHumEquipAddress=8001,			//温湿度地址
+
 
     //防火墙
     hwEntityCpuUCheck = 10000,             //查询
     hwEntityCpuUsage = 10001,              //CPU
     hwEntityMemUsage = 10002,                 //内存使用率
     hwEntityTemperature = 10003,               //温度
+    hwEntityDescr = 10004,                  //接口查询
+    hwEntityOperStatus = 10005,             //接口状态查询
+    hwEntityInOctets = 10006,               //总字节数
+    hwEntityInErrors = 10007,               //出错数
+    hwEntityOutOctets = 10008,               //总字节数
+    hwEntityOutErrors = 10009,               //出错数
+
 
     //交换机
     hwswitchEntityCpuCheck = 11000,             //查询
     hwswitchEntityCpuUsage = 11001,              //CPU
     hwswitchEntityMemUsage = 11002,              //内存使用率
     hwswitchEntityTemperature = 11003,            //温度
+    hwswitchEntityDescr = 11004,                  //接口查询
+    hwswitchEntityOperStatus = 11005,             //接口状态查询
+    hwswitchEntityInOctets = 11006,               //总字节数
+    hwswitchEntityInErrors = 11007,               //出错数
+    hwswitchEntityOutOctets = 11008,               //总字节数
+    hwswitchEntityOutErrors = 11009               //出错数
 
-    //空调回控
-    hwCoolingDevicesModeCtl = 21000,              //温控模式
-    hwDcAirPowerOnTempPointCtl = 21001,           //空调开机温度点
-    hwDcAirPowerOffTempPointCtl = 21002           //空调关机温度点
+
 
 }EM_HUAWEIGantry;
 
@@ -126,18 +143,18 @@ typedef struct
 	string strhwDcOutputVoltage;             //DC 输出电压
 	string strhwDcOutputCurrent;               //DC 输出电流
 	//环境传感器
-	string strhwEnvTemperature;              //环境温度值
-	string strhwEnvHumidity;            //环境湿度值
+    string strhwEnvTemperature[2];              //环境温度值
+    string strhwEnvHumidity[2];            //环境湿度值
 	//直流空调
-	string strhwDcAirCtrlMode;			//空调控制模式
-	string strhwDcAirRunStatus;			//空调运行状态
-	string strhwDcAirCompressorRunStatus;		//空调压缩机运行状态
-	string strhwDcAirInnrFanSpeed;			//空调内机转速
-	string strhwDcAirOuterFanSpeed;			//空调外风机转速
-	string strhwDcAirCompressorRunTime;		//空调压缩机运行时间
-	string strhwDcAirEnterChannelTemp;		//空调回风口温度
-	string strhwDcAirPowerOnTempPoint;		//空调开机温度点
-	string strhwDcAirPowerOffTempPoint;		//空调关机温度点
+    string strhwDcAirCtrlMode[2];			//空调控制模式
+    string strhwDcAirRunStatus[2];			//空调运行状态
+    string strhwDcAirCompressorRunStatus[2];		//空调压缩机运行状态
+    string strhwDcAirInnrFanSpeed[2];			//空调内机转速
+    string strhwDcAirOuterFanSpeed[2];			//空调外风机转速
+    string strhwDcAirCompressorRunTime[2];		//空调压缩机运行时间
+    string strhwDcAirEnterChannelTemp[2];		//空调回风口温度
+    string strhwDcAirPowerOnTempPoint[2];		//空调开机温度点
+    string strhwDcAirPowerOffTempPoint[2];		//空调关机温度点
 	
 	//设备信息 
 	string strhwMonEquipSoftwareVersion;	//软件版本
@@ -155,13 +172,13 @@ typedef struct
    	string strhwSetDcsLowerVoltLimit;		//设置DC欠压点
    	string strhwSetLvdVoltage;				//设置LVD电压
 	//环境传感器(新增加)
-   	string strhwSetEnvTempUpperLimit;		//环境温度告警上限
-   	string strhwSetEnvTempLowerLimit;		//环境温度告警下限
+    string strhwSetEnvTempUpperLimit[2];		//环境温度告警上限
+    string strhwSetEnvTempLowerLimit[2];		//环境温度告警下限
    	string strhwSetEnvTempUltraHighTempThreshold;		//环境高高温告警点
-   	string strhwSetEnvHumidityUpperLimit;		//环境湿度告警上限
-   	string strhwSetEnvHumidityLowerLimit;		//环境湿度告警下限
+    string strhwSetEnvHumidityUpperLimit[2];		//环境湿度告警上限
+    string strhwSetEnvHumidityLowerLimit[2];		//环境湿度告警下限
 	//直流空调(新增加)
-	string strhwDcAirRunTime;				//空调运行时间
+    string strhwDcAirRunTime[2];				//空调运行时间
 	string strhwCoolingDevicesMode;			//温控模式
 	//2019-08-20新增
 	string strhwAcbGroupBatRunningState;		//电池状态
@@ -172,6 +189,10 @@ typedef struct
 	string strhwAcbBatCurr;					//单个电池电流
 	string strhwAcbBatSoh;						//单个电池串SOH
 	string strhwAcbBatCapacity;				//单个电池容量
+    //2019-09-05新增
+    string strhwCtrlSmokeReset;             //控制烟感复位 1,2，255
+    string strhwCtrlMonEquipReset;          //控制单板复位 1,2,255
+
     //防火墙
     string strhwEntityCpuUsage;                //CPU 
     string strhwEntityMemUsage ;              //内存使用率
@@ -221,10 +242,28 @@ typedef struct
 	string hwAcbGroup_moduleloss_alarm;		//模块丢失
 }THUAWEIALARM;
 
+
+
+typedef struct
+{
+  int Descr;
+  string type;
+  string state;
+  string inoctets;
+  string inerrors;
+  string outoctets;
+  string outerrors;
+
+
+}TFIRESWITCH;
+
+
+
+
 #pragma pack(pop)
 
 int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry);
-int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue);
+int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue,int mIndex);
 void UpdataHUAWEIGantryStr(char* mstr,int len,EM_HUAWEIGantry mIntHUAWEIGantry);
 void DealAlarm(string Stroid,int AlarmID);
 int GetAlarmID(char* sp);

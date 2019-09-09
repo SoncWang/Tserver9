@@ -62,7 +62,7 @@ void *HTTP_IPCamDataGet(void *param)
 	}
 
     //mstrurlget[0] = "http://10.44.65.155:80/api/LeaTop/GetDeviceStatus";
-    //mstrurlctl[0] = "http://10.44.65.155:80/api/LeaTop/ControlDevice";      
+    //mstrurlctl[0] = "http://128.8.82.235:8080/api/LeaTop/ControlDevice";
     //mstrkey[0] = "hdcam:hdcam";
     //RebootIpCam(0);
    // string mStrdata ;

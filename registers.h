@@ -87,16 +87,18 @@ typedef unsigned int      	UINT32;
 
 //预留12路车牌识别
 #define VEHPLATE_NUM 12
-//预留4路RSU控制器
-#define RSUCTL_NUM 4
-//预留16路天线
-#define ANTENNA_NUM 16
-//预留1台交换机
-#define IPSWITCH_NUM 1
-//预留1台防火墙
-#define FIREWARE_NUM 1
-//备用do 2路
-#define BACKUP_DO_NUM 2
+//预留2路RSU控制器
+#define RSUCTL_NUM 2
+//预留12路天线
+#define ANTENNA_NUM 12
+//预留2台交换机
+#define IPSWITCH_NUM 2
+//预留2台防火墙
+#define FIREWARE_NUM 2
+//预留4路CAM
+#define CAM_NUM 4
+//预留2路ATLAS
+#define ATLAS_NUM 2
 
 // 最大支持6个伏安表, 每个伏安表为6组电流电压值
 #define VA_METER_BD_NUM		6
@@ -435,9 +437,9 @@ typedef struct vmctl_params_struct
     //门架信息
     char FlagNetRoadID[20];    //ETC 门架路网编号
     char FlagRoadID [20];      //ETC 门架路段编号
-    char FlagID[20];            //ETC 门架编号
-    char PosId[20];             //ETC 门架序号
-    char Direction[20];         //行车方向
+    char FlagID[30];            //ETC 门架编号
+    char PosId[10];             //ETC 门架序号
+    char Direction[10];         //行车方向
     char DirDescription[50];    //行车方向说明
 
     //参数设置
@@ -453,19 +455,22 @@ typedef struct vmctl_params_struct
     char RSUIP[RSUCTL_NUM][20];            //RSU控制器IP地址
     char RSUPort[RSUCTL_NUM][6];          //RSU控制器端口
     char VehPlateCount[5];            //识别仪数量
-    char VehPlateIP[VEHPLATE_NUM][20];      //识别仪IP地址(预留12路)
-    char VehPlatePort[VEHPLATE_NUM][20];    //识别仪端口(预留12路)
+    char VehPlateIP[VEHPLATE_NUM][30];      //识别仪IP地址(预留12路)
+    char VehPlatePort[VEHPLATE_NUM][10];    //识别仪端口(预留12路)
     char VehPlateKey[VEHPLATE_NUM][20];    //识别仪用户名密码(预留12路)
-    char CAMIP[20];            //监控摄像头IP地址
-    char CAMPort[20];          //监控摄像头端口
-    char CAMKey[20];            //监控摄像头用户名密码
+    char CAMCount[5];            //RSU数量
+    char CAMIP[CAM_NUM][30];            //监控摄像头IP地址
+    char CAMPort[CAM_NUM][10];          //监控摄像头端口(预留4路CAM)
+    char CAMKey[CAM_NUM][20];            //监控摄像头用户名密码
 
-    char FireWareIP[20];       //防火墙地址(预留2台)
-    char FireWareGetPasswd[20];   //防火墙get密码
-    char FireWareSetPasswd[20];   //防火墙set密码
-    char SwitchIP[20];         //交换机地址(预留2台)
-    char SwitchGetPasswd[20];     //交换机get密码
-    char SwitchSetPasswd[20];     //交换机set密码
+    char FireWareCount[5];            //防火墙数量
+    char FireWareIP[FIREWARE_NUM][20];       //防火墙地址(预留2台)
+    char FireWareGetPasswd[FIREWARE_NUM][20];   //防火墙get密码
+    char FireWareSetPasswd[FIREWARE_NUM][20];   //防火墙set密码
+    char SwitchCount[5];            //交换机数量
+    char SwitchIP[IPSWITCH_NUM][20];         //交换机地址(预留2台)
+    char SwitchGetPasswd[IPSWITCH_NUM][20];     //交换机get密码
+    char SwitchSetPasswd[IPSWITCH_NUM][20];     //交换机set密码 
     
     char LockAddr[LOCK_NUM][4];         //门锁地址	最多4把锁
     char VameterAddr[VA_METER_BD_NUM][4];     //电能表地址 最多6个表 每层2个
@@ -500,7 +505,6 @@ typedef struct Remote_Control_struct	//
 	UINT16 antenna[ANTENNA_NUM];			//天线 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 fireware[FIREWARE_NUM];			//防火墙 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 ipswitch[IPSWITCH_NUM];			//交换机 0xFF00: 遥合;0xFF01: 遥分
-	UINT16 backupdo[BACKUP_DO_NUM];			//备用do 0xFF00: 遥合;0xFF01: 遥分
 	
 	UINT16 doseq[SWITCH_COUNT];			//备用do 0xFF00: 遥合;0xFF01: 遥分
 
@@ -510,16 +514,28 @@ typedef struct Remote_Control_struct	//
 	UINT16 SideDoorCtrl;			//侧门电子门锁0：保持 1：关锁：2：开锁
 	UINT16 AutoReclosure_Close;		//自动重合闸-合闸
 	UINT16 AutoReclosure_Open;		//自动重合闸-分闸
-
+	char systemtime[50];		//设置控制器时间
+	
 	UINT16 aircondset;		//空调关机//1220					1
 	UINT16 aircoldstartpoint;		//空调制冷点//1221				50
 	UINT16 aircoldloop; 	//空调制冷回差//1222					10
 	UINT16 airhotstartpoint;		//空调制热点//1223				15
 	UINT16 airhotloop;		//空调制热回差//1224					10
-	
-	int hwcoolingdevicesmodectl;		//温控模式				0：保持；1：纯风扇模式；2：纯空调模式；3：智能模式；
-	int hwdcairpowerontemppointctl;		//空调开机温度点 255:保持； -20-80（有效）；45(缺省值)
-	int hwdcairpowerofftemppointctl;		//空调关机温度点  		  255:保持； -20-80（有效）；37(缺省值)
+
+	INT16 hwctrlmonequipreset;		//控制单板复位 0：保持；1：热复位；
+	INT16 hwsetacsuppervoltlimit;	//AC过压点设置	0:保持；50-600（有效）；280（缺省值）
+	INT16 hwsetacslowervoltlimit;	//AC欠压点设置	0:保持；50-600（有效）；180（缺省值）
+	INT16 hwsetdcsuppervoltlimit;	//设置DC过压点	0:保持；53-600（有效）；58（缺省值）
+	INT16 hwsetdcslowervoltlimit;	//设置DC欠压点	0:保持；35 - 57（有效）；45（缺省值）
+	INT16 hwsetenvtempupperlimit[2];	//环境温度告警上限 0:保持；25-80（有效）；55（缺省值）
+	INT16 hwsetenvtemplowerlimit[2];	//环境温度告警下限255:保持；-20-20（有效）；-20（缺省值）
+	INT16 hwsetenvhumidityupperlimit[2];	//环境湿度告警上限 255:保持；0-100（有效）；95（缺省值）
+	INT16 hwsetenvhumiditylowerlimit[2];	//环境湿度告警下限 255:保持；0-100（有效）；5（缺省值）
+	INT16 hwcoolingdevicesmode;		//温控模式				0：保持；1：纯风扇模式；2：纯空调模式；3：智能模式；
+	INT16 hwdcairpowerontemppoint[2];		//空调开机温度点 255:保持； -20-80（有效）；45(缺省值)
+	INT16 hwdcairpowerofftemppoint[2];		//空调关机温度点  		  255:保持； -20-80（有效）；37(缺省值)
+	INT16 hwdcairctrlmode[2];			//空调控制模式 0：保持；1：自动；2：手动
+	INT16 hwctrlsmokereset[2];			//控制烟感复位 0：保持；1：不需复位；2：复位
 }REMOTE_CONTROL;
 
 //空调参数结构体
