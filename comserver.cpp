@@ -25,6 +25,7 @@
 #include "rs485server.h"
 #include "arpa/inet.h"
 #include <sys/time.h>
+#include "snmp.h"
 
 
 using namespace std;
@@ -42,14 +43,16 @@ int LastSendLen=0;
 
 /*因为大小端的原因，IPaddr的整型值和IP地址刚好是反的*/
 /*比如128.8.130.8转后变成0x08820880*/
-in_addr IPaddr = {0};
+static in_addr IPaddr[2] = {0,0};
 UINT8 SoftVersion[3] = {0,0,0};
 
 extern string StrID;			//硬件ID
 extern string StrVersionNo;
 extern string StrFlagID;
 extern void GetIPinfo(IPInfo *ipInfo);
+extern void GetIPinfo2(IPInfo *ipInfo);
 extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_MAX_NUM];
+extern THUAWEIGantry HUAWEIDevValue;	//华为机柜状态
 
 
 // 把如128.8.130.82转成一个4字节整型
@@ -77,16 +80,50 @@ void ipstring_to_ipint(char *ip_addr, in_addr *buf)
 }
 
 
-// 从配置文件中读取IP地址，放在IPaddr中
-void IPgetFromConfig(void)
+// 从配置文件中读取IP1地址，放在IPaddr1中
+void IP1getFromConfig(void)
 {
 	IPInfo IPDadaForCom;	// 只用于RS232，传输IP地址
 
 	memset(&IPDadaForCom,0,sizeof(IPInfo));
 	GetIPinfo(&IPDadaForCom);
-	//printf("IPs0x%s \r\n",IPDadaForCom.ip);
-	ipstring_to_ipint(IPDadaForCom.ip,&IPaddr);
+	printf("IP1s0x%s \r\n",IPDadaForCom.ip);
+	ipstring_to_ipint(IPDadaForCom.ip,&IPaddr[0]);
 }
+
+// 从配置文件中读取IP2地址，放在IPaddr2中
+void IP2getFromConfig(void)
+{
+	IPInfo IPDadaForCom;	// 只用于RS232，传输IP地址
+
+	memset(&IPDadaForCom,0,sizeof(IPInfo));
+	GetIPinfo2(&IPDadaForCom);
+	printf("IP2s0x%s \r\n",IPDadaForCom.ip);
+	ipstring_to_ipint(IPDadaForCom.ip,&IPaddr[1]);
+}
+
+
+// 从配置文件中读取温度值，并放大10倍
+int tmpGetFromConfig(string *temp)
+{
+	int tempValue;	// 只用于RS232，传输温度值
+
+	// 先转换成实数,后四舍五入
+	tempValue = round(atof((*temp).c_str()));
+	return tempValue;
+}
+
+
+// 从配置文件中读取湿度值，并放大10倍
+int moistGetFromConfig(string *moist)
+{
+	int moistValue;	// 只用于RS232，传输湿度值
+
+	// 先转换成实数,后四舍五入
+	moistValue = round(atof((*moist).c_str()));
+	return moistValue;
+}
+
 
 // 把如V1.00.00转成一个3字节数组，数组里面是整数值
 void verstring_to_verint(char *verval, unsigned char *buf)
@@ -237,6 +274,8 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 	UINT8 len = 0;
 	unsigned long long IDInfo = 0;
 	unsigned long long flagIDInfo = 0;
+	UINT16 temp_v[2];
+	UINT16 moist_v[2];
 
 	time_t nSeconds;
 	struct tm * pTM;
@@ -245,10 +284,18 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 	{
 	case WRITE_VAR_MSG:
 		IDInfo = IDgetFromConfig();
-		IPgetFromConfig();
+		IP1getFromConfig();
+		IP2getFromConfig();
 		VergetFromConfig();
 		flagIDInfo = GetFlagID();
-		printf("flagID=%lld \r\n",flagIDInfo);
+		temp_v[0] = tmpGetFromConfig(&HUAWEIDevValue.strhwEnvTemperature[0]);
+		//printf("temp1=%s ",HUAWEIDevValue.strhwEnvTemperature[0].c_str());
+		temp_v[1] = tmpGetFromConfig(&HUAWEIDevValue.strhwEnvTemperature[1]);
+		//printf("temp2=%s ",HUAWEIDevValue.strhwEnvTemperature[1].c_str());
+		moist_v[0] = moistGetFromConfig(&HUAWEIDevValue.strhwEnvHumidity[0]);
+		//printf("moist1=%s ",HUAWEIDevValue.strhwEnvHumidity[0].c_str());
+		moist_v[1] = moistGetFromConfig(&HUAWEIDevValue.strhwEnvHumidity[1]);
+		//printf("moist2=%s ",HUAWEIDevValue.strhwEnvHumidity[1].c_str());
 
 		pbuf[len++] = FRAME_HEAD_1;
 		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
@@ -257,6 +304,18 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 		// 串口屏的地址是以16位为单位的
 		pbuf[len++] = ((address>>8)&0xFF);
 		pbuf[len++] = address&0xFF;
+
+		// 温度
+		pbuf[len++] = (temp_v[0]>>8)&0xFF;
+		pbuf[len++] = temp_v[0]&0xFF;
+		pbuf[len++] = (temp_v[1]>>8)&0xFF;
+		pbuf[len++] = temp_v[1]&0xFF;
+
+		// 湿度
+		pbuf[len++] = (moist_v[0]>>8)&0xFF;
+		pbuf[len++] = moist_v[0]&0xFF;
+		pbuf[len++] = (moist_v[1]>>8)&0xFF;
+		pbuf[len++] = moist_v[1]&0xFF;
 
 		// 门架号flagID
 		pbuf[len++] = (flagIDInfo>>56)&0xFF;
@@ -271,23 +330,23 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 		// IP地址转换过来顺序是反的，IP高位在s_addr的低位
 		// IP地址1
 		pbuf[len++] = 0;
-		pbuf[len++] = IPaddr.s_addr&0xFF;;
+		pbuf[len++] = IPaddr[0].s_addr&0xFF;;
 		pbuf[len++] = 0;
-		pbuf[len++] = (IPaddr.s_addr >>8)&0xFF;;
+		pbuf[len++] = (IPaddr[0].s_addr >>8)&0xFF;;
 		pbuf[len++] = 0;
-		pbuf[len++] = (IPaddr.s_addr >>16)&0xFF;
+		pbuf[len++] = (IPaddr[0].s_addr >>16)&0xFF;
 		pbuf[len++] = 0;
-		pbuf[len++] = (IPaddr.s_addr >>24) &0xFF;
+		pbuf[len++] = (IPaddr[0].s_addr >>24) &0xFF;
 
 		// IP地址2 默认192.192.1.136，需要改
 		pbuf[len++] = 0;
-		pbuf[len++] = 192;
+		pbuf[len++] = IPaddr[1].s_addr&0xFF;;
 		pbuf[len++] = 0;
-		pbuf[len++] = 192;
+		pbuf[len++] = (IPaddr[1].s_addr >>8)&0xFF;;
 		pbuf[len++] = 0;
-		pbuf[len++] = 2;
+		pbuf[len++] = (IPaddr[1].s_addr >>16)&0xFF;
 		pbuf[len++] = 0;
-		pbuf[len++] = 136;
+		pbuf[len++] = (IPaddr[1].s_addr >>24) &0xFF;
 
 		// ID号
 		pbuf[len++] = (IDInfo>>56)&0xFF;
