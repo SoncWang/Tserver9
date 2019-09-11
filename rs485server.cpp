@@ -33,6 +33,7 @@ UINT32  comm_flag[RS485_NUM] = {0,0};	// 轮询标志
 UINT32  locker_ctrl_flag=0;	// 电子锁写标志
 UINT32	power_ctrl_flag[POWER_BD_MAX_NUM] = {0,0,0};
 UINT32	power_read_flag[POWER_BD_MAX_NUM] = {0,0,0};	// 控制一次电压电流通断后马上读一次数据
+UINT16	power_ver_flag = 0;		// 读版本号
 UINT8  WAIT_response_flag[RS485_NUM]={0,0};
 UINT8 Recive_Flag[RS485_NUM] = {0,0};			/* 接收标志*/
 UINT8 actual_locker_num = 0;
@@ -52,6 +53,8 @@ extern string StrServerURL2;	//服务端URL2
 extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_MAX_NUM];	//门锁状态结构体
 extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_NUM];		//伏安表电压电流结构体
 extern REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
+extern VMCONTROL_PARAM *stuVMCtl_Param;	//采集器设备信息结构体
+
 
 string StrAdrrLock[LOCK_MAX_NUM];	//门锁1的地址
 
@@ -274,6 +277,16 @@ int SendPowerReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT
 	return reval;
 }
 
+
+int SendPowerVerReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
+{
+	UINT16 reval;
+	reval = SendCom4ReadReg(Addr, Func, REFS_ADDR, REFS_COUNT);
+	return reval;
+}
+
+
+
 /**********接口函数定义完毕****************************************************************/
 /******************************************************************************************/
 
@@ -442,18 +455,58 @@ int Dev_polling_process(UINT32 *pcomm_flag)
 	return 1;
 }
 
+
+/*电源控制板的版本号轮询*/
+int Ver_polling_process(UINT16 *pver_flag)
+{
+	int i;
+	for(i = 0; i < POWER_BD_RD_NUM; i++)
+	{
+		if (*pver_flag & LBIT(i))
+		{
+			*pver_flag &= ~(LBIT(i));
+			if (Rs485_table_enable_get(i+POWER_BD_1))
+			{
+				switch(i)
+				{
+				case (POWER_BD_RD_1):
+			#if (POWER_BD_NUM >=2)
+				case (POWER_BD_RD_2):
+			#endif
+			#if (POWER_BD_NUM >=3)
+				case (POWER_BD_RD_3):
+			#endif
+					// 门锁统一处理, RES标志混合处理，要特别小心
+					WAIT_response_flag[RS485_2] = WAIT_POWER_1_VER_RES+i;
+					SendPowerVerReg(Var_Table[i+POWER_BD_1].addr, READ_REGS, VER_REG, VER_DATA_NUM);
+					break;	//注意这里的break只是跳出switch, 而不是跳出for
+
+				default:
+					break;
+				}
+			}
+			return 0;		// 处理一个后直接返回，下一个循环再处理另外一个标志位
+		}
+	}
+	return 1;
+}
+
+
 void *Dev_DataPollingthread(void *param)
 {
 	param = NULL;
 	static UINT16 dataget_cnt = 0;
 	static UINT16 dev_poll_counter = 0;
+	static UINT16 loop_cnt = 0;			// 表明电压电流传感器轮询循环次数,超过阈值轮询其它的设备
+	static UINT16 ver_entry = 0;		// 轮询电源板的版本号
+	static UINT16 ver_poll_counter = 0;
 
 	while(1)
 	{
 		if ((power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))|| (power_ctrl_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM)) \
 			|| (power_ctrl_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM)) \
 			|| (power_read_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM/2))|| (power_read_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM/2)) \
-			|| (power_read_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM/2)))
+			|| (power_read_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM/2))|| (power_ver_flag&BITS_MSK_GET(0,POWER_BD_RD_NUM)))
 		{
 			comm_flag[RS485_2] = 0;
 //			printf("power_ctrl_flag0485=0x%04x\r\n",power_ctrl_flag[0]);
@@ -461,21 +514,52 @@ void *Dev_DataPollingthread(void *param)
 		else
 		{
 			dataget_cnt++;
-			if (dataget_cnt >= 10)
+			// 360*8 = 2.9s，即2.9s轮询一个VA传感器
+			if (dataget_cnt >= VA_INTERVAL)
 			{
 				dataget_cnt = 0;
-				// 轮询电压电流传感器数据,3.6s一次
-				if (dev_poll_counter < actual_485dev_num)
+				if (ver_entry)
 				{
-					comm_flag[RS485_2] |= LBIT(polling_subarr[dev_poll_counter]);
-					printf("comm_flag2=0x%04x\r\n",comm_flag[RS485_2]);
+					ver_entry = 0;
+					// 电源板的版本号轮询
+					if (ver_poll_counter < POWER_BD_RD_NUM)
+					{
+						/*加个判断保险一点*/
+						if (Rs485_table_enable_get(ver_poll_counter+POWER_BD_1))
+						{
+							power_ver_flag |= LBIT(ver_poll_counter);
+							printf("power_ver_flag=0x%04x\r\n",power_ver_flag);
+						}
+					}
+					ver_poll_counter++;
+					if (ver_poll_counter >= POWER_BD_RD_NUM)
+					{
+						printf("verpoll over0x%02x" ,ver_poll_counter);printf("\r\n");
+						ver_poll_counter = 0;
+					}
 				}
-				dev_poll_counter++;
-				if (dev_poll_counter >= actual_485dev_num)
+				else
 				{
-					printf("\r\ndevpoling over");
-					printf("0x%02x" ,dev_poll_counter);printf("\r\n");
-					dev_poll_counter = 0;
+					// 轮询电压电流传感器数据,2.9s一次
+					if (dev_poll_counter < actual_485dev_num)
+					{
+						comm_flag[RS485_2] |= LBIT(polling_subarr[dev_poll_counter]);
+						printf("comm_flag2=0x%04x\r\n",comm_flag[RS485_2]);
+					}
+					dev_poll_counter++;
+					if (dev_poll_counter >= actual_485dev_num)
+					{
+						printf("\r\ndevpoling over");
+						printf("0x%02x" ,dev_poll_counter);printf("\r\n");
+						dev_poll_counter = 0;
+						loop_cnt++;
+						// 如果有6个VA传感器，要2.9*6*6s才轮询一次电源板
+						if (loop_cnt >= VA_LOOP_NUM)
+						{
+							loop_cnt = 0;
+							ver_entry =1; // 其它设备轮询一次
+						}
+					}
 				}
 			}
 		}
@@ -514,6 +598,10 @@ void *Dev_DataPollingthread(void *param)
 			else if (comm_flag[RS485_2] &BITS_MSK_GET(VA_METER_1,VA_METER_6+1))
 			{
 				Dev_polling_process(&comm_flag[RS485_2]);
+			}
+			else if (power_ver_flag &BITS_MSK_GET(0,POWER_BD_RD_NUM))
+			{
+				Ver_polling_process(&power_ver_flag);
 			}
 		}
 		usleep(DEV_INTERVAL_TIME);		// every 3.6s sending
@@ -749,6 +837,47 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 	}
 }
 
+/******************************************************************************
+ * 函数名:	comm_VerData_analyse
+ * 描述: 		装置信息的读取
+ *            -
+ * 输入参数:
+ * 输出参数:
+ * 返回值:
+ *
+ * 作者:Jerry
+ * 创建日期:2019.7.12
+ ******************************************************************************/
+
+void comm_VerData_analyse(unsigned char *buf,unsigned short int len,unsigned char seq)
+{
+	UINT8 i;
+	UINT8 addr_base = 0;
+	UINT16 verCode = 0;
+	//UINT16 verProtocol = 0;		/*规约版本号*/
+	UINT16 *pointer = &verCode;	/*程序版本号*/
+	UINT8 verchar[10];
+	UINT16 temp1 = 0;
+	UINT16 temp2 = 0;
+
+	if(len == (VER_DATA_NUM*2+5))
+	{
+		addr_base = *(buf+0)-POWER_CTRL_ADDR_1;		// the first byte is the addr.
+		printf("ver begain\r\n");
+		// 暂时只处理程序版本号
+		char_to_int(buf + FRAME_HEAD_NUM, pointer);
+		temp1 = verCode;
+		for(i=0; i<5; i++)
+		{
+			temp2 = temp1%10;
+			temp1 = temp1/10;
+			verchar[i] = temp2;
+		}
+		sprintf(stuVMCtl_Param->secSoftVersion[addr_base],"V%d.%d%d.%d%d\0",verchar[4],verchar[3],verchar[2],verchar[1],verchar[0]);
+		printf("%s",stuVMCtl_Param->secSoftVersion[addr_base]);
+	}
+}
+
 
 
 int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq)
@@ -782,6 +911,12 @@ int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq)
 			comm_VAData_analyse(buf, len,5);
 		break;
 
+		case WAIT_POWER_1_VER_RES:					/*MSG from the POWERBOARD*/
+		case WAIT_POWER_2_VER_RES:
+		case WAIT_POWER_3_VER_RES:
+			comm_VerData_analyse(buf, len,5);
+		break;
+
 		default:
 		break;
 	}
@@ -797,5 +932,7 @@ void rs485init(void)
 {
 	Rs485Com3Init();
 	Rs485Com4Init();
+	/*开机读一次版本信息*/
+	power_ver_flag |=BITS_MSK_GET(0,POWER_BD_RD_NUM);
 }
 

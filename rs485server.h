@@ -17,7 +17,8 @@
 
 
 #define CARD_NUM		5	// 暂时为5张卡
-#define LOCKER_LOOP_NUM	10	// 电子锁轮询循环计数
+#define VA_INTERVAL		8	// 单位为 DEV_INTERVAL_TIME
+#define VA_LOOP_NUM		6	// 电子锁轮询循环计数
 
 #define DOOR_LOCK_ADDR_1		91			// address of the LOCKER
 #define DOOR_LOCK_ADDR_2		92			// address of the LOCKER
@@ -40,6 +41,9 @@
 #define LOCKER_ID_LENTH			10		// it only use 10 bytes from the ID card.
 #define LOCKER_REG_NUM			9		// 4+5(字)
 #define FRAME_HEAD_NUM 			3		/*读数据时返回帧有效数据前数据个数*/
+
+#define VER_REG					921		//10000，表示版本V1.00.00
+#define VER_DATA_NUM			2		// 921~922
 
 /*经测试,锁的回复数据为23个字节,共24ms,加上回复延时共50ms,*/
 /*而电压电流传感器的回复数据有VA_DATA_NUM=42个,加上回复延时共80ms左右，完全是够的*/
@@ -142,6 +146,10 @@ typedef enum
 	WAIT_POWER_12_CTRL_CLOSE_RES,
 	WAIT_POWER_12_CTRL_OPEN_RES,
 
+	WAIT_POWER_1_VER_RES,
+	WAIT_POWER_2_VER_RES,
+	WAIT_POWER_3_VER_RES,
+
 	WAIT_MSG_NUM
 }WAIT_MSG_LIST;
 
@@ -213,6 +221,19 @@ typedef enum
 
 	POWER_CTRL_NUM			//24
 }POWER_CTRL_LIST;
+
+/*电子锁控制定义*/
+typedef enum
+{
+	POWER_BD_RD_1 = 0,
+#if (POWER_BD_NUM >=2)
+	POWER_BD_RD_2,
+#endif
+	#if (POWER_BD_NUM >=3)
+	POWER_BD_RD_3,
+#endif
+	POWER_BD_RD_NUM			//3
+}VER_READ_LIST;
 
 
 /*结构联合声明短整型*/
