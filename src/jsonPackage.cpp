@@ -47,6 +47,7 @@ extern string StrHWSetPasswd;	//SNMP SET 密码
 extern string StrServerURL1;	//服务端URL1
 extern string StrServerURL2;	//服务端URL2
 extern string StrServerURL3;	//服务端URL3
+extern string StrServerURL4;	//服务端URL4
 extern string StrStationURL;	//虚拟站端URL
 extern string StrRSUCount;	//RSU数量
 extern string StrRSUIP[RSUCTL_NUM];	//RSUIP地址
@@ -72,11 +73,16 @@ extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 
 extern string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器1的地址
 extern string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板1的地址
+extern string StrDoCount;//do数量
 extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 extern string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
 extern UINT16 DoSeq[SWITCH_COUNT];	// 另外定义一个专门用来存储映射的数组,stuRemote_Ctrl会被清0
 
+//交换机网络数据
+extern TFIRESWITCH mTFIRESWITCH[32];
 extern string strswitchjson;	//交换机网络数据
+//防火墙网络数据
+extern TFIRESWITCH mTFIREWALL[32];
 extern string strfirewalljson;	//防火墙网络数据
 
 extern pthread_mutex_t snmpoidMutex ;
@@ -85,6 +91,8 @@ extern int Writeconfig(void);
 extern void GetConfig(VMCONTROL_PARAM *vmctrl_param);
 extern void RemoteControl(UINT8* pRCtrl);
 extern int Setconfig(string StrKEY,string StrSetconfig);
+extern void SetIPinfo(IPInfo *ipInfo);
+extern void SetIPinfo2(IPInfo *ipInfo);
 
 extern TIPcamState mTIPcamState[VEHPLATE_NUM];
 
@@ -118,6 +126,7 @@ bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout)
 	std::map<std::string, std::string> out;
 	jsonReader(jsonstrin, out);
 	string mstrdata;
+	int opt=SFLAG_CMD;
 	
 	char key[128],value[128];
 	
@@ -130,10 +139,30 @@ bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout)
 		printf("%s %s\n",key,value);
 		
 		if(it->first=="messagetype")	messagetype=atoi(value);
+		if(it->first=="opt") opt=atoi(value);
 		it++;
 	}
 	switch (messagetype)
 	{
+		case NETCMD_CONFIG_NETWORK:		//5 读取/设置网口1
+			if(opt==SFLAG_READ)
+			{
+				SetjsonIPStr(messagetype,mstrdata);
+				*lenout = mstrdata.size();
+				memcpy(jsonstrout,mstrdata.c_str(),mstrdata.size());
+			}
+			else if(opt==SFLAG_WRITE)
+			{
+				IPInfo ipinfo;
+				string iptmp,masktmp,gatewaytmp;
+				iptmp=StrIP;masktmp=StrMask;gatewaytmp=StrGateway;//保存原IP设置
+				jsonstrIpInfoReader(jsonstrin,lenin,(UINT8*)&ipinfo);//将json字符串转换成结构体
+				SetIPinfo(&ipinfo);
+				SetjsonReceiveOKStr(messagetype,jsonstrout,lenout);
+				if(iptmp!=StrIP || masktmp!=StrMask || gatewaytmp!=StrGateway)	//IP设置更改
+					stuRemote_Ctrl->SysReset=SYSRESET; 	//等待重启
+			}
+			break;
 		case NETCMD_SEND_ENVI_PARAM: 			//9 环境寄存器参数
 			memset(jsonstrout,0,JSON_LEN);
 			*lenout=0;
@@ -150,10 +179,18 @@ bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout)
 			jsonStrSpdWriter(messagetype,(char*)stuSpd_Param,jsonstrout,lenout);
 			break;
 		case NETCMD_SEND_DEV_PARAM: 			//12 控制器参数
-			GetConfig(&vmctrl_param);
-			memset(jsonstrout,0,JSON_LEN);
-			*lenout=0;
-			jsonStrVMCtlParamWriter(messagetype,(char*)&vmctrl_param,jsonstrout,lenout);
+			if(opt==SFLAG_READ)
+			{
+				GetConfig(&vmctrl_param);
+				memset(jsonstrout,0,JSON_LEN);
+				*lenout=0;
+				jsonStrVMCtlParamWriter(messagetype,(char*)&vmctrl_param,jsonstrout,lenout);
+			}
+			else if(opt==SFLAG_WRITE)
+			{
+				jsonstrVmCtlParamReader(jsonstrin,lenin,(UINT8*)&vmctrl_param);//将json字符串转换成结构体
+				SetjsonReceiveOKStr(messagetype,jsonstrout,lenout);
+			}
 			break;
 		case NETCMD_SEND_AIR_PARAM: 			//13 空调参数 
 			memset(jsonstrout,0,JSON_LEN);
@@ -208,6 +245,25 @@ bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout)
 			SetjsonFireWallStatusStr(messagetype,mstrdata);
 			*lenout = mstrdata.size();
 			memcpy(jsonstrout,mstrdata.c_str(),mstrdata.size());
+			break;
+		case NETCMD_CONFIG_NETWORK2: 	//25 读取/设置网口2
+			if(opt==SFLAG_READ)
+			{
+				SetjsonIP2Str(messagetype,mstrdata);
+				*lenout = mstrdata.size();
+				memcpy(jsonstrout,mstrdata.c_str(),mstrdata.size());
+			}
+			else if(opt==SFLAG_WRITE)
+			{
+				IPInfo ipinfo;
+				string iptmp,masktmp,gatewaytmp;
+				iptmp=StrIP2;masktmp=StrMask2;gatewaytmp=StrGateway2;//保存原IP设置
+				jsonstrIpInfoReader(jsonstrin,lenin,(UINT8*)&ipinfo);//将json字符串转换成结构体
+				SetIPinfo2(&ipinfo);
+				SetjsonReceiveOKStr(messagetype,jsonstrout,lenout);
+				if(iptmp!=StrIP2 || masktmp!=StrMask2 || gatewaytmp!=StrGateway2)	//IP设置更改
+					stuRemote_Ctrl->SysReset=SYSRESET; 	//等待重启
+			}
 			break;
 		default:
 			break;
@@ -575,7 +631,7 @@ bool jsonstrAirCondReader(char* jsonstr, int len, UINT8 *pstPam)
 	return true;
 }
 
-bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam, UINT8 *pstIPPam)
+bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 {
 	printf("%s \t\n",jsonstr);
 	int i;
@@ -585,7 +641,6 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam, UINT8 *pstIP
 	jsonReader(json, out);
 	
 	VMCONTROL_PARAM *pRCtrl=(VMCONTROL_PARAM *)pstPam;
-	IPInfo *pIPInfo=(IPInfo *)pstIPPam;
 	char key[50],value[128],keytmp[50];
 //	int value;
 	
@@ -676,6 +731,12 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam, UINT8 *pstIP
 			StrServerURL3=value;	
 			sprintf(pRCtrl->ServerURL3,"%s",value); 
 			Setconfig("ServerURL3=",value);
+		}
+		if(it->first=="serverurl4" && StrServerURL4!=value)	//门锁4推送地址
+		{
+			StrServerURL4=value;	
+			sprintf(pRCtrl->ServerURL4,"%s",value); 
+			Setconfig("ServerURL4=",value);
 		}
 		if(it->first=="stationurl" && StrStationURL!=value)	//控制器接收地址
 		{
@@ -881,6 +942,12 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam, UINT8 *pstIP
 			}
 		}
 		
+		if(it->first=="do_count" && StrDoCount!=value)	//do数量
+		{
+			StrDoCount=value;	
+			sprintf(pRCtrl->DoCount,"%s",value); 
+			Setconfig("DO_Count=",value);
+		}
 		for(i=0;i<SWITCH_COUNT;i++)
 		{
 			if(it->first==StrDeviceNameSeq[i] && StrDoSeq[i]!=value)	
@@ -1151,6 +1218,7 @@ bool jsonStrVMCtlParamWriter(int messagetype,char *pstrVMCtl, char *json, int *l
 	strJson = strJson + "\"serverurl1\":\""+ StrServerURL1 +"\",\n";	//服务器1推送地址
 	strJson = strJson + "\"serverurl2\":\""+ StrServerURL2 +"\",\n";	//服务器2推送地址
 	strJson = strJson + "\"serverurl3\":\""+ StrServerURL3 +"\",\n";	//服务器3推送地址
+	strJson = strJson + "\"serverurl4\":\""+ StrServerURL4 +"\",\n";	//服务器4推送地址
 	strJson = strJson + "\"stationurl\":\""+ StrStationURL +"\",\n";	//控制器接收地址
 	strJson = strJson + "\"rsucount\":\""+ StrRSUCount +"\",\n";	//RSU数量
 	rsucnt=atoi(StrRSUCount.c_str());
@@ -1211,6 +1279,7 @@ bool jsonStrVMCtlParamWriter(int messagetype,char *pstrVMCtl, char *json, int *l
 	{
 		sprintf(str,"\"poweraddr%d\":\"%s\",\n",i+1,StrAdrrPower[i].c_str()); strJson = strJson + str;//电源板1的地址
 	}
+	strJson = strJson + "\"do_count\":\""+ StrDoCount +"\",\n";	//do数量
 	for(i=0;i<SWITCH_COUNT;i++)
 	{
 		sprintf(str,"\"%s\":\"%s\",\n",StrDeviceNameSeq[i].c_str(),StrDoSeq[i].c_str()); strJson = strJson + str;//设备映射DO
@@ -1219,6 +1288,10 @@ bool jsonStrVMCtlParamWriter(int messagetype,char *pstrVMCtl, char *json, int *l
 	strJson = strJson + "\"devicetype\":\""+ StrdeviceType +"\",\n";	//设备型号900~919
 	strJson = strJson + "\"hardwareid\":\""+ StrID +"\",\n";	//硬件ID
 	strJson = strJson + "\"softversion\":\""+ StrVersionNo +"\",\n";	//主程序版本号920
+	
+	strJson = strJson + "\"secsoftversion1\":\""+ stuVMCtl_Param->secSoftVersion[0] +"\",\n";	//副版本号
+	strJson = strJson + "\"secsoftversion2\":\""+ stuVMCtl_Param->secSoftVersion[1] +"\",\n";	//副版本号
+	strJson = strJson + "\"secsoftversion3\":\""+ stuVMCtl_Param->secSoftVersion[2] +"\",\n";	//副版本号
 	strJson = strJson + "\"softdate\":\""+ StrSoftDate +"\"\n";	//版本日期
 	
     strJson +=  "}\n\n\0\0";
@@ -1326,7 +1399,7 @@ bool jsonStrVehPlateWriter(int messagetype,char *json, int *len)
 	strJson = strJson + "\"cabinettype\":"+ StrCabinetType +",\n";	//机柜类型
 	strJson = strJson + "\"opttime\": \"" + sDateTime + "\",\n";	//时间
 	// 
-	strJson = strJson + "\"vehplatecnt\":"+ StrVehPlateCount +",\n";	//车牌识别数量
+	strJson = strJson + "\"vehplatecnt\":\""+ StrVehPlateCount +"\",\n";	//车牌识别数量
 	vehplatecnt=atoi(StrVehPlateCount.c_str());
 	strJson = strJson + "\"vehplatelist\":[\n";
 	for(i=0;i<vehplatecnt;i++)
@@ -1566,8 +1639,8 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 	strJson = strJson + "\"cabinettype\":"+ StrCabinetType +",\n";	//机柜类型
 	strJson = strJson + "\"opttime\": \"" + sDateTime + "\",\n";	//时间
 	
-	strJson = strJson + "\"vehplate_count\": " + StrVehPlateCount + ",\n";	//识别仪数量
-	strJson = strJson + "\"rsu_count\": " + StrRSUCount + ",\n";	//RSU数量
+	strJson = strJson + "\"vehplate_count\": \"" + StrVehPlateCount + "\",\n";	//识别仪数量
+	strJson = strJson + "\"rsu_count\": \"" + StrRSUCount + "\",\n";	//RSU数量
 //	strJson = strJson + "\"antenna_count\": " + stuRsuControl.AntennaCount + ",\n";	//天线头数量
 
 	for(i=0;i<SWITCH_COUNT;i++) //开关数量
@@ -1893,7 +1966,7 @@ void SetjsonIP2Str(int messagetype,string &mstrjson)
 	strJson = strJson + "\"ipaddr2\":\""+ StrIP2 +"\",\n";	//IP地址
 	strJson = strJson + "\"mask2\":\""+ StrMask2 +"\",\n";	//子网掩码
 	strJson = strJson + "\"gateway2\":\""+ StrGateway2 +"\",\n";	//网关
-    strJson = strJson + "\"dns2\":\""+ StrDNS2 +"\"\n";	//DNS地址
+	strJson = strJson + "\"dns2\":\""+ StrDNS2 +"\"\n";	//DNS地址
 	strJson +=	"}\n\0";
 	
 	pthread_mutex_unlock(&snmpoidMutex);
@@ -1934,19 +2007,19 @@ void SetjsonFlagRunStatusStr(int messagetype,string &mstrjson)
 	sprintf(str,"%d", recordno);
 	strJson = strJson + "\"recordno\":"+ str +",\n";		//1 记录号
 	recordno++;
-	strJson = strJson + "\"flagnetroadid\":"+ StrFlagNetRoadID +",\n";	//2 ETC 门架路网编号
-	strJson = strJson + "\"flagroadid\":"+ StrFlagRoadID +",\n";		//3 ETC 门架路段编号
-	strJson = strJson + "\"flagid\": " + StrFlagID +",\n";			//4 ETC 门架编号
-	strJson = strJson + "\"posid\": " + StrPosId +",\n";			//5 ETC 门架序号
-	strJson = strJson + "\"direction\": " + StrDirection +",\n";		//6 行车方向
+	strJson = strJson + "\"flagnetroadid\":\""+ StrFlagNetRoadID +"\",\n";	//2 ETC 门架路网编号
+	strJson = strJson + "\"flagroadid\":\""+ StrFlagRoadID +"\",\n";		//3 ETC 门架路段编号
+	strJson = strJson + "\"flagid\": \"" + StrFlagID +"\",\n";			//4 ETC 门架编号
+	strJson = strJson + "\"posid\": \"" + StrPosId +"\",\n";			//5 ETC 门架序号
+	strJson = strJson + "\"direction\": \"" + StrDirection +"\",\n";		//6 行车方向
 	strJson = strJson + "\"dirdescription\": \"" + StrDirDescription +"\",\n";		//7 行车方向说明
 	strJson = strJson + "\"catchtime\": \"" + sDateTime + "\",\n";	//8 状态时间
-	sprintf(str,"\"computer\": %d,\n", stuFlagRunStatus->Computer);strJson += str;		//9 工控机状态
-	sprintf(str,"\"diskcapacity\": %d,\n", stuFlagRunStatus->DiskCapacity);strJson += str;		//10 硬盘容量
-	sprintf(str,"\"diskusage\": %d,\n", stuFlagRunStatus->DiskUsage);strJson += str;		//11 硬盘使用率
-	sprintf(str,"\"powertype\": %d,\n", stuFlagRunStatus->PowerType);strJson += str;		//12 供电类型
-	sprintf(str,"\"backuppower\": %d,\n", stuFlagRunStatus->BackUpPower);strJson += str;		//13 备用电源状态
-	strJson = strJson +	"\"batteryremain\": " + HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str() + ",\n";	//14 蓄电池电量(华为)
+	sprintf(str,"\"computer\": \"%d\",\n", stuFlagRunStatus->Computer);strJson += str;		//9 工控机状态
+	sprintf(str,"\"diskcapacity\": \"%d\",\n", stuFlagRunStatus->DiskCapacity);strJson += str;		//10 硬盘容量
+	sprintf(str,"\"diskusage\": \"%d\",\n", stuFlagRunStatus->DiskUsage);strJson += str;		//11 硬盘使用率
+	sprintf(str,"\"powertype\": \"%d\",\n", stuFlagRunStatus->PowerType);strJson += str;		//12 供电类型
+	sprintf(str,"\"backuppower\": \"%d\",\n", stuFlagRunStatus->BackUpPower);strJson += str;		//13 备用电源状态
+	strJson = strJson +	"\"batteryremain\": \"" + HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str() + "\",\n";	//14 蓄电池电量(华为)
 	sprintf(str,"\"dbstate\": %d,\n", stuFlagRunStatus->DBState);strJson += str;		//15 数据库状态
 	sprintf(str,"\"cablenetstate\": %d,\n", stuFlagRunStatus->CableNetState);strJson += str;		//16 有线网络状态
 	sprintf(str,"\"wirelessstate\": %d,\n", stuFlagRunStatus->WireLessState);strJson += str;		//17 无线网络状态
@@ -1955,7 +2028,7 @@ void SetjsonFlagRunStatusStr(int messagetype,string &mstrjson)
 	sprintf(str,"\"softversion\": \"%s\",\n","LT00201907220006000B");strJson += str;		//19 软件版本
 	sprintf(str,"\"cpu_occupancy\": %d,\n", stuFlagRunStatus->cpu_occupancy);strJson += str;		//cpu占用率212
 	
-	sprintf(str,"\"camercount\": %s,\n", StrVehPlateCount.c_str());strJson = strJson + str; //20 车牌识别设备数量
+	sprintf(str,"\"camercount\": \"%s\",\n", StrVehPlateCount.c_str());strJson = strJson + str; //20 车牌识别设备数量
 	vehplatecnt=atoi(StrVehPlateCount.c_str());
 	for(i=0;i<vehplatecnt;i++)
 	{
@@ -1966,7 +2039,7 @@ void SetjsonFlagRunStatusStr(int messagetype,string &mstrjson)
 		sprintf(str,"\"vehplate%d\": 2147483647,\n", i+1);strJson = strJson + str; // 车牌识别设备状态
 	}
 	
-	sprintf(str,"%d", stuRsuControl.AntennaCount);strJson = strJson + "\"rsucount\":"+ str +",\n"; 	//37 天线数量
+	sprintf(str,"%d", stuRsuControl.AntennaCount);strJson = strJson + "\"rsucount\":\""+ str +"\",\n"; 	//37 天线数量
 	for(i=0;i<stuRsuControl.AntennaCount;i++)
 	{
 		sprintf(str,"\"rsu%d\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Status);strJson += str;		//38 天线i 状态
@@ -2220,19 +2293,19 @@ void SetjsonTableStr(char* table, string &mstrjson)
 	sprintf(str,"%d", recordno);
     strJson = strJson + "\"recordno\":"+ str +",\n";		//1 记录号
     recordno++;
-    strJson = strJson + "\"flagnetroadid\":"+ StrFlagNetRoadID +",\n";	//2 ETC 门架路网编号
-    strJson = strJson + "\"flagroadid\":"+ StrFlagRoadID +",\n";		//3 ETC 门架路段编号
-    strJson = strJson + "\"flagid\": " + StrFlagID +",\n";			//4 ETC 门架编号
-    strJson = strJson + "\"posid\": " + StrPosId +",\n";			//5 ETC 门架序号
-    strJson = strJson + "\"direction\": " + StrDirection +",\n";		//6 行车方向
-    strJson = strJson + "\"dirdescription\": \"" + StrDirDescription +"\",\n";		//7 行车方向说明
-    strJson = strJson + "\"catchtime\": \"" + sDateTime + "\",\n";	//8 状态时间
-	sprintf(str,"\"computer\": %d,\n", stuFlagRunStatus->Computer);strJson += str;		//9 工控机状态
-	sprintf(str,"\"diskcapacity\": %d,\n", stuFlagRunStatus->DiskCapacity);strJson += str;		//10 硬盘容量
-	sprintf(str,"\"diskusage\": %d,\n", stuFlagRunStatus->DiskUsage);strJson += str;		//11 硬盘使用率
-	sprintf(str,"\"powertype\": %d,\n", stuFlagRunStatus->PowerType);strJson += str;		//12 供电类型
-	sprintf(str,"\"backuppower\": %d,\n", stuFlagRunStatus->BackUpPower);strJson += str;		//13 备用电源状态
-	strJson = strJson +	"\"batteryremain\": " + HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str() + ",\n";	//14 蓄电池电量(华为)
+	strJson = strJson + "\"flagnetroadid\":\""+ StrFlagNetRoadID +"\",\n";	//2 ETC 门架路网编号
+	strJson = strJson + "\"flagroadid\":\""+ StrFlagRoadID +"\",\n";		//3 ETC 门架路段编号
+	strJson = strJson + "\"flagid\": \"" + StrFlagID +"\",\n";			//4 ETC 门架编号
+	strJson = strJson + "\"posid\": \"" + StrPosId +"\",\n";			//5 ETC 门架序号
+	strJson = strJson + "\"direction\": \"" + StrDirection +"\",\n";		//6 行车方向
+	strJson = strJson + "\"dirdescription\": \"" + StrDirDescription +"\",\n";		//7 行车方向说明
+	strJson = strJson + "\"catchtime\": \"" + sDateTime + "\",\n";	//8 状态时间
+	sprintf(str,"\"computer\": \"%d\",\n", stuFlagRunStatus->Computer);strJson += str;		//9 工控机状态
+	sprintf(str,"\"diskcapacity\": \"%d\",\n", stuFlagRunStatus->DiskCapacity);strJson += str;		//10 硬盘容量
+	sprintf(str,"\"diskusage\": \"%d\",\n", stuFlagRunStatus->DiskUsage);strJson += str;		//11 硬盘使用率
+	sprintf(str,"\"powertype\": \"%d\",\n", stuFlagRunStatus->PowerType);strJson += str;		//12 供电类型
+	sprintf(str,"\"backuppower\": \"%d\",\n", stuFlagRunStatus->BackUpPower);strJson += str;		//13 备用电源状态
+	strJson = strJson + "\"batteryremain\": \"" + HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str() + "\",\n";	//14 蓄电池电量(华为)
 	sprintf(str,"\"dbstate\": %d,\n", stuFlagRunStatus->DBState);strJson += str;		//15 数据库状态
 	sprintf(str,"\"cablenetstate\": %d,\n", stuFlagRunStatus->CableNetState);strJson += str;		//16 有线网络状态
 	sprintf(str,"\"wirelessstate\": %d,\n", stuFlagRunStatus->WireLessState);strJson += str;		//17 无线网络状态
@@ -2241,7 +2314,7 @@ void SetjsonTableStr(char* table, string &mstrjson)
 	sprintf(str,"\"softversion\": \"%s\",\n","LT00201907220006000B");strJson += str;		//19 软件版本
 	sprintf(str,"\"cpu_occupancy\": %d,\n", stuFlagRunStatus->cpu_occupancy);strJson += str;		//cpu占用率212
 	
-	sprintf(str,"\"camercount\": %s,\n", StrVehPlateCount.c_str());strJson = strJson + str; //20 车牌识别设备数量
+	sprintf(str,"\"camercount\": \"%s\",\n", StrVehPlateCount.c_str());strJson = strJson + str; //20 车牌识别设备数量
 	vehplatecnt=atoi(StrVehPlateCount.c_str());
 	for(i=0;i<vehplatecnt;i++)
 	{
@@ -2252,28 +2325,28 @@ void SetjsonTableStr(char* table, string &mstrjson)
 		sprintf(str,"\"vehplate%d\": 2147483647,\n", i+1);strJson = strJson + str; // 车牌识别设备状态
 	}
 	
-	sprintf(str,"%d", stuRsuControl.AntennaCount);strJson = strJson + "\"rsucount\":"+ str +",\n";		//37 天线数量
+	sprintf(str,"%d", stuRsuControl.AntennaCount);strJson = strJson + "\"rsucount\":\""+ str +"\",\n";	//37 天线数量
 	for(i=0;i<stuRsuControl.AntennaCount;i++)
 	{
 		sprintf(str,"\"rsu%d\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Status);strJson += str;		//38 天线i 状态
 		sprintf(str,"\"rsu%d_power\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Power);strJson += str; //39 天线i 功率
 		sprintf(str,"\"rsu%d_channel\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Channel);strJson += str; //40 天线i 信道号
-		sprintf(str,"\"rsu%d_switch\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Control_state);strJson += str;		//41 天线i 开关状态
+		sprintf(str,"\"rsu%d_switch\": %d,\n", i+1,stuRsuControl.AntennaInfoN[i].Control_state);strJson += str; 	//41 天线i 开关状态
 	}
 	for(i=stuRsuControl.AntennaCount;i<16;i++)
 	{
-		sprintf(str,"\"rsu%d\": 2147483647,\n", i+1);strJson += str; 	//38 天线i 状态
+		sprintf(str,"\"rsu%d\": 2147483647,\n", i+1);strJson += str;	//38 天线i 状态
 		sprintf(str,"\"rsu%d_power\": 2147483647,\n", i+1);strJson += str;	//39 天线i 功率
 		sprintf(str,"\"rsu%d_channel\": 2147483647,\n", i+1);strJson += str; //40 天线i 信道号
-		sprintf(str,"\"rsu%d_switch\":	2147483647,\n", i+1);strJson += str; 	//41 天线i 开关状态
+		sprintf(str,"\"rsu%d_switch\":	2147483647,\n", i+1);strJson += str;	//41 天线i 开关状态
 	}
-    
-    strJson +=  "\"backup1\": \"string\",\n";	//118 备用1
-    strJson +=  "\"backup2\": \"string\",\n";	//119 备用2
-    strJson +=  "\"backup3\": \"string\",\n";	//120 备用3
-    strJson +=  "\"backup4\": \"string\",\n";	//121 备用4
-    strJson = strJson + "\"timeflag\": \"" + sDateTime + "\",\n";	//122 时间戳标识
-    
+	
+	strJson +=	"\"backup1\": \"string\",\n";	//118 备用1
+	strJson +=	"\"backup2\": \"string\",\n";	//119 备用2
+	strJson +=	"\"backup3\": \"string\",\n";	//120 备用3
+	strJson +=	"\"backup4\": \"string\",\n";	//121 备用4
+	strJson = strJson + "\"timeflag\": \"" + sDateTime + "\",\n";	//122 时间戳标识
+	
 	//状态信息
 /*	if(HUAWEIDevValue.strhwEnvTemperature=="2147483647" && HUAWEIDevValue.strhwEnvHumidity=="2147483647") 
 	{
@@ -2495,6 +2568,346 @@ void SetjsonTableStr(char* table, string &mstrjson)
 	
 }
 
+void SetjsonLTAlarmTableStr(char* table, string &mstrjson)
+{
+	char str[100],sDateTime[30];
+	int i,j,vehplatecnt; 
+	static int id=0;
+	
+    time_t nSeconds;
+    struct tm * pTM;
+    
+    time(&nSeconds);
+    pTM = localtime(&nSeconds);
+
+    //系统日期和时间,格式: yyyymmddHHMMSS 
+    sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
+            pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
+            pTM->tm_hour, pTM->tm_min, pTM->tm_sec);	
+
+	std::string strJson,strTable;
+	strTable = table;
+	
+    strJson +=  "{\n";
+    strJson +=  "\"param\": {\n";
+	strJson +=	"\"action\":\""+ strTable + "\",\n";
+	strJson +=	"\"entity\": {\n";
+	
+	sprintf(str,"%d", id);
+    strJson = strJson + "\"id\":"+ str +",\n";		//状态流水号
+    id++;
+	strJson = strJson + "\"gantryid\": \"" + StrFlagID +"\",\n";			//门架编号
+	strJson = strJson + "\"time\": \"" + sDateTime + "\",\n";	//状态数据生成时间
+	strJson = strJson + "\"direction\": \"" + StrDirection +"\",\n";		//6 行车方向
+	strJson = strJson + "\"dirdescription\": \"" + StrDirDescription +"\",\n";		//7 行车方向说明
+    strJson = strJson + "\"vmctrl_ipaddr\": \"" + StrIP.c_str() + "\",\n";	//控制器IP地址 212
+
+	//ETC门架关键设备运行状态告警
+	sprintf(str,"\"frontsoftstatus\": %d,\n", stuFlagRunStatus->SoftWare);strJson += str;		//前端软件运行状态
+	sprintf(str,"\"fronthardwarestatus\": 0,\n");strJson += str;		//前端硬件资源可用性
+	sprintf(str,"\"frontbizdiskstatus\": %d,\n", stuFlagRunStatus->DiskUsage);strJson += str;		//前端应用盘磁盘使用状态
+	sprintf(str,"\"frontdatadiskstatus\": 1,\n");strJson += str;		//前端数据盘使用状态
+	sprintf(str,"\"backsoftstatus\": 0,\n");strJson += str;		//后台软件运行状态
+	sprintf(str,"\"backhardwarestatus\": 1,\n");strJson += str;		//后台硬件资源可用性
+	sprintf(str,"\"backbizdiskstatus\": 1,\n");strJson += str;		//后台应用盘磁盘使用状态
+	sprintf(str,"\"backdatadiskstatus\": 1,\n");strJson += str;		//后台数据盘使用状态
+	sprintf(str,"\"rsustatus\": 1,\n");strJson += str;		//RSU 状态
+	sprintf(str,"\"vplrstatus\": 1,\n");strJson += str;		//车牌识别状态
+	sprintf(str,"\"vehdetectorstatus\": 1,\n");strJson += str;		//车检器状态
+	sprintf(str,"\"classdetectorstatus\": 1,\n");strJson += str;		//车型检测器状态
+	sprintf(str,"\"loaddetectorstatus\": 1,\n");strJson += str;		//载重检测器状态
+	sprintf(str,"\"controlstatusrsu\": 1,\n");strJson += str;		//控制器状态
+	sprintf(str,"\"controlnetwrok\": 1,\n");strJson += str;		//RSU 主备控制器之间的网络连接状态
+	
+    pthread_mutex_lock(&snmpoidMutex);
+	
+	//华为机柜字段
+	//设备信息 
+    strJson = strJson + "\"monequipsoftwareversion\": \"" + HUAWEIDevValue.strhwMonEquipSoftwareVersion.c_str() + "\",\n";	//软件版本
+//    strJson = strJson + "\"monequipmanufacturer\": \"" + HUAWEIDevValue.strhwMonEquipManufacturer.c_str() + "\",\n";	//设备生产商
+    strJson = strJson + "\"cabinettype\": " + StrCabinetType.c_str() + ",\n";	//机柜类型 213
+    strJson = strJson + "\"acbgroupbatvolt\": " + HUAWEIDevValue.strhwAcbGroupBatVolt.c_str() + ",\n";	//锂电电池电压 214
+    strJson = strJson + "\"envtempalarmtraps\": " + HUAWEIDevAlarm.hwEnvTempAlarmTraps.c_str() + ",\n";	//环境温度告警 239
+    strJson = strJson + "\"envhumialarmresumetraps\": " + HUAWEIDevAlarm.hwEnvHumiAlarmTraps.c_str() + ",\n";	//环境湿度告警 240
+    strJson = strJson + "\"dooralarmtraps\": " + HUAWEIDevAlarm.hwDoorAlarmTraps.c_str() + ",\n";	//门禁告警 241
+    strJson = strJson + "\"wateralarmtraps\": " + HUAWEIDevAlarm.hwWaterAlarmTraps.c_str() + ",\n";	//水浸告警 242
+    strJson = strJson + "\"smokealarmtraps\": " + HUAWEIDevAlarm.hwSmokeAlarmTraps.c_str() + ",\n";	//烟雾告警 243
+	//供配电
+	//电源告警
+	sprintf(str,"\"acinputfailalarm\": %d,\n", HUAWEIDevAlarm.hwAcInputFailAlarm.c_str());strJson += str;		 //交流电源输入停电告警
+	sprintf(str,"\"acinputl1failalarm\": %d,\n", HUAWEIDevAlarm.hwAcInputL1FailAlarm.c_str());strJson += str;		 //交流电源输入L1	相缺相告警
+	sprintf(str,"\"acinputl2failalarm\": %d,\n", HUAWEIDevAlarm.hwAcInputL2FailAlarm.c_str());strJson += str;		 //交流电源输入L2	相缺相告警
+	sprintf(str,"\"acinputl3failalarm\": %d,\n", HUAWEIDevAlarm.hwAcInputL3FailAlarm.c_str());strJson += str;		 //交流电源输入L3	相缺相告警
+	sprintf(str,"\"dcvoltalarmtraps\": %d,\n", HUAWEIDevAlarm.hwDcVoltAlarmTraps.c_str());strJson += str;		 //直流电源输出告警
+	sprintf(str,"\"loadlvdalarmtraps\": %d,\n", HUAWEIDevAlarm.hwLoadLvdAlarmTraps.c_str());strJson += str;		 //LLVD1下电告警
+	//锂电池告警
+	sprintf(str,"\"acbgroup_comm_fail_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_comm_fail_alarm.c_str());strJson += str;		 //所有锂电通信失败
+	sprintf(str,"\"acbgroup_discharge_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_discharge_alarm.c_str());strJson += str;		 //电池放电告警
+	sprintf(str,"\"acbgroup_charge_overcurrent_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_charge_overcurrent_alarm.c_str());strJson += str;		 //电池充电过流
+	sprintf(str,"\"acbgroup_temphigh_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_temphigh_alarm.c_str());strJson += str;		 //电池温度高
+	sprintf(str,"\"acbgroup_templow_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_templow_alarm.c_str());strJson += str;		 //电池温度低
+	sprintf(str,"\"acbgroup_poweroff_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_poweroff_alarm.c_str());strJson += str;		 //电池下电
+	sprintf(str,"\"acbgroup_fusebreak_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_fusebreak_alarm.c_str());strJson += str;		 //电池熔丝断
+	sprintf(str,"\"acbgroup_moduleloss_alarm\": %d,\n", HUAWEIDevAlarm.hwAcbGroup_moduleloss_alarm.c_str());strJson += str;		 //模块丢失
+	//防雷器告警
+    strJson = strJson + "\"acspdalarmtraps\": " + HUAWEIDevAlarm.hwACSpdAlarmTraps.c_str() + ",\n";	//交流防雷器故障
+    strJson = strJson + "\"dcspdalarmtraps\": " + HUAWEIDevAlarm.hwDCSpdAlarmTraps.c_str() + ",\n";	//直流防雷器故障
+	//直流空调告警
+    strJson = strJson + "\"air_cond_infan_alarm\": " + HUAWEIDevAlarm.hwair_cond_infan_alarm.c_str() + ",\n";	//空调内风机故障 245
+    strJson = strJson + "\"air_cond_outfan_alarm\": " + HUAWEIDevAlarm.hwair_cond_outfan_alarm.c_str() + ",\n";	//空调外风机故障 246
+    strJson = strJson + "\"air_cond_comp_alarm\": " + HUAWEIDevAlarm.hwair_cond_comp_alarm.c_str() + ",\n";	//空调压缩机故障 247
+    strJson = strJson + "\"air_cond_return_port_sensor_alarm\": " + HUAWEIDevAlarm.hwair_cond_return_port_sensor_alarm.c_str() + ",\n";	//空调回风口传感器故障 248
+    strJson = strJson + "\"air_cond_evap_freezing_alarm\": " + HUAWEIDevAlarm.hwair_cond_evap_freezing_alarm.c_str() + ",\n";	//空调蒸发器冻结 249
+    strJson = strJson + "\"air_cond_freq_high_press_alarm\": " + HUAWEIDevAlarm.hwair_cond_freq_high_press_alarm.c_str() + ",\n";	//空调频繁高压力 250
+    strJson = strJson + "\"air_cond_comm_fail_alarm\": " + HUAWEIDevAlarm.hwair_cond_comm_fail_alarm.c_str() + ",\n";	//空调通信失败告警 251
+    strJson = strJson + "\"ishandle\": 0\n";	//告警处理标记
+
+    pthread_mutex_unlock(&snmpoidMutex);
+	
+	strJson +=	" }\n";
+	strJson +=	" }\n";
+	strJson +=	"}\n\0";
+	
+    mstrjson = strJson;
+    //*len=strJson.length();
+    //memcpy(json,(char*)strJson.c_str(),*len);
+	
+}
+
+
+//17 门架关键设备状态数据-新部标准
+void SetjsongantryRunStatus(char* table, string &mstrjson)
+{
+	char str[100],sDateTime[30];
+	int i,j,vehplatecnt; 
+	static int id=0;
+	
+    time_t nSeconds;
+    struct tm * pTM;
+    
+    time(&nSeconds);
+    pTM = localtime(&nSeconds);
+
+    //系统日期和时间,格式: yyyymmddHHMMSS 
+    sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
+            pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
+            pTM->tm_hour, pTM->tm_min, pTM->tm_sec);	
+
+	std::string strJson,strTable;
+	strTable = table;
+	
+    strJson +=  "{\n";
+    strJson +=  "\"param\": [{\n";
+	strJson +=	"\"action\":\""+ strTable + "\",\n";
+	strJson +=	"\"entity\": {\n";
+	
+	sprintf(str,"%d", id);
+    strJson = strJson + "\"id\":"+ str +",\n";		//状态流水号
+    id++;
+	strJson = strJson + "\"gantryid\": \"" + StrFlagID +"\",\n";			// ETC 门架编号
+	strJson = strJson + "\"time\": \"" + sDateTime + "\",\n";	//状态数据生成时间
+	sprintf(str,"\"otherversion\": \"\",\n");strJson += str;		 //其它参数版本号
+	sprintf(str,"\"rateversion\": \"\",\n");strJson += str;		 //计费模块和计费参数版本号
+	sprintf(str,"\"frontsoftversion\": \"%s\",\n","LT00201907220006000B");strJson += str;		//前端软件版本号
+	sprintf(str,"\"frontsoftstatus\": \"%d\",\n", stuFlagRunStatus->SoftWare);strJson += str;		//前端软件运行状态
+	sprintf(str,"\"frontovertradecount\": -1,\n");strJson += str;		 //前端积压通行流水数
+	sprintf(str,"\"fronttranserrcount\": -1,\n");strJson += str;		 //前端传输异常流水数
+	sprintf(str,"\"frontovervehdatacount\": -1,\n");strJson += str;		 //前端积压牌识流水数
+	sprintf(str,"\"frontoverpiccount\": -1,\n");strJson += str;		 //前端积压牌识图片数
+	sprintf(str,"\"frontcomputerstatus \": \"1\",\n");strJson += str;		 //前端工作主机
+	sprintf(str,"\"fronthardwarestatus\": \"1\",\n");strJson += str;		 //前端硬件资源可用性
+	sprintf(str,"\"frontbizdiskstatus\": \"1\",\n");strJson += str;		 //前端应用盘磁盘使用状态
+	sprintf(str,"\"frontdatadiskstatus\": \"1\",\n");strJson += str;		 //前端数据盘使用状态
+	sprintf(str,"\"backsoftversion\": \"\",\n");strJson += str;		 //后台版本号
+	sprintf(str,"\"backsoftstatus\": \"0\",\n");strJson += str;		 //后台软件运行状态
+	sprintf(str,"\"backovertradecount\": -1,\n");strJson += str;		 //后台积压通行流水数
+	sprintf(str,"\"backtranserrcount\": -1,\n");strJson += str;		 //后台传输异常流水数
+	sprintf(str,"\"backovervehdatacount\": -1,\n");strJson += str;		 //后台积压牌识流水数
+	sprintf(str,"\"backoverpiccount\": -1,\n");strJson += str;		 //后台积压牌识图片数
+
+	sprintf(str,"\"rsustatus\": \"1\",\n");strJson += str;		 //RSU状态
+	sprintf(str,"\"vplrstatus\": \"1\",\n");strJson += str;		 //车牌识别状态
+	strJson +=	" }\n";
+	
+//	sprintf(str,"\"cameracount\": %d,\n",StrVehPlateCount.c_str());strJson += str;		 //车牌图像识别设备数量
+	vehplatecnt=atoi(StrVehPlateCount.c_str());
+	
+//	strJson = strJson + "\"cameraheartbeat\":[\n";		//车牌图像识别设备心跳（数组）
+	for(i=0;i<vehplatecnt;i++)
+	{
+		strJson = strJson + "{\n";
+		strJson +=	"\"action\":\"cameraInfoList\",\n";
+		strJson +=	"\"entity\": {\n";
+	
+		sprintf(str,"\"cameranum\":%d,\n",101+i);strJson+=str;	//相机编号
+		sprintf(str,"\"lanenum\":%d,\n",i+1);strJson+=str;	//车道编号
+		sprintf(str,"\"connectstatus\":%s,\n",mTIPcamState[i].statuscode.c_str());strJson+=str;	//摄相机状态编码 0-正常 1-异常
+		sprintf(str,"\"workstatus\":%s,\n",mTIPcamState[i].statuscode.c_str());strJson+=str;	//工作状态
+		sprintf(str,"\"lightworkstatus\":%s,\n",mTIPcamState[i].filllight.c_str());strJson+=str;	//闪光灯状态 0:正常，1:异常
+		sprintf(str,"\"recognitionrate\":99.99,\n");strJson+=str;	//识别成功率 带两位小数
+		sprintf(str,"\"hardwareversion\":\"\",\n");strJson+=str;	//固件版本
+		sprintf(str,"\"softwareversion\":%s,\n",mTIPcamState[i].softversion.c_str());strJson+=str;	//摄相机的软件版本号
+		sprintf(str,"\"runningtime\":1234,\n");strJson+=str;	//设备从开机到现在的运行时间（秒）
+		sprintf(str,"\"brand\":\"\",\n");strJson+=str;	//摄相机厂商
+		sprintf(str,"\"statuscode\":%s,\n",mTIPcamState[i].errcode.c_str());strJson+=str;	//状态码
+		sprintf(str,"\"statusmsg\":%s,\n",mTIPcamState[i].devicemodel.c_str());strJson+=str;	//状态描述
+			
+		if(i==vehplatecnt-1)
+			strJson = strJson + "}\n";
+		else
+			strJson = strJson + "},\n";
+	}
+
+	strJson = strJson + "]\n";
+	strJson +=	"}\n\0";
+	
+	mstrjson = strJson;
+	//*len=strJson.length();
+	//memcpy(json,(char*)strJson.c_str(),*len);
+	
+}
+
+
+//20 机柜状态数据-新部标准
+void SetjsonCabinetStatus(char* table, string &mstrjson)
+{
+	char str[100],sDateTime[30];
+	int i,j,vehplatecnt; 
+	static int id=0;
+	
+    time_t nSeconds;
+    struct tm * pTM;
+    
+    time(&nSeconds);
+    pTM = localtime(&nSeconds);
+
+    //系统日期和时间,格式: yyyymmddHHMMSS 
+    sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
+            pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
+            pTM->tm_hour, pTM->tm_min, pTM->tm_sec);	
+
+	std::string strJson,strTable;
+	strTable = table;
+	
+    strJson +=  "{\n";
+    strJson +=  "\"param\": {\n";
+	strJson +=	"\"action\":\""+ strTable + "\",\n";
+	strJson +=	"\"entity\": {\n";
+	
+    pthread_mutex_lock(&snmpoidMutex);
+	
+	sprintf(str,"%d", id);
+    strJson = strJson + "\"id\":"+ str +",\n";		//状态流水号
+    id++;
+	strJson = strJson + "\"gantryid\": \"" + StrFlagID +"\",\n";			// ETC 门架编号
+	strJson = strJson + "\"time\": \"" + sDateTime + "\",\n";	//状态数据生成时间
+	strJson = strJson + "\"direction\": \"" + StrDirection +"\",\n";		//行驶方向
+	strJson = strJson + "\"dirdescription\": \"" + StrDirDescription +"\",\n";		//行车方向说明
+	strJson = strJson + "\"vmctrl_ipaddr\": \"" + StrIP.c_str() + "\",\n";	//控制器IP地址 212
+
+	//华为机柜字段
+    strJson = strJson + "\"cabinettype\": " + StrCabinetType.c_str() + ",\n";	//机柜类型 213
+	strJson = strJson + "\"monequipsoftwareversion\": \"" + HUAWEIDevValue.strhwMonEquipSoftwareVersion.c_str() + "\",\n";	//软件版本
+	strJson = strJson + "\"monequipmanufacturer\": \"" + HUAWEIDevValue.strhwMonEquipManufacturer.c_str() + "\",\n";	//设备生产商
+
+	//环境传感器
+	strJson = strJson + "\"envtemperature\": " + HUAWEIDevValue.strhwEnvTemperature[0].c_str() + ",\n";	//环境温度值 228
+	strJson = strJson + "\"envtemperature2\": " + HUAWEIDevValue.strhwEnvTemperature[1].c_str() + ",\n";	//环境温度值 228
+	strJson = strJson + "\"envhumidity\": " + HUAWEIDevValue.strhwEnvHumidity[0].c_str() + ",\n"; //环境湿度值 229
+	strJson = strJson + "\"envhumidity2\": " + HUAWEIDevValue.strhwEnvHumidity[1].c_str() + ",\n";	//环境湿度值 229
+
+	strJson = strJson + "\"setenvtempupperlimit\": " + HUAWEIDevValue.strhwSetEnvTempUpperLimit[0].c_str() + ",\n";	//环境温度告警上限
+	strJson = strJson + "\"setenvtempupperlimit2\": " + HUAWEIDevValue.strhwSetEnvTempUpperLimit[1].c_str() + ",\n";	//环境温度告警上限
+	strJson = strJson + "\"setenvtemplowerlimit\": " + HUAWEIDevValue.strhwSetEnvTempLowerLimit[0].c_str() + ",\n";	//环境温度告警下限
+	strJson = strJson + "\"setenvtemplowerlimit2\": " + HUAWEIDevValue.strhwSetEnvTempLowerLimit[1].c_str() + ",\n";	//环境温度告警下限
+//	strJson = strJson + "\"setenvtempultrahightempthreshold\": " + HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold.c_str() + ",\n";	//环境高高温告警点
+	strJson = strJson + "\"setenvhumidityupperlimit\": " + HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[0].c_str() + ",\n";	//环境湿度告警上限
+	strJson = strJson + "\"setenvhumidityupperlimit2\": " + HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[1].c_str() + ",\n";	//环境湿度告警上限
+	strJson = strJson + "\"setenvhumiditylowerlimit\": " + HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[0].c_str() + ",\n";	//环境湿度告警下限
+	strJson = strJson + "\"setenvhumiditylowerlimit2\": " + HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[1].c_str() + ",\n";	//环境湿度告警下限
+
+	//供配电
+	strJson = strJson + "\"aporablvoltage\": " + HUAWEIDevValue.strhwApOrAblVoltage.c_str() + ",\n";	//A/AB电压 220
+	strJson = strJson + "\"bporbclvoltage\": " + HUAWEIDevValue.strhwBpOrBclVoltage.c_str() + ",\n";	//B/BC电压 221
+	strJson = strJson + "\"cporcalvoltage\": " + HUAWEIDevValue.strhwCpOrCalVoltage.c_str() + ",\n";	//C/CA电压 222
+	strJson = strJson + "\"aphasecurrent\": " + HUAWEIDevValue.strhwAphaseCurrent.c_str() + ",\n";	//A相电流 223
+	strJson = strJson + "\"bphasecurrent\": " + HUAWEIDevValue.strhwBphaseCurrent.c_str() + ",\n";	//B相电流 224
+	strJson = strJson + "\"cphasecurrent\": " + HUAWEIDevValue.strhwCphaseCurrent.c_str() + ",\n";	//C相电流 225
+	strJson = strJson + "\"dcoutputvoltage\": " + HUAWEIDevValue.strhwDcOutputVoltage.c_str() + ",\n";	//DC输出电压 226
+	strJson = strJson + "\"dcoutputcurrent\": " + HUAWEIDevValue.strhwDcOutputCurrent.c_str() + ",\n";	//DC输出电流 227
+	strJson = strJson + "\"setacsuppervoltlimit\": " + HUAWEIDevValue.strhwSetAcsUpperVoltLimit.c_str() + ",\n";	//AC过压点设置
+	strJson = strJson + "\"setacslowervoltlimit\": " + HUAWEIDevValue.strhwSetAcsLowerVoltLimit.c_str() + ",\n";	//AC欠压点设置
+	strJson = strJson + "\"setdcsuppervoltlimit\": " + HUAWEIDevValue.strhwSetDcsUpperVoltLimit.c_str() + ",\n";	//设置DC过压点
+	strJson = strJson + "\"setdcslowervoltlimit\": " + HUAWEIDevValue.strhwSetDcsLowerVoltLimit.c_str() + ",\n";	//设置DC欠压点
+	strJson = strJson + "\"setlvdvoltage\": " + HUAWEIDevValue.strhwSetLvdVoltage.c_str() + ",\n";	//设置LVD电压
+
+	//电池参数
+	strJson = strJson + "\"acbgroupbatvolt\": " + HUAWEIDevValue.strhwAcbGroupBatVolt.c_str() + ",\n";	//锂电电池电压 214
+	strJson = strJson + "\"acbgroupbatcurr\": " + HUAWEIDevValue.strhwAcbGroupBatCurr.c_str() + ",\n";	//锂电电池电流 215
+	strJson = strJson + "\"acbgrouptotalcapacity\": " + HUAWEIDevValue.strhwAcbGroupTotalCapacity.c_str() + ",\n";	//锂电电池总容量 216
+	strJson = strJson + "\"acbgrouptotalremaincapacity\": " + HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str() + ",\n";	//锂电电池剩余容量 217
+	strJson = strJson + "\"acbgroupbackuptime\": " + HUAWEIDevValue.strhwAcbGroupBackupTime.c_str() + ",\n";	//电池备电时长 218
+	strJson = strJson + "\"acbgroupbatsoh\": " + HUAWEIDevValue.strhwAcbGroupBatSoh.c_str() + ",\n";	//电池SOH 219
+	strJson = strJson + "\"acbgrouptemperature\": " + HUAWEIDevValue.strhwAcbGroupTemperature.c_str() + ",\n";	//电池温度
+	strJson = strJson + "\"acbgroupovercurthr\": " + HUAWEIDevValue.strhwAcbGroupOverCurThr.c_str() + ",\n";	//充电过流告警点
+	strJson = strJson + "\"acbgrouphightempthr\": " + HUAWEIDevValue.strhwAcbGroupHighTempThr.c_str() + ",\n";	//高温告警点
+	strJson = strJson + "\"acbgrouplowtempth\": " + HUAWEIDevValue.strhwAcbGroupLowTempTh.c_str() + ",\n";	//低温告警点
+	strJson = strJson + "\"acbgroupdodtoacidbattery\": " + HUAWEIDevValue.strhwAcbGroupDodToAcidBattery.c_str() + ",\n";	//锂电放电DOD
+
+	//直流空调状态信息
+	strJson = strJson + "\"dcairctrlmode\": " + HUAWEIDevValue.strhwDcAirCtrlMode[0].c_str() + ",\n"; //空调控制模式 230
+	strJson = strJson + "\"dcairctrlmode2\": " + HUAWEIDevValue.strhwDcAirCtrlMode[1].c_str() + ",\n";	//空调控制模式 230
+	strJson = strJson + "\"dcairrunstatus\": " + HUAWEIDevValue.strhwDcAirRunStatus[0].c_str() + ",\n";	//空调运行状态 231
+	strJson = strJson + "\"dcairrunstatus2\": " + HUAWEIDevValue.strhwDcAirRunStatus[1].c_str() + ",\n";	//空调运行状态 231
+	strJson = strJson + "\"dcaircompressorrunstatus\": " + HUAWEIDevValue.strhwDcAirCompressorRunStatus[0].c_str() + ",\n";	//空调压缩机运行状态 232
+	strJson = strJson + "\"dcaircompressorrunstatus2\": " + HUAWEIDevValue.strhwDcAirCompressorRunStatus[1].c_str() + ",\n";	//空调压缩机运行状态 232
+	strJson = strJson + "\"dcairinnrfanspeed\": " + HUAWEIDevValue.strhwDcAirInnrFanSpeed[0].c_str() + ",\n"; //空调内机转速 233
+	strJson = strJson + "\"dcairinnrfanspeed2\": " + HUAWEIDevValue.strhwDcAirInnrFanSpeed[1].c_str() + ",\n";	//空调内机转速 233
+	strJson = strJson + "\"dcairouterfanspeed\": " + HUAWEIDevValue.strhwDcAirOuterFanSpeed[0].c_str() + ",\n";	//空调外风机转速 234
+	strJson = strJson + "\"dcairouterfanspeed2\": " + HUAWEIDevValue.strhwDcAirOuterFanSpeed[1].c_str() + ",\n";	//空调外风机转速 234
+	strJson = strJson + "\"dcaircompressorruntime\": " + HUAWEIDevValue.strhwDcAirCompressorRunTime[0].c_str() + ",\n";	//空调压缩机运行时间 235
+	strJson = strJson + "\"dcaircompressorruntime2\": " + HUAWEIDevValue.strhwDcAirCompressorRunTime[1].c_str() + ",\n";	//空调压缩机运行时间 235
+	strJson = strJson + "\"dcairenterchanneltemp\": " + HUAWEIDevValue.strhwDcAirEnterChannelTemp[0].c_str() + ",\n"; //空调回风口温度 236
+	strJson = strJson + "\"dcairenterchanneltemp2\": " + HUAWEIDevValue.strhwDcAirEnterChannelTemp[1].c_str() + ",\n";	//空调回风口温度 236
+	strJson = strJson + "\"dcairpowerontemppoint\": " + HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0].c_str() + ",\n"; //空调开机温度点 237
+	strJson = strJson + "\"dcairpowerontemppoint2\": " + HUAWEIDevValue.strhwDcAirPowerOnTempPoint[1].c_str() + ",\n";	//空调开机温度点 237
+	strJson = strJson + "\"dcairpowerofftemppoint\": " + HUAWEIDevValue.strhwDcAirPowerOffTempPoint[0].c_str() + ",\n";	//空调关机温度点 238
+	strJson = strJson + "\"dcairpowerofftemppoint2\": " + HUAWEIDevValue.strhwDcAirPowerOffTempPoint[1].c_str() + ",\n";	//空调关机温度点 238
+	strJson = strJson + "\"hwdcairruntime\": " + HUAWEIDevValue.strhwDcAirRunTime[0].c_str() + ",\n";	//空调运行时间
+	strJson = strJson + "\"hwdcairruntime2\": " + HUAWEIDevValue.strhwDcAirRunTime[1].c_str() + ",\n";	//空调运行时间
+	strJson = strJson + "\"hwcoolingdevicesmode\": " + HUAWEIDevValue.strhwCoolingDevicesMode.c_str() + ",\n";	//温控模式
+
+	
+
+	//防火墙状态信息
+	if(HUAWEIDevValue.strhwEntityCpuUsage=="2147483647")
+		strJson = strJson + "\"entitycpuucheck\": 1,\n";	//状态检测 异常
+	else
+		strJson = strJson + "\"entitycpuucheck\": 0,\n";	//状态检测 正常
+	strJson = strJson + "\"entitycpuusage\": " + HUAWEIDevValue.strhwEntityCpuUsage.c_str() + ",\n";	//CPU 
+	strJson = strJson + "\"entitymemusage\": " + HUAWEIDevValue.strhwEntityMemUsage.c_str() + ",\n";	//内存使用率
+	strJson = strJson + "\"entitytemperature\": " + HUAWEIDevValue.strhwEntityTemperature.c_str() + ",\n";	//温度
+	//交换机状态信息
+	if(HUAWEIDevValue.strhwswitchEntityCpuUsage=="2147483647")
+		strJson = strJson + "\"switchentitycpucheck\": 1,\n";	//状态检测 异常
+	else
+		strJson = strJson + "\"switchentitycpucheck\": 0,\n";	//状态检测 异常
+	strJson = strJson + "\"switchentitycpuusage\": " + HUAWEIDevValue.strhwswitchEntityCpuUsage.c_str() + ",\n";	//CPU 
+	strJson = strJson + "\"switchentitymemusage\": " + HUAWEIDevValue.strhwswitchEntityMemUsage.c_str() + ",\n";	//内存使用率
+	strJson = strJson + "\"switchentitytemperature\": " + HUAWEIDevValue.strhwswitchEntityTemperature.c_str() + "\n";	//温度
+	
+	pthread_mutex_unlock(&snmpoidMutex);
+	
+	strJson +=	" }\n";
+	strJson +=	" }\n";
+	strJson +=	"}\n\0";
+	
+	mstrjson = strJson;
+	//*len=strJson.length();
+	//memcpy(json,(char*)strJson.c_str(),*len);
+	
+}
+
 void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &mstrjson)
 {
 	char str[100],sDateTime[30];
@@ -2516,8 +2929,8 @@ void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &m
     strJson +=  "{\n";
 	sprintf(str,"\"messagetype\":%d,\n",messagetype); strJson = strJson + str;//消息类型
 	strJson = strJson + "\"vmctrl_ipaddr\":\""+ StrIP +"\",\n";	//IP地址
-	strJson = strJson + "\"flagroadid\":"+ StrFlagRoadID +",\n";		// ETC 门架路段编号
-	strJson = strJson + "\"flagid\": " + StrFlagID +",\n";			// ETC 门架编号
+	strJson = strJson + "\"flagroadid\":\""+ StrFlagRoadID +"\",\n";		// ETC 门架路段编号
+	strJson = strJson + "\"flagid\": \"" + StrFlagID +"\",\n";			// ETC 门架编号
 	strJson = strJson + "\"opttime\": \"" + sDateTime + "\",\n";	//时间
 	strJson = strJson + "\"cabinettype\":"+ StrCabinetType +",\n";	//机柜类型
 	for (i = 0; i < LOCK_MAX_NUM; i++)

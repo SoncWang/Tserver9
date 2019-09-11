@@ -50,6 +50,7 @@ string StrHWSetPasswd;	//SNMP SET 密码
 string StrServerURL1;	//服务端URL1
 string StrServerURL2;	//服务端URL2
 string StrServerURL3;	//服务端URL3
+string StrServerURL4;	//服务端URL4
 string StrStationURL;	//虚拟站端URL
 string StrRSUCount;	//RSU数量
 string StrRSUIP[RSUCTL_NUM];	//RSU控制器IP地址
@@ -67,7 +68,7 @@ char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
 string StrdeviceType="LTKJ-VMCTRL-101";	//设备型号
-string StrVersionNo="V1.00.03" ;	//主程序版本号
+string StrVersionNo="V0.14.02" ;	//主程序版本号
 string StrSoftDate="2019-07-01" ;	//版本日期
 
 string StrCabinetType;		//机柜类型
@@ -90,6 +91,7 @@ string StrIPSwitchCount;	//交换机数量
 string StrIPSwitchIP[IPSWITCH_NUM] ;//交换机IP
 string StrIPSwitchGetPasswd[IPSWITCH_NUM] ;//交换机get密码
 string StrIPSwitchSetPasswd[IPSWITCH_NUM] ;//交换机set密码
+string StrDoCount;//do数量
 
 extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 extern string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
@@ -155,6 +157,7 @@ int GetConfig(void)
 	StrServerURL1 = "";		//服务端URL1
 	StrServerURL2 = "";		//服务端URL2
 	StrServerURL3 = "";		//服务端URL3
+	StrServerURL4 = "";		//服务端URL4
 	StrStationURL = "";		//虚拟站端URL
 	StrRSUCount = ""; 		//RSU数量
 	for(i=0;i<RSUCTL_NUM;i++)
@@ -219,6 +222,7 @@ int GetConfig(void)
 	{
 		StrAdrrPower[i] = "" ;			//电源板的地址
 	}
+	StrDoCount="";						//DO 数量
 	
     ConfigCri.Lock();
     //read config
@@ -241,11 +245,15 @@ int GetConfig(void)
     if((ipfd=fopen("/home/root/net/netconfig", "rb"))==NULL)
     {
         printf("read config erro\r\n");
-        ConfigCri.UnLock();
-        return 1;
+        //ConfigCri.UnLock();
+        //return 1;
     }
-    fread(stripbuf,1,1500,ipfd);
-    fclose(ipfd);
+    else
+    {
+        fread(stripbuf,1,1500,ipfd);
+        fclose(ipfd);
+    }
+
 
     FILE* ipfd2 ;
     if((ipfd2=fopen("/home/root/net/netconfig2", "rb"))==NULL)
@@ -293,18 +301,18 @@ int GetConfig(void)
 
 
 //  netconfig2 读取
-    string StrIpConfig2 = stripbuf2;
-    Strkey = "IP=";
-    StrIP2 = getstring(StrIpConfig2,Strkey) ;
+	string StrIpConfig2 = stripbuf2;
+	Strkey = "IP2=";
+	StrIP2 = getstring(StrIpConfig2,Strkey) ;
 
-    Strkey = "Mask=";
-    StrMask2 = getstring(StrIpConfig2,Strkey) ;
+	Strkey = "Mask2=";
+	StrMask2 = getstring(StrIpConfig2,Strkey) ;
 
-    Strkey = "Gateway=";
-    StrGateway2 = getstring(StrIpConfig2,Strkey) ;
+	Strkey = "Gateway2=";
+	StrGateway2 = getstring(StrIpConfig2,Strkey) ;
 
-    Strkey = "DNS=";
-    StrDNS2 = getstring(StrIpConfig2,Strkey) ;
+	Strkey = "DNS2=";
+	StrDNS2 = getstring(StrIpConfig2,Strkey) ;
 
  //end    netconfig2 读取
 
@@ -329,6 +337,9 @@ int GetConfig(void)
 
     Strkey = "ServerURL3=";
     StrServerURL3 = getstring(StrConfig,Strkey) ;
+
+    Strkey = "ServerURL4=";
+    StrServerURL4 = getstring(StrConfig,Strkey);
 
     Strkey = "StationURL=";
     StrStationURL = getstring(StrConfig,Strkey) ;//虚拟站端URL
@@ -460,6 +471,9 @@ int GetConfig(void)
 		StrAdrrPower[i] = getstring(StrConfig,key);
 	}
 
+    Strkey = "DO_Count=";
+    StrDoCount = getstring(StrConfig,Strkey) ;//DO数量
+	
 	//DO映射设备，最大支持36路DO
 	//车牌识别映射DO
 	j=0;

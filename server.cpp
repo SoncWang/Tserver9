@@ -88,6 +88,7 @@ extern string StrHWSetPasswd;	//SNMP SET 密码
 extern string StrServerURL1;	//服务端URL1
 extern string StrServerURL2;	//服务端URL2
 extern string StrServerURL3;	//服务端URL3
+extern string StrServerURL4;	//服务端URL4
 extern string StrStationURL;	//虚拟站端URL
 extern string StrRSUCount;	//RSU数量
 extern string StrRSUIP[RSUCTL_NUM];	//RSUIP地址
@@ -108,6 +109,7 @@ extern string StrIPSwitchCount;	//交换机数量
 extern string StrIPSwitchIP[IPSWITCH_NUM] ;//交换机IP
 extern string StrIPSwitchGetPasswd[IPSWITCH_NUM] ;//交换机get密码
 extern string StrIPSwitchSetPasswd[IPSWITCH_NUM] ;//交换机set密码
+extern string StrDoCount;//do数量
 extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 
 extern string StrCabinetType;		//机柜类型
@@ -122,6 +124,7 @@ extern int Writeconfig(void);
 extern int Setconfig(string StrKEY,string StrSetconfig);
 extern bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl);
 extern bool jsonComputerReader(char* jsonstr, int len);
+extern UINT16 SendCom3Test(char *buf,int len);
 
 pthread_mutex_t PostGetMutex ;
 
@@ -196,6 +199,7 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	StrServerURL1=vmctrl_param->ServerURL1;		//
 	StrServerURL2=vmctrl_param->ServerURL2;//
 	StrServerURL3=vmctrl_param->ServerURL3;				//
+	StrServerURL4=vmctrl_param->ServerURL4;				//
 	StrStationURL=vmctrl_param->StationURL;		//
 	StrRSUCount=vmctrl_param->RSUCount;		//RSU数量
 	rsucnt=atoi(vmctrl_param->RSUCount);
@@ -244,6 +248,7 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	}
 	for(i=0;i<POWER_BD_NUM;i++)
 		StrAdrrPower[i]=vmctrl_param->PowerAddr[i];		//电源板地址
+	StrDoCount=vmctrl_param->DoCount;			//do数量
 	for(i=0;i<SWITCH_COUNT;i++)
 	{
 		StrDeviceNameSeq[i]=vmctrl_param->DeviceNameSeq[i];		//设备名称的配置
@@ -266,6 +271,7 @@ void SetConfig(VMCONTROL_PARAM *vmctrl_param)
 	Setconfig("ServerURL1=",vmctrl_param->ServerURL1);
 	Setconfig("ServerURL2=",vmctrl_param->ServerURL2);
 	Setconfig("ServerURL3=",vmctrl_param->ServerURL3);
+	Setconfig("ServerURL4=",vmctrl_param->ServerURL4);
 	Setconfig("StationURL=",vmctrl_param->StationURL);
 	Setconfig("RSUCount=",vmctrl_param->RSUCount);
 	for(i=0;i<RSUCTL_NUM;i++)
@@ -365,6 +371,7 @@ void GetConfig(VMCONTROL_PARAM *vmctrl_param)
 	sprintf(vmctrl_param->ServerURL1 ,StrServerURL1.c_str());
 	sprintf(vmctrl_param->ServerURL2 ,StrServerURL2.c_str());
 	sprintf(vmctrl_param->ServerURL3 ,StrServerURL3.c_str());
+	sprintf(vmctrl_param->ServerURL4 ,StrServerURL4.c_str());
 	sprintf(vmctrl_param->StationURL ,StrStationURL.c_str());
 	sprintf(vmctrl_param->RSUCount ,StrRSUCount.c_str());
 	for(i=0;i<RSUCTL_NUM;i++)
@@ -407,6 +414,7 @@ void GetConfig(VMCONTROL_PARAM *vmctrl_param)
 		sprintf(vmctrl_param->VameterAddr[i] ,StrAdrrVAMeter[i].c_str());	//电能表地址
 	for(int i=0;i<POWER_BD_NUM;i++)
 		sprintf(vmctrl_param->PowerAddr[i] ,StrAdrrPower[i].c_str());	//电源板地址
+	sprintf(vmctrl_param->DoCount ,StrDoCount.c_str());//do数量
 	for(int i=0;i<SWITCH_COUNT;i++)
 	{
 		sprintf(vmctrl_param->DeviceNameSeq[i] ,StrDeviceNameSeq[i].c_str());	//设备名称的配置
@@ -726,7 +734,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			break;
 
-		case NETCMD_NETWORK: 			//2 设置网络
+/*		case NETCMD_NETWORK: 			//2 设置网络
 			if(pCMD->status==SFLAG_READ)
 			{
 				printf("Get IP Addr\n");
@@ -763,7 +771,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = 0;
 				system("reboot") ;
 			}
-			break;
+			break;*/
 		case NETCMD_REBOOT: 			//4 重启设备指令
 			pCMD->datalen = 0;
 			printf("System Reboot\n");
@@ -889,11 +897,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				printf("NETCMD_SEND_DEV_PARAM write param = %s length=%d \n",pCMD->data,pCMD->datalen);
 				memset(pRecvBuf,0,JSON_LEN);
 				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
-				jsonstrVmCtlParamReader(pRecvBuf,pCMD->datalen,(UINT8*)&vmctrl_param,(UINT8*)&ipinfo);//将json字符串转换成结构体
-//				SetConfig(&vmctrl_param);
-				//SetConfig(&vmctrl_param);
-				//重新读设置文件
-				//GetConfig();
+				jsonstrVmCtlParamReader(pRecvBuf,pCMD->datalen,(UINT8*)&vmctrl_param);//将json字符串转换成结构体
 				sprintf(pCMD->data,"执行命令->执行成功!\n");
 				pCMD->datalen = strlen(pCMD->data);
 			}
@@ -945,6 +949,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			{
 				SetjsonIPSwitchStatusStr(pCMD->cmd,mstrdata);
                 memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
+printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
 				pCMD->datalen = mstrdata.size();
 			}
 			break;
@@ -999,6 +1004,15 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
 				jsonstrRCtrlReader(pRecvBuf,pCMD->datalen,(UINT8 *)pRCtrl);//将json字符串转换成结构体
 				RemoteControl((UINT8*)pRCtrl);
+				sprintf(pCMD->data,"执行命令->执行成功!\n");
+				pCMD->datalen = strlen(pCMD->data);
+			}
+			break;
+		case NETCMD_TEST_485:			//100 测试485
+			if(pCMD->status==SFLAG_WRITE)
+			{
+				SendCom3Test(pCMD->data,pCMD->datalen);
+				printf("NETCMD_TEST_485 %s\n",pCMD->data);
 				sprintf(pCMD->data,"执行命令->执行成功!\n");
 				pCMD->datalen = strlen(pCMD->data);
 			}
@@ -1406,12 +1420,22 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 while(1)
 	 {
  
-		 SetjsonTableStr("flagrunstatus", mStrdata);
-		 if(StrServerURL1.length()>0)
+//		 SetjsonTableStr("flagrunstatus", mStrdata);
+		if(StrServerURL1.length()>0)
+		{
+			mStrdata = "";
+			//20 机柜状态数据
+		 	SetjsonCabinetStatus("CABINETINFOUPLOAD", mStrdata);
 			HttpPostParm(StrServerURL1,mStrdata,mstrkey,HTTPPOST);
- 
-		 sleep(300);
- // 	 sleep(1);
+			
+			mStrdata = "";
+			//17 门架关键设备状态数据
+		 	SetjsongantryRunStatus("gantryRunStatus", mStrdata);
+printf("LTKJ_DataPostthread gantryRunStatus=\n%s\n",mStrdata.c_str());
+			HttpPostParm(StrServerURL1,mStrdata,mstrkey,HTTPPOST);
+		}
+//		 sleep(300);
+  	 	sleep(10);
 	 }
  
 	 return 0 ;

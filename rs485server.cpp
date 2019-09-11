@@ -49,12 +49,12 @@ static UINT32 last_card = 0;
 //UINT8 actual_locker_num = 0;
 extern string StrServerURL1;	//服务端URL1
 extern string StrServerURL2;	//服务端URL2
+extern string StrServerURL4;	//服务端URL4
 
 extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_MAX_NUM];	//门锁状态结构体
 extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_NUM];		//伏安表电压电流结构体
 extern REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
 extern VMCONTROL_PARAM *stuVMCtl_Param;	//采集器设备信息结构体
-
 
 string StrAdrrLock[LOCK_MAX_NUM];	//门锁1的地址
 
@@ -241,6 +241,13 @@ void char_to_int(UINT8* buffer,UINT16* value)
 	int_value.b[0] = *(buffer + 1);
 	*value = int_value.i;
 }
+
+int SendPowerVerReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
+{
+	UINT16 reval;
+	reval = SendCom4ReadReg(Addr, Func, REFS_ADDR, REFS_COUNT);
+	return reval;
+}
 /**********依赖的通用运算函数完毕************************************************/
 /********************************************************************************/
 
@@ -276,16 +283,6 @@ int SendPowerReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT
 	reval = SendCom4ReadReg(Addr, Func, REFS_ADDR, REFS_COUNT);
 	return reval;
 }
-
-
-int SendPowerVerReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
-{
-	UINT16 reval;
-	reval = SendCom4ReadReg(Addr, Func, REFS_ADDR, REFS_COUNT);
-	return reval;
-}
-
-
 
 /**********接口函数定义完毕****************************************************************/
 /******************************************************************************************/
@@ -454,7 +451,6 @@ int Dev_polling_process(UINT32 *pcomm_flag)
 	}
 	return 1;
 }
-
 
 /*电源控制板的版本号轮询*/
 int Ver_polling_process(UINT16 *pver_flag)
@@ -670,6 +666,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 	string jsonstr;
     string mstrkey = ""; //没有用户名和密码：则为“”；
 	REMOTE_CONTROL *pRCtrl;
+	int ret;
 
 	if((len == (LOCKER_REG_NUM*2+5)))
 	{
@@ -727,21 +724,31 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 		SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,card_read,addr,jsonstr);
 		printf("DealLockerMsg jsonstr=%s\n" ,jsonstr.c_str());
 		NetSendParm(NETCMD_DEAL_LOCKER, (char*)jsonstr.c_str(), jsonstr.length());
-		if(StrServerURL1.length()>0)			//上报利通后台
+		if(StrServerURL4.length()>0)			//上报利通后台
 		{
-		   HttpPostParm(StrServerURL1,jsonstr,mstrkey,HTTPGET);
-		   pRCtrl=stuRemote_Ctrl;
-		   memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
-		   jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
-		   RemoteControl((UINT8*)pRCtrl);
+		   ret=HttpPostParm(StrServerURL4,jsonstr,mstrkey,HTTPPOST);
+		   if(ret)
+		   {
+			   pRCtrl=stuRemote_Ctrl;
+			   memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+			   jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+			   RemoteControl((UINT8*)pRCtrl);
+		   }
+		   else
+		   		printf("LTKJ HttpPostParm error, ret=%d\n",ret);
 		}
 		if(StrServerURL2.length()>0)			//上报新粤后台
 		{
-		   HttpPostParm(StrServerURL2,jsonstr,mstrkey,HTTPGET);
-		   pRCtrl=stuRemote_Ctrl;
-		   memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
-		   jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
-		   RemoteControl((UINT8*)pRCtrl);
+		   ret=HttpPostParm(StrServerURL2,jsonstr,mstrkey,HTTPPOST);
+		   if(ret)
+		   {
+			   pRCtrl=stuRemote_Ctrl;
+			   memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+			   jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+			   RemoteControl((UINT8*)pRCtrl);
+		   }
+		   else
+				printf("XY HttpPostParm error, ret=%d\n",ret);
 		}
 	}
 /*	for (j=0;j<CARD_NUM;j++)
@@ -837,6 +844,7 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 	}
 }
 
+
 /******************************************************************************
  * 函数名:	comm_VerData_analyse
  * 描述: 		装置信息的读取
@@ -877,7 +885,6 @@ void comm_VerData_analyse(unsigned char *buf,unsigned short int len,unsigned cha
 		printf("%s",stuVMCtl_Param->secSoftVersion[addr_base]);
 	}
 }
-
 
 
 int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq)
@@ -935,4 +942,5 @@ void rs485init(void)
 	/*开机读一次版本信息*/
 	power_ver_flag |=BITS_MSK_GET(0,POWER_BD_RD_NUM);
 }
+
 

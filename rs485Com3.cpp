@@ -66,6 +66,8 @@ void *ComPort3Thread(void *param)
    {
       	len = read(mComPort3->fd, buf+buffPos, 256);
 	  	buffPos = buffPos+len;
+//printf("ComPort3Thread len=%d\r\n",len) ;
+//int i ;for(i=0;i<buffPos;i++)printf("0x%02x ",buf[i]);printf("\r\n");
 	  	if(buffPos<5) continue;
 
 	  	//CRC
@@ -82,6 +84,7 @@ void *ComPort3Thread(void *param)
 	  	/*debug the information*/
 	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
+//		NetSendParm(NETCMD_TEST_485,(char*)buf,buffPos);//测试485
 	  	DealComm485(buf, buffPos,RS485_1);
 	  	buffPos=0;
 
@@ -146,6 +149,25 @@ int SendCom3ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
     Com3SendCri.UnLock();
 	usleep(5000);	//delay 5ms
 	return 0 ;
+}
+
+UINT16 SendCom3Test(char *buf,int len)
+{
+    Com3SendCri.Lock();
+    UINT8 i,j,bytSend[128];
+
+	memcpy(bytSend,buf,len);
+	//CRC
+    unsigned short int CRC = CRC16(bytSend,len);
+    bytSend[len] = (CRC&0xFF00) >> 8;     //CRC
+    bytSend[len+1] =  CRC&0x00FF;           //CRC
+    printf("SendCom3Test data:");
+	for(j=0;j<len+2;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+
+	mComPort3->SendBuf(bytSend,len+2);
+    Com3SendCri.UnLock();
+	usleep(5000);//delay 5ms
+	return 0;
 }
 
 

@@ -11,8 +11,7 @@
 #define CMD_WRITE			0x82
 #define CMD_READ			0x83
 // 数据变量的地址先定义为0xDFF0, 是IP地址, 加上门架号,4个字,从0xDFEC~0xDFEF
-// 温度1 ->0xDFE8,2->0xDFE9,湿度1->0xDFEA,湿度2->0xDFEB
-#define VAR_REG_ADD			0xDFE8
+#define VAR_REG_ADD			0xDFEC
 #define TIME_REG_ADD		0x0010
 
 

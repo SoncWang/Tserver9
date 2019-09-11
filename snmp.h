@@ -207,19 +207,28 @@ typedef struct
 typedef struct
 {
 	string hwEnvTempAlarmTraps;		//高温/低温/高高温告警
+    string hwEnvTempAlarmTraps2;		//高温/低温/高高温告警
 	string hwEnvHumiAlarmTraps;		//高湿/低湿告警
+    string hwEnvHumiAlarmTraps2;		//高湿/低湿告警
 	string hwSpareDigitalAlarmTraps;	//输入干接点告警
 	string hwDoorAlarmTraps;		//门禁告警
 	string hwWaterAlarmTraps;		//水浸告警
 	string hwSmokeAlarmTraps;		//烟感告警
 
 	string hwair_cond_infan_alarm;	//空调内风机故障
+    string hwair_cond_infan_alarm2;	//空调内风机故障
 	string hwair_cond_outfan_alarm;	//空调外风机故障
+    string hwair_cond_outfan_alarm2;//空调外风机故障
 	string hwair_cond_comp_alarm;	//空调压缩机故障
+    string hwair_cond_comp_alarm2;	//空调压缩机故障
 	string hwair_cond_return_port_sensor_alarm;	//空调回风口传感器故障
+    string hwair_cond_return_port_sensor_alarm2;//空调回风口传感器故障
 	string hwair_cond_evap_freezing_alarm;		//空调蒸发器冻结
+    string hwair_cond_evap_freezing_alarm2;		//空调蒸发器冻结
 	string hwair_cond_freq_high_press_alarm;	//空调频繁高压力
+    string hwair_cond_freq_high_press_alarm2;	//空调频繁高压力
 	string hwair_cond_comm_fail_alarm;			//空调通信失败告警
+    string hwair_cond_comm_fail_alarm2;			//空调通信失败告警
 
 	//新增加告警
 	string hwACSpdAlarmTraps;					//交流防雷器故障
@@ -265,7 +274,7 @@ typedef struct
 int SendHUAWEIsnmp(EM_HUAWEIGantry mEM_HUAWEIGantry);
 int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue,int mIndex);
 void UpdataHUAWEIGantryStr(char* mstr,int len,EM_HUAWEIGantry mIntHUAWEIGantry);
-void DealAlarm(string Stroid,int AlarmID);
+void DealAlarm(string Stroid,int AlarmID,int mgetIndex);
 int GetAlarmID(char* sp);
 
 #endif
