@@ -413,8 +413,8 @@ void cominit(void)
 	//SetSystemTime("2017-08-30 17:03:00");
 	mComPort2 = new CComPort();
 
-	/*不用*/
-	mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttymxc2",115200) ;//9100 To TouchScreen
+	/*改用串口1,原因是外壳接错了*/
+	mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttymxc1",115200) ;//9100 To TouchScreen
 	if(mComPort2->fd>0)
 		printf("ComPort2 open secess! %d\r\n",mComPort2->fd);
 	else
