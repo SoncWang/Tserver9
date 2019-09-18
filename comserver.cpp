@@ -131,10 +131,12 @@ unsigned long long IDgetFromConfig(void)
 // 读取门架号
 unsigned long long GetFlagID(void)
 {
+	const char *pid = NULL;
 	unsigned long long flagIDSaved;	// 64位长度存ID
 
+	pid = StrFlagID.c_str();
 	/*不能用atoi和atol，它们最大只能转换长整型,超出的会返回0x7FFFFFFF*/
-	flagIDSaved = (unsigned long long)strtod(StrFlagID.c_str(),NULL);
+	flagIDSaved = (unsigned long long)strtod(pid+1,NULL);
 	return flagIDSaved;
 }
 
