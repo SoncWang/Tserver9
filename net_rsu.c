@@ -16,7 +16,7 @@
 #include "net_rsu.h"
 #define NETWORK_FILE "/opt/config"
 #define CRC_16_POLYNOMIALS 0x8408
-int num;//输入的数据
+/*****************B9帧数据跟RSU监控，9.18修改connect失败问题*****************************/
 int rsctl_all=0x10;
 static int sockfd_rsu; 
 extern RSUCONTROLER stuRsuControl;	//RSU控制器状态
@@ -25,6 +25,8 @@ extern RSU_RESET stuRsuReset;			//天线软件复位状态结构体
 extern char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 extern char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
+
+extern void WriteLog(char* str);
 static void* NetWork_server_thread_RSU(void *arg);
 void myprintf(char* str);
 //***B9（心跳包）数据帧解析****
@@ -36,6 +38,7 @@ unsigned short CRC16_pc(unsigned char* pchMsg, unsigned short wDataLen) // 1. MS
     unsigned char i, chChar;
     unsigned short wCRC = 0xffff;
 	printf("crc_data is:");
+WriteLog("crc_data is:");
     while (wDataLen--)
     {
         chChar = *pchMsg++;  
@@ -53,6 +56,9 @@ unsigned short CRC16_pc(unsigned char* pchMsg, unsigned short wDataLen) // 1. MS
     }
 	wCRC = (~wCRC) & 0xFFFF;
     printf("crc is %x\n",wCRC);
+char str[128];
+sprintf(str,"crc is %x\n",wCRC);
+WriteLog(str);
     return wCRC;
 	
 }
@@ -140,6 +146,13 @@ void send_RSU(char command,bool ReSend,char state,int num)
 	{
 		printf("%x-",send_buff[i]);
 	}
+char str[10*1024];
+WriteLog("sent_rsu data:");
+for(i=0;i<buff_len;i++)
+{
+	sprintf(str,"%x-",send_buff[i]);
+	WriteLog(str);
+}
 	printf("\n");
 	write(sockfd_rsu,send_buff,buff_len);
 }
@@ -152,6 +165,7 @@ static char* getNetworkInfo(char *maches)	//读取配置文件的内容
 	if((fp=fopen(NETWORK_FILE, "r"))==NULL)             //判断文件是否为空
    	{
         	printf( "Can 't   open   file!\n"); 
+WriteLog( "Can 't   open   file!\n"); 
 		return 0;
     	}
 	while(fgets(szBuf,128,fp))                         //从文件开关开始向下读，把读到的内容放到szBuf中
@@ -190,46 +204,24 @@ void *GetRSUInofthread(void *param)
 
 	return 0 ;
 }
-
-void init_net_rsu()
+int obtain_net()
 {
-	pthread_t tNetwork_server_RSU;
-	if (pthread_create(&tNetwork_server_RSU, NULL, NetWork_server_thread_RSU,NULL)) 
-	{
-		printf("NetWork server create failed!\n");
-	}
-	pthread_detach(tNetwork_server_RSU);
-	
-	pthread_t tGetRSUInof;
-//	pthread_create(&tGetRSUInof, NULL, GetRSUInofthread,NULL); 
-}
-static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
-{
-	int i,j,temp;
+	char str[10*1024];
 	const char *IPaddress;
 	const char * IPport;
-	int port,nlen;
-	unsigned char buf[128];
+	int port;
 	struct sockaddr_in server_addr; 
-	memset(buf,0,sizeof(buf));
-	unsigned short crc_rsu;
-	int bFlag=0;
-//	struct FlagRunStatus_struct RSU_data;
-
-//	struct control_S data1;
-//	struct RSU_data_init data2;
-//	struct RSU_reset data3;
-	//struct AntennaInfoN[8] data2[8];
-//	memset(&data1,0,sizeof(data1));
 	if( (sockfd_rsu = socket(AF_INET, SOCK_STREAM, 0)) == -1 )  
 	{   
-    	myprintf ("ERROR: Failed to obtain RSU Socket Despcritor.\n");
-    	return (0);
-	} else {
-    	myprintf ("OK: Obtain RSU Socket Despcritor sucessfully.\n");
+    		printf ("ERROR: Failed to obtain RSU Socket Despcritor.\n");
+		WriteLog("Socket_RSU error!\n");
+    		return (0);
+	} 
+	else 
+	{
+    		printf ("OK: Obtain RSU Socket Despcritor sucessfully.\n");
+		WriteLog("Socket_RSU sucessfully.\n");
 	}
-//	IPaddress = getNetworkInfo("RSUIP");//获取配置文件中的IP地址
-//	IPport=getNetworkInfo("RSUPort");
 	IPaddress = gsRSUIP[0];//获取配置文件中的IP地址
 	IPport=gsRSUPort[0];
 	port=atoi(IPport);
@@ -239,24 +231,66 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 	server_addr.sin_addr.s_addr  = inet_addr (IPaddress);  	// AutoFill local address
 	memset (server_addr.sin_zero,0,8);          		// Flush the rest of struct
 //侯林汝写的侦听服务器-天线的数据代码
-printf("IPaddress=%s,IPport=%s\n",IPaddress,IPport);
+	printf("IPaddress=%s,IPport=%s\n",IPaddress,IPport);
+	sprintf(str,"IPaddress=%s,IPport=%s\n",IPaddress,IPport);
+	WriteLog(str);
 	if (connect(sockfd_rsu, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-    {
-		myprintf("connect to RSU server error!\n");
+   	 {
+		printf("connect to RSU server refused!\n");
+		WriteLog("connect to RSU server refused!\n");
+		close(sockfd_rsu);
+		return (0);
 	}
 	else
 	{
-		myprintf("connect to RSU server sucess!\n");
-		//读取配置0xc0
-//		send_RSU(0xC0,false,0,1);
-	while(1)
+		printf("connect to RSU server sucess!\n");
+		WriteLog("connect to RSU server sucess!\n");
+		return(1);
+	}
+}
+void init_net_rsu()
+{
+	pthread_t tNetwork_server_RSU;
+	if (pthread_create(&tNetwork_server_RSU, NULL, NetWork_server_thread_RSU,NULL)) 
 	{
-		memset(buf,0,sizeof(buf));
-		nlen = read(sockfd_rsu, buf, sizeof(buf)-1);
-		if (nlen <= 0)
+		printf("NetWork server create failed!\n");
+		WriteLog("NetWork server create failed!\n");
+	}
+	pthread_detach(tNetwork_server_RSU);
+	
+	pthread_t tGetRSUInof; 
+//	pthread_create(&tGetRSUInof, NULL, GetRSUInofthread,NULL); 
+}
+static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
+{
+	char str[10*1024];
+	int i,j,temp;
+	int port,nlen;
+	unsigned char buf[128];
+	struct sockaddr_in server_addr; 
+	memset(buf,0,sizeof(buf));
+	unsigned short crc_rsu;
+	int bFlag=0;
+	while((temp=obtain_net())==0)
+	{
+		printf("connect _rsu error\n");
+		WriteLog("IN NETWORK_Server_thread connect _rsu error!\n");
+		obtain_net();
+	}
+	while(1)
 		{
-			printf("read message error\n");
-		} 
+			memset(buf,0,sizeof(buf));
+			nlen = read(sockfd_rsu, buf, sizeof(buf)-1);
+			if (nlen <= 0)
+			{
+				while((temp=obtain_net())==0)
+				{
+					printf("nlen is %d connect _rsu error\n",nlen);
+					sprintf(str,"nlen is %d connect _rsu error\n",nlen);
+					WriteLog(str);
+					obtain_net();
+				}				
+			} 
 		else
 		{
 			printf("read %d byte data from the server:",nlen);//接收到B9帧数据，解析第十一字节（天线数量）十二字节*4（天线状态）				
@@ -265,6 +299,13 @@ printf("IPaddress=%s,IPport=%s\n",IPaddress,IPport);
 				printf("%x-",buf[i]);
 			}
 			printf("\n");
+sprintf(str,"read %d byte data from the server:",nlen);
+WriteLog(str);
+for(i=0;i<nlen;i++)
+{
+	sprintf(str,"%x-",buf[i]);
+	WriteLog(str);
+}
 			crc_rsu=CRC16_pc(buf+2,nlen-4);
 			if(buf[8]==0xb9&&buf[nlen-2]==((crc_rsu&0xff00)>>8)&&buf[nlen-1]==(crc_rsu&0x00ff)&&buf[0]==0xff)
 			{	
@@ -274,6 +315,8 @@ printf("IPaddress=%s,IPport=%s\n",IPaddress,IPport);
 				if(temp>8)
 				{
 					printf("RSU ControlCount = %d error!\n",temp);
+sprintf(str,"RSU ControlCount = %d error!\n",temp);
+WriteLog(str);
 					continue;
 				}
 				for(i=0;i<temp;i++)
@@ -282,6 +325,8 @@ printf("IPaddress=%s,IPport=%s\n",IPaddress,IPport);
 				if(stuRsuControl.AntennaCount>8)
 				{
 					printf("RSU AntennaCount = %d error!\n",stuRsuControl.AntennaCount);
+sprintf(str,"RSU AntennaCount = %d error!\n",stuRsuControl.AntennaCount);
+WriteLog(str);
 					continue;
 				}
 				for(j=0;j<stuRsuControl.AntennaCount;j++)
@@ -333,7 +378,7 @@ printf("IPaddress=%s,IPport=%s\n",IPaddress,IPport);
 		}
 		sleep(2);
 	}
-}	
+//}	
 }// 接收天线数据结束
 
 

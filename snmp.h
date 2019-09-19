@@ -249,6 +249,14 @@ typedef struct
 	string hwAcbGroup_poweroff_alarm;		//电池下电
 	string hwAcbGroup_fusebreak_alarm;		//电池熔丝断
 	string hwAcbGroup_moduleloss_alarm;		//模块丢失
+
+    //单个锂电池告警
+    string hwAcbCom_Failure[4];		        //锂电通信失败
+    string hwAcbHeater_Fault_alarm[4];		//加热器故障
+    string hwAcbBoard_Hardware_Fault_alarm[4];	//单板故障
+    string hwAcbLow_Temp_Protection_alarm[4];		//低温保护
+
+
 }THUAWEIALARM;
 
 

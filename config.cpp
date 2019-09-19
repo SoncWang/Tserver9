@@ -68,8 +68,8 @@ char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
 string StrdeviceType="LTKJ-VMCTRL-101";	//设备型号
-string StrVersionNo="V0.14.02" ;	//主程序版本号
-string StrSoftDate="2019-07-01" ;	//版本日期
+string StrVersionNo="00.14.06" ;	//主程序版本号
+string StrSoftDate="2019-09-17" ;	//版本日期
 
 string StrCabinetType;		//机柜类型
 string StrFlagNetRoadID;	//ETC 门架路网编号
@@ -130,7 +130,7 @@ string getstring(string str,string strkey)
 int GetConfig(void)
 {
     int i,j,vehplatecnt,rsucnt;
-	char key[128],devicename[128];
+	char key[128],value[10],devicename[128];
 	char *strbuf; 
 	string strvalue;
 	int isize;
@@ -302,16 +302,16 @@ int GetConfig(void)
 
 //  netconfig2 读取
 	string StrIpConfig2 = stripbuf2;
-	Strkey = "IP2=";
+	Strkey = "IP=";
 	StrIP2 = getstring(StrIpConfig2,Strkey) ;
 
-	Strkey = "Mask2=";
+	Strkey = "Mask=";
 	StrMask2 = getstring(StrIpConfig2,Strkey) ;
 
-	Strkey = "Gateway2=";
+	Strkey = "Gateway=";
 	StrGateway2 = getstring(StrIpConfig2,Strkey) ;
 
-	Strkey = "DNS2=";
+	Strkey = "DNS=";
 	StrDNS2 = getstring(StrIpConfig2,Strkey) ;
 
  //end    netconfig2 读取
@@ -346,7 +346,20 @@ int GetConfig(void)
 
     Strkey = "RSUCount=";
     StrRSUCount = getstring(StrConfig,Strkey) ;//RSU数量
+    if(StrRSUCount=="")
+		StrRSUCount="0";
 	rsucnt=atoi(StrRSUCount.c_str());
+	if(rsucnt>RSUCTL_NUM)
+	{
+		sprintf(value,"%d", RSUCTL_NUM) ;
+		StrRSUCount=value;
+		rsucnt=RSUCTL_NUM;
+	}
+	else if(rsucnt<0)
+	{
+		StrRSUCount="0";
+		rsucnt=0;
+	}
 
 	for(i=0;i<rsucnt;i++)
 	{
@@ -362,8 +375,20 @@ int GetConfig(void)
 	
     Strkey = "VehPlateCount=";
     StrVehPlateCount = getstring(StrConfig,Strkey) ;//识别仪数量
+    if(StrVehPlateCount=="")
+		StrVehPlateCount="0";
 	vehplatecnt=atoi(StrVehPlateCount.c_str());
-	
+	if(vehplatecnt>VEHPLATE_NUM)
+	{
+		sprintf(value,"%d", VEHPLATE_NUM) ;
+		StrVehPlateCount=value;
+		vehplatecnt=VEHPLATE_NUM;
+	}
+	else if(vehplatecnt<0)
+	{
+		StrVehPlateCount="0";
+		vehplatecnt=0;
+	}
 	for(i=0;i<vehplatecnt;i++)
 	{
 		sprintf(key,"VehPlate%dIP=",i+1);
@@ -378,6 +403,15 @@ int GetConfig(void)
     
     Strkey = "CAMCount=";
     StrCAMCount = getstring(StrConfig,Strkey) ;//监控摄像头数量
+    if(StrCAMCount=="")
+		StrCAMCount="0";
+	if(atoi(StrCAMCount.c_str())>CAM_NUM)
+	{
+		sprintf(value,"%d", CAM_NUM) ;
+		StrCAMCount=value;
+	}
+	else if(atoi(StrCAMCount.c_str())<0)
+		StrCAMCount="0";
 	for(i=0;i<CAM_NUM;i++)
 	{
 		sprintf(key,"CAM%dIP=",i+1);
@@ -396,6 +430,15 @@ int GetConfig(void)
     //防火墙配置
     Strkey = "FireWareCount=";
     StrFireWareCount = getstring(StrConfig,Strkey) ;//防火墙数量
+    if(StrFireWareCount=="")
+		StrFireWareCount="0";
+	if(atoi(StrFireWareCount.c_str())>FIREWARE_NUM)
+	{
+		sprintf(value,"%d", FIREWARE_NUM) ;
+		StrFireWareCount=value;
+	}
+	else if(atoi(StrFireWareCount.c_str())<0)
+		StrFireWareCount="0";
 	for(i=0;i<FIREWARE_NUM;i++)
 	{
 		sprintf(key,"FireWare%dIP=",i+1);
@@ -410,6 +453,15 @@ int GetConfig(void)
     //交换机配置
     Strkey = "SwitchCount=";
     StrIPSwitchCount = getstring(StrConfig,Strkey) ;//防火墙数量
+    if(StrIPSwitchCount=="")
+		StrIPSwitchCount="0";
+	if(atoi(StrIPSwitchCount.c_str())>IPSWITCH_NUM)
+	{
+		sprintf(value,"%d", IPSWITCH_NUM) ;
+		StrIPSwitchCount=value;
+	}
+	else if(atoi(StrIPSwitchCount.c_str())<0)
+		StrIPSwitchCount="0";
 	for(i=0;i<IPSWITCH_NUM;i++)
 	{
 		sprintf(key,"Switch%dIP=",i+1);
@@ -473,6 +525,11 @@ int GetConfig(void)
 
     Strkey = "DO_Count=";
     StrDoCount = getstring(StrConfig,Strkey) ;//DO数量
+	if(atoi(StrDoCount.c_str())>SWITCH_COUNT)
+	{
+		sprintf(value,"%d", SWITCH_COUNT) ;
+		StrDoCount=value;
+	}
 	
 	//DO映射设备，最大支持36路DO
 	//车牌识别映射DO
@@ -582,9 +639,9 @@ int GetConfig(void)
 	}
 	for (i = j; i < SWITCH_COUNT; i++)		//默认DO
 	{
-		sprintf(key,"do%d_do",i);
+		sprintf(key,"do%d_do",i+1);
 		StrDeviceNameSeq[i]=key; //设备名
-		sprintf(key,"%d",i);
+		sprintf(key,"%d",i+1);
 		StrDoSeq[i] = key; 	//对应DO
 	}
 /*for (i = 0; i < SWITCH_COUNT; i++)

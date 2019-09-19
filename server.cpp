@@ -127,7 +127,8 @@ extern bool jsonComputerReader(char* jsonstr, int len);
 extern UINT16 SendCom3Test(char *buf,int len);
 
 pthread_mutex_t PostGetMutex ;
-
+pthread_mutex_t litdataMutex ;
+extern int litdataTime ;
 
 void SetIPinfo(IPInfo *ipInfo)
 {
@@ -949,7 +950,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			{
 				SetjsonIPSwitchStatusStr(pCMD->cmd,mstrdata);
                 memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
-printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
+				//printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
 				pCMD->datalen = mstrdata.size();
 			}
 			break;
@@ -1008,15 +1009,58 @@ printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
 				pCMD->datalen = strlen(pCMD->data);
 			}
 			break;
-		case NETCMD_TEST_485:			//100 测试485
+		case NETCMD_SEND_FIREWALL_INFO:			//23 防火墙状态
+			if(pCMD->status==SFLAG_READ)
+			{
+				SetjsonFireWallStatusStr(pCMD->cmd,mstrdata);
+				memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
+				//printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
+				pCMD->datalen = mstrdata.size();
+			}
+			break;
+		case NETCMD_TEST_NEST: 		//200 测试嵌套
+			if(pCMD->status==SFLAG_READ)
+			{
+				GetConfig(&vmctrl_param);
+				memset(jsonPack,0,JSON_LEN);
+				jsonPackLen=0;
+				jsonStrVMCtlParamWriterXY(pCMD->cmd,(char*)&vmctrl_param,jsonPack,&jsonPackLen);
+				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
+				pCMD->datalen = jsonPackLen;
+			}
+			break;
+/*		case NETCMD_TEST_485:			//100 测试485
 			if(pCMD->status==SFLAG_WRITE)
 			{
-				SendCom3Test(pCMD->data,pCMD->datalen);
-				printf("NETCMD_TEST_485 %s\n",pCMD->data);
+				testFlag |= LBIT(RS485_1_T);
+				//SendCom3Test(pCMD->data,pCMD->datalen);
+				printf("485_TEST_BEGIN\n");
 				sprintf(pCMD->data,"执行命令->执行成功!\n");
 				pCMD->datalen = strlen(pCMD->data);
 			}
 			break;
+		case NETCMD_TEST_232_1: 		//101 测试232-1
+			if(pCMD->status==SFLAG_WRITE)
+			{
+				testFlag |= LBIT(RS232_2T);
+				printf("232-1_TEST_BEGIN\n");
+				//SendCom3Test(pCMD->data,pCMD->datalen);
+				//printf("NETCMD_TEST_485 %s\n",pCMD->data);
+				sprintf(pCMD->data,"执行命令->执行成功!\n");
+				pCMD->datalen = strlen(pCMD->data);
+			}
+			break;
+		case NETCMD_TEST_232_2: 		//101 测试232-1
+			if(pCMD->status==SFLAG_WRITE)
+			{
+				testFlag |= LBIT(RS232_1T);
+				printf("232-2_TEST_BEGIN\n");
+				//SendCom3Test(pCMD->data,pCMD->datalen);
+				//printf("NETCMD_TEST_485 %s\n",pCMD->data);
+				sprintf(pCMD->data,"执行命令->执行成功!\n");
+				pCMD->datalen = strlen(pCMD->data);
+			}
+			break;*/
 		default:
 			break;
 
@@ -1182,37 +1226,37 @@ printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
 	  }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_UNLOCK)					 //开锁
 	 {
- printf("FrontDoorCtrl ACT_UNLOCK");	 
+		 printf("FrontDoorCtrl ACT_UNLOCK");	 
 		 locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_LOCK) 				 //关锁
 	 {
- printf("FrontDoorCtrl ACT_LOCK");	 
+		 printf("FrontDoorCtrl ACT_LOCK");	 
 		 locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->BackDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
- printf("BackDoorCtrl ACT_UNLOCK");  
+		 printf("BackDoorCtrl ACT_UNLOCK");  
 		 locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->BackDoorCtrl==ACT_LOCK)					 //关锁
 	 {
- printf("BackDoorCtrl ACT_LOCK") ;
+		 printf("BackDoorCtrl ACT_LOCK") ;
 		 locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
- printf("SideDoorCtrl ACT_UNLOCK");  
+		 printf("SideDoorCtrl ACT_UNLOCK");  
 		 locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_UNLOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_LOCK)					 //关锁
 	 {
- printf("SideDoorCtrl ACT_LOCK"); 
+ 		 printf("SideDoorCtrl ACT_LOCK"); 
 		 locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_LOCK);
 		 usleep(2000);
 	 }
@@ -1301,11 +1345,14 @@ printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
          SnmpSetOid(hwCoolingDevicesMode,value,1);
 	 }
 	 //空调开机温度点		 255:保持； -20-80（有效）；45(缺省值)
-     if(pstuRCtrl->hwdcairpowerontemppoint[i]!=ACT_HOLD_FF) 		 
+	 for(i=0;i<2;i++)
 	 {
-         sprintf(value,"%d",pstuRCtrl->hwdcairpowerontemppoint[i]);
-         printf("RemoteControl 空调开机温度点%d=%s\n",value);
-         SnmpSetOid(hwDcAirPowerOnTempPoint,value,i+1);
+	     if(pstuRCtrl->hwdcairpowerontemppoint[i]!=ACT_HOLD_FF) 		 
+		 {
+	         sprintf(value,"%d",pstuRCtrl->hwdcairpowerontemppoint[i]);
+	         printf("RemoteControl 空调开机温度点%d=%s\n",value);
+	         SnmpSetOid(hwDcAirPowerOnTempPoint,value,i+1);
+		 }
 	 }
 	 //空调关机温度点		   255:保持； -20-80（有效）；37(缺省值)
 	 for(i=0;i<2;i++)
@@ -1369,6 +1416,7 @@ printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
 		 }
 		 if(pstuRCtrl->doseq[i]==ACT_SOFTWARERST)	 //软件重启
 		 {
+		 	 //摄像机重启
 			 for(j=0;j<atoi(StrVehPlateCount.c_str());j++)
 			 {
 				 sprintf(dev,"vehplate%d_do",j+1);
@@ -1377,6 +1425,18 @@ printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
 				 {
 					 printf("do%d  reboot %s\n",i,dev);
 					 RebootIpCam(j);
+				 }
+			 }
+			 //RSU控制器重启
+			 for(j=0;j<atoi(StrRSUCount.c_str());j++)
+			 {
+				 sprintf(dev,"rsu%d_do",j+1);
+				 StrDev=dev;
+				 if(StrDeviceNameSeq[i]==StrDev)
+				 {
+					 printf("do%d  reboot %s\n",i,dev);
+					 //重启天线0x1d
+					 send_RSU(0x1D,false,0,0);
 				 }
 			 }
 			 pstuRCtrl->doseq[i]==ACT_HOLD;
@@ -1413,36 +1473,52 @@ printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
 	 pthread_create(&m_HTTP_DataGetthread,NULL,HTTP_DataGetthread,NULL);
  }
  
- void *LTKJ_DataPostthread(void *param)
- {
-	 string mStrdata;
-	 string mstrkey = ""; //没有用户名和密码：则为“”；
-	 while(1)
-	 {
+  void *LTKJ_DataPostthread(void *param)
+  {
+	  string mStrdata;
+	  string mstrkey = ""; //没有用户名和密码：则为“”；
+	  int ret = 0 ;
+	  while(1)
+	  {
+  
+ // 	  SetjsonTableStr("flagrunstatus", mStrdata);
+		 if(StrServerURL1.length()>0)
+		 {
+			 mStrdata = "";
+			 //原20 /(新部标准2.3)机柜状态数据
+			 SetjsonCabinetStatus("CABINETINFOUPLOAD", mStrdata);
+			 //printf("LTKJ_DataPostthread CABINETINFOUPLOAD=\n%s\n",mStrdata.c_str());
+			 ret = HttpPostParm(StrServerURL1,mStrdata,mstrkey,HTTPPOST);
+			 if(ret == 1)
+			 {
+				 pthread_mutex_lock(&litdataMutex);
+				 litdataTime = 0;
+				 pthread_mutex_unlock(&litdataMutex);
+			 }
+			 
+			 mStrdata = "";
+			 //原17/(新部标准2.1) 门架关键设备状态数据
+			 SetjsongantryRunStatus("gantryRunStatus", mStrdata);
+			 printf("LTKJ_DataPostthread gantryRunStatus=\n%s\n",mStrdata.c_str());
+			 ret = HttpPostParm(StrServerURL1+"batch",mStrdata,mstrkey,HTTPPOST);
+			 if(ret == 1)
+			 {
+				 pthread_mutex_lock(&litdataMutex);
+				 litdataTime = 0;
+				 pthread_mutex_unlock(&litdataMutex);
+			 }
  
-//		 SetjsonTableStr("flagrunstatus", mStrdata);
-		if(StrServerURL1.length()>0)
-		{
-			mStrdata = "";
-			//20 机柜状态数据
-		 	SetjsonCabinetStatus("CABINETINFOUPLOAD", mStrdata);
-			HttpPostParm(StrServerURL1,mStrdata,mstrkey,HTTPPOST);
-			
-			mStrdata = "";
-			//17 门架关键设备状态数据
-		 	SetjsongantryRunStatus("gantryRunStatus", mStrdata);
-printf("LTKJ_DataPostthread gantryRunStatus=\n%s\n",mStrdata.c_str());
-			HttpPostParm(StrServerURL1,mStrdata,mstrkey,HTTPPOST);
-		}
-//		 sleep(300);
-  	 	sleep(10);
-	 }
- 
-	 return 0 ;
- }
+		 }
+ // 	  sleep(300);
+		 sleep(10);
+	  }
+  
+	  return 0 ;
+  }
  
  void init_LTKJ_DataPost()
  {
+	 pthread_mutex_init(&litdataMutex,NULL);
 	 pthread_t m_LTKJ_DataPostthread ;
 	 pthread_create(&m_LTKJ_DataPostthread,NULL,LTKJ_DataPostthread,NULL);
  }

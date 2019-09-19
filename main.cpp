@@ -11,10 +11,12 @@
 #include <sys/stat.h>
 #include "rs485server.h"
 #include "config.h"
-
+#include <pthread.h>
 #include "main.h"
 
 #define WDT "/dev/watchdog"
+
+#define DEFAULT_MIBDIRS "$HOME/.snmp/mibs:/usr/share/snmp/mibs:/opt/xr/9100dll/net-snmp-5.8/install/share/snmp/mibs/"
 
 using namespace std;
 
@@ -43,6 +45,13 @@ extern void initHUAWEIALARM();
 void WriteLog(char* str);
 
 int WDTfd = -1;
+
+int snmpdataTime = 0;
+int litdataTime = 0;
+extern pthread_mutex_t snmpdataMutex ;
+extern pthread_mutex_t litdataMutex ;
+pthread_mutex_t updataRebootMutex ;
+extern pthread_mutex_t uprebootMutex ;
 
 void WatchDogInit(void)
 {
@@ -315,6 +324,13 @@ int main(void)
 	memset(&stuRsuControl,0,sizeof(RSUCONTROLER)); 
 	for(j=0;j<8;j++)
 		memset(&stuRsuControl.ControlStatusN,0,sizeof(AntennaInfoN_n));
+/*	for(j=0;j<12;j++)
+	{
+		memset(&stuRsuControl.Psam1,0,sizeof(PSAM1_S));//控制器1,PSAM卡状态
+		memset(&stuRsuControl.Psam2,0,sizeof(PSAM2_S));//控制器2,PSAM卡状态
+	}
+//	for(j=0;j<8;j++)
+//		memset(&stuRsuControl.ControlStatusN,0,sizeof(AntennaInfoN_n));*/
 	//初始化RSU设备信息结构体
 	memset(&stuRsuData,0,sizeof(RSU_DATA_INIT)); 
 	for(j=0;j<8;j++)
@@ -329,36 +345,37 @@ int main(void)
 	stuAirCondWrite = (AIRCOND_PARAM*)malloc(sizeof(AIRCOND_PARAM));
 	memset(stuAirCondWrite,0,sizeof(AIRCOND_PARAM));
 
+	write(WDTfd, "\0", 1);
 	//初始化串口232
 	cominit();
 	//初始化串口485
 	rs485init();
-
+	write(WDTfd, "\0", 1);
 	//初始化http服务端
 	HttpInit();
 	usleep(500000); //delay 500ms
-
+	write(WDTfd, "\0", 1);
 	//初始化服务器线程
 	initServer();
 	usleep(500000); //delay 500ms
-	
+	write(WDTfd, "\0", 1);
 	//初始化RSU
 	init_net_rsu();
 	usleep(500000); //delay 500ms
-	
+	write(WDTfd, "\0", 1);
 	//初始化RSU
-    snmpInit();
-    usleep(100000); //delay 100ms
-
+	snmpInit();
+	usleep(100000); //delay 100ms
+	write(WDTfd, "\0", 1);
 
 	//初始化定时取工控机状态线程
-	init_HTTP_DataGet();
-	usleep(100000); //delay 100ms
+//	init_HTTP_DataGet();
+//	usleep(100000); //delay 100ms
 
 	//初始化利通定时推送线程
 	init_LTKJ_DataPost();
 	usleep(100000); //delay 100ms
-
+	write(WDTfd, "\0", 1);
 	//初始化新粤定时推送线程(取消)，新粤改为主动取数据方式
 //	init_XY_DataPost();
 //	usleep(100000); //delay 100ms
@@ -366,16 +383,46 @@ int main(void)
 	//初始化socket定时推送线程(推送给小槟)
 	init_SocketNetSend();
 	usleep(100000); //delay 100ms
-
-    //初始化获取摄像头状态
-    IpCamServerInit();
-
-    //处理重启
+	write(WDTfd, "\0", 1);
+	//初始化获取摄像头状态
+	IpCamServerInit();
+	write(WDTfd, "\0", 1);
+	//处理重启
 	init_DealDoReset();
     while(1)
     {
         write(WDTfd, "\0", 1);
 		sleep(5);
+		
+        //判断snmp 获取机柜是否有数据返回 120分钟
+        pthread_mutex_lock(&snmpdataMutex);
+        if(++ snmpdataTime > 12*120)
+        {
+            pthread_mutex_unlock(&snmpdataMutex);
+            //判断是否正在远程升级
+            pthread_mutex_lock(&uprebootMutex);
+            system("reboot") ;
+            pthread_mutex_unlock(&uprebootMutex);
+        }
+        else
+        {
+            pthread_mutex_unlock(&snmpdataMutex);
+        }
+
+        //判断http 推送数据给路段站级服务器是否有返回 120分钟
+        pthread_mutex_lock(&litdataMutex);
+        if(++ litdataTime > 12*120)
+        {
+            pthread_mutex_unlock(&litdataMutex);
+            //判断是否正在远程升级
+            pthread_mutex_lock(&uprebootMutex);
+            system("reboot") ;
+            pthread_mutex_unlock(&uprebootMutex);
+        }
+        else
+        {
+            pthread_mutex_unlock(&litdataMutex);
+        }
     }
 
 	return 0;

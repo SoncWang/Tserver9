@@ -24,6 +24,8 @@ extern void WriteLog(char* str);
 extern unsigned int hwAirAddrbuf[2];
 //温适度地址
 extern unsigned int hwTemAddrbuf[2];
+//电池地址
+extern unsigned int hwAcbAddrbuf[10] ;
 
 /************************************************************************
 ** 
@@ -49,14 +51,17 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
     int getDevAddr = 0 ;
     int getIndex = 0;
     string getStroid = "";
+    //string getstradd = "";
     Stroid = "";
 
     //.1.3.6.1.4.1.2011.6.164.1.1.2.100.1.2.9354
     string StrAlarmID = ".1.3.6.1.4.1.2011.6.164.1.1.2.100.1.2" ;
-    string StrAirDevAddr = ".1.3.6.1.4.1.2011.6.164.1.10.2.2.1" ;
-    string StrTemDevAddr = ".1.3.6.1.4.1.2011.6.164.1.28.1.1" ;
+    string StrAirDevAddr = ".1.3.6.1.4.1.2011.6.164.1.10.2.2.1.2" ;
+    string StrTemDevAddr = ".1.3.6.1.4.1.2011.6.164.1.28.1.1.2" ;
+    string StrAcbAddr = ".1.3.6.1.4.1.2011.6.164.1.18.1.1.2";//锂电池地址
 	for(vars = pdu->variables; vars; vars = vars->next_variable) 
 	{
+        getStroid = "";
         printf("oididex: ");
         for(i=0; i<vars->name_length; i++)
         {
@@ -64,47 +69,60 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
                 break;
             printf(".%d", *(vars->name_loc+i));
 
-            getStroid = "";
+
             memset(oidbuf,0,20);
             sprintf(oidbuf,".%d", *(vars->name_loc+i));
             Strgetid = oidbuf;
-            getStroid = getStroid + Strgetid;
-
+            if(i+1<vars->name_length)
+               getStroid = getStroid + Strgetid;
+            //if(i+3 == vars->name_length)
+               // getstradd = getStroid ;
             getIndex = *(vars->name_loc+i) ;
         }
-
-
-        if(getStroid.find(StrAlarmID) >=0 )
+        printf("\r\n");
+        //printf("getStroid=%s,getstradd=%s,getIndex=%d\r\n",getStroid.c_str(),getstradd.c_str(),getIndex);
+        if(getStroid == StrAlarmID)
         {
             //获取告警ID
             getAlarmID = getIndex ;
+            printf("告警ID:%d\r\n",getAlarmID);
         }
-        else if(getStroid.find(StrAirDevAddr) >=0 )
+        if(getStroid == StrAirDevAddr)
         {
             //空调设备地址
             getDevAddr = getIndex ;
+            printf("空调设备地址:%d\r\n",getIndex);
         }
-        else if(getStroid.find(StrTemDevAddr) >=0 )
+        if(getStroid == StrTemDevAddr)
         {
             //环境温湿度地址
             getDevAddr = getIndex ;
+            printf("环境温湿度地址:%d\r\n",getIndex);
+        }
+        if(getStroid == StrAcbAddr)
+        {
+            //锂电池地址
+            getDevAddr = getIndex ;
+            printf("锂电池地址:%d\r\n",getIndex);
         }
 
 
 
 
-		if (vars->type == ASN_OCTET_STR) 
+        /*if (vars->type == ASN_OCTET_STR)
 		{
 			char *sp = (char *)malloc(1 + vars->val_len);
 			memcpy(sp, vars->val.string, vars->val_len);
 			sp[vars->val_len] = '\0';
 			printf("value #%d is a string: %s\n", count, sp);
 
-			AlarmID=GetAlarmID(sp);
+            //AlarmID=GetAlarmID(sp);
 
 			free(sp);
 		}
-		else if(vars->type == ASN_OBJECT_ID)
+        else
+            */
+        if(vars->type == ASN_OBJECT_ID)
 		{
 
 			printf("value #%d is a oid: ", count);
@@ -128,22 +146,22 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 
 		     
 		}
-		else
+        /*else
 		{
 			unsigned int IntegerValue = *(vars->val.integer) ;
 			printf("value #%d is a integer: %d\n", count, IntegerValue);
 		}
-		
+        */
 		count++;
 	}
-
-    DealAlarm(Stroid,getAlarmID,getIndex);
+    //printf("Stroid=%s,getAlarmID=%d,getDevAddr=%d\r\n",Stroid.c_str(),getAlarmID,getDevAddr);
+    DealAlarm(Stroid,getAlarmID,getDevAddr);
 	
 	string mstrjson;
 	string mstrkey = "";
 //	SetjsonTableStr("flagrunstatusalarm",mstrjson);
 	SetjsonLTAlarmTableStr("cabinetAlarmUpload",mstrjson);
-printf("SetjsonLTAlarmTableStr \n%s\n",mstrjson.c_str());
+    //printf("SetjsonLTAlarmTableStr \n%s\n",mstrjson.c_str());
 	if(StrServerURL1!="")
 		HttpPostParm(StrServerURL1,mstrjson,mstrkey,HTTPPOST);
 	
@@ -273,6 +291,7 @@ static void snmptrapd_main_loop(void)
 ************************************************************************/
 void *snmptrapthread(void *param)
 {
+    sleep(5);
 
 	netsnmp_session *sess_list = NULL, *ss = NULL;
 	netsnmp_transport *transport = NULL;
@@ -412,8 +431,10 @@ void *snmptrapthread(void *param)
 
 void initHUAWEIALARM()
 {
-	HUAWEIDevAlarm.hwEnvTempAlarmTraps="0";		//高温/低温告警
-	HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";		//高湿/低湿告警
+	HUAWEIDevAlarm.hwEnvTempAlarmTraps="0";		//设备柜高温/低温告警
+	HUAWEIDevAlarm.hwEnvTempAlarmTraps2="0";		//电池柜高温/低温告警
+	HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";		//设备柜高湿/低湿告警
+	HUAWEIDevAlarm.hwEnvHumiAlarmTraps2="0";		//电池柜高湿/低湿告警
 	HUAWEIDevAlarm.hwSpareDigitalAlarmTraps="0";	//输入干接点告警
 	HUAWEIDevAlarm.hwDoorAlarmTraps="0";		//门禁告警
 	HUAWEIDevAlarm.hwWaterAlarmTraps="0";		//水浸告警
@@ -463,277 +484,577 @@ void DealAlarm(string Stroid,int AlarmID,int mgetIndex)
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.14.0.1") == 0)//环境传感器
 	{
 		if(AlarmID==17452)//高温告警
-        {
+		{printf("高温告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+            {
               HUAWEIDevAlarm.hwEnvTempAlarmTraps2="1";
+			  printf("电池柜高温告警\n");
+            }
             else
+            {
               HUAWEIDevAlarm.hwEnvTempAlarmTraps="1";
+			  printf("设备柜高温告警\n");
+			}
         }
 		if(AlarmID==17453)//低温告警
-        {
+		{printf("低温告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwEnvTempAlarmTraps2="2";
+			  printf("电池柜低温告警\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwEnvTempAlarmTraps="2";
+			  printf("设备柜低温告警\n");
+			}
         }
 		if(AlarmID==17455)//高湿告警
-        {
+		{printf("高湿告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps2="1";
+			  printf("电池柜高湿告警\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps="1";
+			  printf("设备柜高湿告警\n");
+			}
         }
 		if(AlarmID==17456)//低湿告警
-        {
+		{printf("低湿告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps2="2";
+			  printf("电池柜低湿告警\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps="2";
+			  printf("设备柜低湿告警\n");
+			}
         }
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.14.0.2") == 0)
 	{
 		if(AlarmID==17452)//高温告警恢复
-        {
+		{printf("高温告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwEnvTempAlarmTraps2="0";
+			  printf("电池柜高温告警恢复\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwEnvTempAlarmTraps="0";
+			  printf("设备柜高温告警恢复\n");
+			}
         }
-		if(AlarmID==17453)//高温告警恢复
-        {
+		if(AlarmID==17453)//低温告警恢复
+		{printf("低温告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwEnvTempAlarmTraps2="0";
+			  printf("电池柜低温告警恢复\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwEnvTempAlarmTraps="0";
+			  printf("设备柜低温告警恢复\n");
+			}
         }
 		if(AlarmID==17455)//高湿告警恢复
-        {
+		{printf("高湿告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps2="0";
+			  printf("电池柜高湿告警恢复\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";
+			  printf("设备柜高湿告警恢复\n");
+			}
         }
 		if(AlarmID==17456)//低湿告警恢复
-        {
+		{printf("低湿告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwTemAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps2="0";
+			  printf("电池柜低湿告警恢复\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";
+			  printf("设备柜低湿告警恢复\n");
+			}
         }
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.31") == 0)//门禁告警
+	{
+		printf("门禁告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwDoorAlarmTraps="1";
+	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.32") == 0)//门禁告警恢复
+	{
+		printf("门禁告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwDoorAlarmTraps="0";
+	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.33") == 0)//水浸告警
+	{
+		printf("水浸告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwWaterAlarmTraps="1";
+	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.34") == 0)//水浸告警恢复
+	{
+		printf("水浸告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwWaterAlarmTraps="0";
+	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.35") == 0)//烟雾告警
+	{
+		printf("烟雾告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwSmokeAlarmTraps="1";
+	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.36") == 0)//烟雾告警恢复
+	{
+		printf("烟雾告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwSmokeAlarmTraps="0";
+	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.57") == 0)//防雷器故障告警
 	{
 		if(AlarmID==108)//交流防雷器故障
+		{
+			printf("交流防雷器故障告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 			HUAWEIDevAlarm.hwACSpdAlarmTraps="1";
+		}
 		if(AlarmID==420)//直流防雷器故障
+		{
+			printf("直流防雷器故障告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 			HUAWEIDevAlarm.hwDCSpdAlarmTraps="1";
+		}
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.58") == 0)//防雷器告警恢复
 	{
 		if(AlarmID==108)//交流防雷器故障恢复
+		{
+			printf("交流防雷器故障告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 			HUAWEIDevAlarm.hwACSpdAlarmTraps="0";
+		}
 		if(AlarmID==420)//直流防雷器故障恢复
+		{
+			printf("直流防雷器故障告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 			HUAWEIDevAlarm.hwDCSpdAlarmTraps="0";
+		}
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.85") == 0)//直流空调告警
 	{
 		if(AlarmID==9350)//空调内风机故障
         {
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_infan_alarm2="1";
+				printf("电池柜空调内风机故障告警\n");
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_infan_alarm="1";
+				printf("设备柜空调内风机故障告警\n");
+			}
         }
 		if(AlarmID==9351)//空调外风机故障
-        {
+		{printf("空调外风机故障,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
            if(mgetIndex == hwAirAddrbuf[1])
+		   {
                HUAWEIDevAlarm.hwair_cond_outfan_alarm2="1";
+		   }
            else
+		   {
                HUAWEIDevAlarm.hwair_cond_outfan_alarm="1";
+		   }
         }
 		if(AlarmID==9353)//空调压缩机故障
-        {
+		{printf("空调压缩机故障,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_comp_alarm2="1";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_comp_alarm="1";
+			}
         }
 		if(AlarmID==9356)//空调回风口传感器故障
-        {
+		{printf("空调回风口传感器故障,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_return_port_sensor_alarm2="1";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_return_port_sensor_alarm="1";
+			}
         }
 		if(AlarmID==9354)//空调通信失败告警
-        {
+		{printf("空调通信失败告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_comm_fail_alarm2="1";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_comm_fail_alarm="1";
+			}
         }
 		if(AlarmID==9364)//空调蒸发器冻结
-        {
+		{printf("空调蒸发器冻结,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_evap_freezing_alarm2="1";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_evap_freezing_alarm="1";
+			}
         }
 		if(AlarmID==9365)//空调频繁高压力
-        {
+		{printf("空调频繁高压力,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_freq_high_press_alarm2="1";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_freq_high_press_alarm="1";
+			}
         }
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.86") == 0)//直流空调告警恢复
 	{
 		if(AlarmID==9350)//空调内风机故障
-        {
+		{printf("空调内风机故障恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                HUAWEIDevAlarm.hwair_cond_infan_alarm2="0";
+		    }
             else
+			{
                HUAWEIDevAlarm.hwair_cond_infan_alarm="0";
+		   }
         }
 		if(AlarmID==9351)//空调外风机故障
-        {
+		{printf("空调外风机故障恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_outfan_alarm2="0";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_outfan_alarm="0";
+			}
         }
 		if(AlarmID==9353)//空调压缩机故障
-        {
+		{printf("空调压缩机故障恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_comp_alarm2="0";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_comp_alarm="0";
+			}
         }
 		if(AlarmID==9356)//空调回风口传感器故障
-        {
+		{printf("空调回风口传感器故障恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_return_port_sensor_alarm2="0";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_return_port_sensor_alarm="0";
+			}
         }
 		if(AlarmID==9354)//空调通信失败告警
-        {
+		{printf("空调通信失败告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_comm_fail_alarm2="0";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_comm_fail_alarm="0";
+			}
         }
 		if(AlarmID==9364)//空调蒸发器冻结
-        {
+		{printf("空调蒸发器冻结恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_evap_freezing_alarm2="0";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_evap_freezing_alarm="0";
+			}
         }
 		if(AlarmID==9365)//空调频繁高压力
-        {
+		{printf("空调频繁高压力恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])
+			{
                 HUAWEIDevAlarm.hwair_cond_freq_high_press_alarm2="0";
+			}
             else
+			{
                 HUAWEIDevAlarm.hwair_cond_freq_high_press_alarm="0";
+			}
         }
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.15") == 0)//交流电告警
-	{
+	{printf("交流电告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		if(AlarmID==1550)//交流停电告警
+		{
 			HUAWEIDevAlarm.hwAcInputFailAlarm="1";
+		   printf("交流停电告警\n");
+		}
 		if(AlarmID==1567)//交流电源输入L1	相缺相告警
+		{
 			HUAWEIDevAlarm.hwAcInputL1FailAlarm="1";
+		   printf("交流电源输入L1	相缺相告警\n");
+		}
 		if(AlarmID==1568)//交流电源输入L2	相缺相告警
+		{
 			HUAWEIDevAlarm.hwAcInputL2FailAlarm="1";
+		   printf("交流电源输入L2 相缺相告警\n");
+		}
 		if(AlarmID==1569)//交流电源输入L3	相缺相告警
+		{
 			HUAWEIDevAlarm.hwAcInputL3FailAlarm="1";
+		   printf("交流电源输入L3 相缺相告警\n");
+		}
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.16") == 0)//交流电告警恢复
-	{
+	{printf("交流电告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		if(AlarmID==1550)//交流停电告警
+		{
 			HUAWEIDevAlarm.hwAcInputFailAlarm="0";
+		   printf("交流电告警恢复\n");
+		}
 		if(AlarmID==1567)//交流电源输入L1	相缺相告警
+		{
 			HUAWEIDevAlarm.hwAcInputL1FailAlarm="0";
+		   printf("交流电源输入L1	相缺相告警恢复\n");
+		}
 		if(AlarmID==1568)//交流电源输入L2	相缺相告警
+		{
 			HUAWEIDevAlarm.hwAcInputL2FailAlarm="0";
+		   printf("交流电源输入L2 相缺相告警恢复\n");
+		}
 		if(AlarmID==1569)//交流电源输入L3	相缺相告警
+		{
 			HUAWEIDevAlarm.hwAcInputL3FailAlarm="0";
+		   printf("交流电源输入L3 相缺相告警恢复\n");
+		}
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.19") == 0)//直流电告警
-	{
+	{printf("直流电告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		if(AlarmID==10152)//直流过压告警
+		{
 			HUAWEIDevAlarm.hwDcVoltAlarmTraps="1";
+		   printf("直流过压告警\n");
+		}
 		if(AlarmID==10153)//直流欠压告警
+		{
 			HUAWEIDevAlarm.hwDcVoltAlarmTraps="2";
+		   printf("直流欠压告警\n");
+		}
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.20") == 0)//直流电告警恢复
-	{
+	{printf("直流电告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		if(AlarmID==10152)//直流过压
+		{
 			HUAWEIDevAlarm.hwDcVoltAlarmTraps="0";
+		   printf("直流过压告警恢复\n");
+		}
 		if(AlarmID==10153)//直流欠压
+		{
 			HUAWEIDevAlarm.hwDcVoltAlarmTraps="0";
+		   printf("直流欠压告警恢复\n");
+		}
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.21") == 0)//LLVD1下电告警
-	{
+	{printf("LLVD1下电告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwLoadLvdAlarmTraps="1";
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.22") == 0)//LLVD1下电告警恢复
-	{
+	{printf("LLVD1下电告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		HUAWEIDevAlarm.hwLoadLvdAlarmTraps="0";
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.2.0.99") == 0)//锂电告警
-	{
+	{printf("锂电告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		if(AlarmID==13800)//所有锂电通信失败
+		{
 			HUAWEIDevAlarm.hwAcbGroup_comm_fail_alarm="1";
+			printf("所有锂电通信失败告警\n");
+		}
 		if(AlarmID==13801)//电池放电告警
+		{
 			HUAWEIDevAlarm.hwAcbGroup_discharge_alarm="1";
+			printf("电池放电告警\n");
+		}
 		if(AlarmID==13811)//电池充电过流
+		{
 			HUAWEIDevAlarm.hwAcbGroup_charge_overcurrent_alarm="1";
+			printf("电池充电过流告警\n");
+		}
 		if(AlarmID==13812)//电池温度高
+		{
 			HUAWEIDevAlarm.hwAcbGroup_temphigh_alarm="1";
+			printf("电池温度高告警\n");
+		}
 		if(AlarmID==13813)//电池温度低
+		{
 			HUAWEIDevAlarm.hwAcbGroup_templow_alarm="1";
+			printf("电池温度低告警\n");
+		}
 		if(AlarmID==13814)//电池下电
+		{
 			HUAWEIDevAlarm.hwAcbGroup_poweroff_alarm="1";
+			printf("电池下电告警\n");
+		}
 		if(AlarmID==13816)//电池熔丝断
+		{
 			HUAWEIDevAlarm.hwAcbGroup_fusebreak_alarm="1";
+			printf("电池熔丝断告警\n");
+		}
 		if(AlarmID==13821)//模块丢失
+		{
 			HUAWEIDevAlarm.hwAcbGroup_moduleloss_alarm="1";
+			printf("模块丢失告警\n");
+		}
 	}
-	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.2.0.99") == 0)//锂电告警恢复
-	{
+
+    if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.2.0.100") == 0)//锂电告警恢复
+	{printf("锂电告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
 		if(AlarmID==13800)//所有锂电通信失败
+		{
 			HUAWEIDevAlarm.hwAcbGroup_comm_fail_alarm="0";
+			printf("所有锂电通信失败恢复\n");
+		}
 		if(AlarmID==13801)//电池放电告警
+		{
 			HUAWEIDevAlarm.hwAcbGroup_discharge_alarm="0";
+			printf("电池放电告警恢复\n");
+		}
 		if(AlarmID==13811)//电池充电过流
+		{
 			HUAWEIDevAlarm.hwAcbGroup_charge_overcurrent_alarm="0";
+			printf("电池充电过流告警恢复\n");
+		}
 		if(AlarmID==13812)//电池温度高
+		{
 			HUAWEIDevAlarm.hwAcbGroup_temphigh_alarm="0";
+			printf("电池温度高告警恢复\n");
+		}
 		if(AlarmID==13813)//电池温度低
+		{
 			HUAWEIDevAlarm.hwAcbGroup_templow_alarm="0";
+			printf("电池温度低告警恢复\n");
+		}
 		if(AlarmID==13814)//电池下电
+		{
 			HUAWEIDevAlarm.hwAcbGroup_poweroff_alarm="0";
+			printf("电池下电告警恢复\n");
+		}
 		if(AlarmID==13816)//电池熔丝断
+		{
 			HUAWEIDevAlarm.hwAcbGroup_fusebreak_alarm="0";
+			printf("电池熔丝断告警恢复\n");
+		}
 		if(AlarmID==13821)//模块丢失
+		{
 			HUAWEIDevAlarm.hwAcbGroup_moduleloss_alarm="0";
+			printf("模块丢失告警恢复\n");
+		}
 	}
+
+    //单个锂电池告警
+    if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.3.0.99") == 0)
+    {   printf("单个锂电告警,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
+        int mAcdIndex = 0;
+        for(int i=0;i<4;i++)
+        {
+            if(hwAcbAddrbuf[i] == mgetIndex)
+            {
+               mAcdIndex = i;
+               break;
+            }
+        }
+
+        if(AlarmID==13750)//锂电通信失败
+        {
+            HUAWEIDevAlarm.hwAcbCom_Failure[mAcdIndex]="1";
+            printf("锂电池%d通信失败\r\n",mAcdIndex+1);
+
+        }
+        else if(AlarmID==13751)//加热器故障
+        {
+            HUAWEIDevAlarm.hwAcbHeater_Fault_alarm[mAcdIndex]="1";
+            printf("锂电池%d加热器故障\r\n",mAcdIndex+1);
+
+        }
+        else if(AlarmID==13752)//单板故障
+        {
+            HUAWEIDevAlarm.hwAcbBoard_Hardware_Fault_alarm[mAcdIndex]="1";
+            printf("锂电池%d单板故障\r\n",mAcdIndex+1);
+        }
+        else if(AlarmID==13755)//低温保护
+        {
+            HUAWEIDevAlarm.hwAcbLow_Temp_Protection_alarm[mAcdIndex]="1";
+            printf("锂电池%d低温保护\r\n",mAcdIndex+1);
+        }
+
+    }
+
+    //单个锂电池告警恢复
+    if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.3.0.100") == 0)
+    {   printf("单个锂电告警恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
+        int mAcdIndex = 0;
+        for(int i=0;i<4;i++)
+        {
+            if(hwAcbAddrbuf[i] == mgetIndex)
+            {
+               mAcdIndex = i;
+               break;
+            }
+        }
+
+        if(AlarmID==13750)//锂电通信失败
+        {
+            HUAWEIDevAlarm.hwAcbCom_Failure[mAcdIndex]="0";
+            printf("锂电池%d通信失败恢复\r\n",mAcdIndex+1);
+
+        }
+        else if(AlarmID==13751)//加热器故障
+        {
+            HUAWEIDevAlarm.hwAcbHeater_Fault_alarm[mAcdIndex]="0";
+            printf("锂电池%d加热器故障恢复\r\n",mAcdIndex+1);
+
+        }
+        else if(AlarmID==13752)//单板故障
+        {
+            HUAWEIDevAlarm.hwAcbBoard_Hardware_Fault_alarm[mAcdIndex]="0";
+            printf("锂电池%d单板故障恢复\r\n",mAcdIndex+1);
+        }
+        else if(AlarmID==13755)//低温保护
+        {
+            HUAWEIDevAlarm.hwAcbLow_Temp_Protection_alarm[mAcdIndex]="0";
+            printf("锂电池%d低温保护恢复\r\n",mAcdIndex+1);
+        }
+
+    }
+
+
+
 }
 
 int GetAlarmID(char* sp)

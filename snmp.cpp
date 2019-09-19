@@ -15,7 +15,7 @@ using namespace std;
 #ifdef DEMO_USE_SNMP_VERSION_3
 const char *our_v3_passphrase = "The Net-SNMP Demo Password";
 #endif
-#define DEFAULT_MIBDIRS "$HOME/.snmp/mibs:/usr/share/snmp/mibs:/opt/xr/net-snmp/share/snmp/mibs"
+//#define DEFAULT_MIBDIRS "$HOME/.snmp/mibs:/usr/share/snmp/mibs:/opt/xr/net-snmp/share/snmp/mibs"
 //int main(int argc, char ** argv)
 
 pthread_mutex_t snmpoidMutex ;   
@@ -668,15 +668,16 @@ void initHUAWEIGantry()
 
 int snmpInit(void)
 {
-   if(StrCabinetType=="1")		//机柜类型是华为
-   	{
-	   pthread_mutex_init(&snmpoidMutex,NULL);
-	   
-   	   snmptrapInit();
-
-       mywalkappinit();
-   	}
-   return 0 ;
+//	if(StrCabinetType=="1") 	 //机柜类型是华为
+	 {
+		pthread_mutex_init(&snmpoidMutex,NULL);
+		sleep(1);
+		printf("mywalkappinit\r\n");
+		mywalkappinit();
+		printf("snmptrapInit5\r\n");
+		snmptrapInit();
+	 }
+	return 0 ;
 
 }
 
