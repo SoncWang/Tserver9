@@ -290,7 +290,14 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 		IP2getFromConfig();
 		VergetFromConfig();
 		flagIDInfo = GetFlagID();
-		printf("flagID=%lld \r\n",flagIDInfo);
+		temp_v[0] = tmpGetFromConfig(&HUAWEIDevValue.strhwEnvTemperature[0]);
+		//printf("temp1=%s ",HUAWEIDevValue.strhwEnvTemperature[0].c_str());
+		temp_v[1] = tmpGetFromConfig(&HUAWEIDevValue.strhwEnvTemperature[1]);
+		//printf("temp2=%s ",HUAWEIDevValue.strhwEnvTemperature[1].c_str());
+		moist_v[0] = moistGetFromConfig(&HUAWEIDevValue.strhwEnvHumidity[0]);
+		//printf("moist1=%s ",HUAWEIDevValue.strhwEnvHumidity[0].c_str());
+		moist_v[1] = moistGetFromConfig(&HUAWEIDevValue.strhwEnvHumidity[1]);
+		//printf("moist2=%s ",HUAWEIDevValue.strhwEnvHumidity[1].c_str());
 
 		pbuf[len++] = FRAME_HEAD_1;
 		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
