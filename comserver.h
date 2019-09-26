@@ -16,6 +16,12 @@
 #define TIME_REG_ADD		0x0010
 
 
+#define FRAME_TEST_1		0x50
+#define FRAME_TEST_2		0x64
+#define FRAME_TEST_3		0xA5
+#define FRAME_TEST_4		0x5A
+
+
 /*写数据的回复buf的顺序定义*/
 // 5A A5 03 82 4F 4B
 #define BUF_HEAD1			0
@@ -30,12 +36,15 @@
 #define WRITE_VAR_MSG		0x01		// 写命令
 #define WRITE_TIME_MSG		0x02		// 写时间命令
 #define READ_MSG			0x03		// 读命令
+#define TEST_MSG			0xFE		// 测试命令
 
-
+extern bool test_232_begin;
+extern bool test_485_begin;
 
 void cominit(void) ;
 
 //向串口屏发送数据
+int SendCom1WriteReg(UINT16 Addr, UINT8 Func);
 int SendCom2WriteReg(UINT16 Addr, UINT8 Func);
 UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf);
 

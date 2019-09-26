@@ -16,6 +16,7 @@
 #include "comport.h"
 #include "rs485Com4.h"
 #include "rs485server.h"
+#include "comserver.h"
 #include "MyCritical.h"
 #include <string>
 #include <semaphore.h>
@@ -65,28 +66,42 @@ void *ComPort4Thread(void *param)
    {
       	len = read(mComPort4->fd, buf+buffPos, 256);
 	  	buffPos = buffPos+len;
-	  	if(buffPos<5) continue;
+	  	if(buffPos<4) continue;
 
-	  	//CRC
-	  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
-	  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
+		if (wait_msg == RS485_1_WAIT)
 		{
-		  printf("CRC error\r\n");
- 		  if(buffPos>=256) buffPos=0;
+			printf("com4 len=%d\r\n",buffPos) ;
+		  	/*debug the information*/
+		  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+			// 收到正常数据
+			if ((buf[BUF_HEAD1] == FRAME_TEST_1) &&(buf[BUF_HEAD2] == FRAME_TEST_2) \
+				&&(buf[2] == FRAME_TEST_3) &&(buf[3] == FRAME_TEST_4))
+			{
+				err_flag = TEST_OK;
+			}
+			buffPos=0;
+		}
+		else
+		{
 
-		  continue ;
-	  	}
+		  	//CRC
+		  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
+		  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
+			{
+			  printf("CRC error\r\n");
+	 		  if(buffPos>=256) buffPos=0;
 
-      	printf("com4 len=%d\r\n",buffPos) ;
-	  	/*debug the information*/
-	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+			  continue ;
+		  	}
+			printf("com4 len=%d\r\n",buffPos) ;
+		  	/*debug the information*/
+		  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+			DealComm485(buf, buffPos, RS485_2);
+			buffPos=0;
 
-	  	DealComm485(buf, buffPos, RS485_2);
-	  	buffPos=0;
-
+		}
       	usleep(5000); //delay 5ms
    }
-
    return NULL ;
 }
 
@@ -144,6 +159,26 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 	mComPort4->SendBuf(bytSend,len);
     Com4SendCri.UnLock();
 	usleep(5000);	//delay 5ms
+	return 0 ;
+}
+
+//发送写数据寄存器 ,没有CRC
+int SendCom4WriteReg(UINT16 Addr, UINT8 Func)
+{
+    Com4SendCri.Lock();
+    UINT8 j;
+	UINT8 bytSend[256];
+	UINT8 datalen = 0;
+
+	datalen = message_pack(Addr,Func,bytSend);
+
+	printf("Com4 Wdata:");
+	// debug测试打印
+	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
+
+	mComPort4->SendBuf(bytSend,datalen);
+    Com4SendCri.UnLock();
+	usleep(5000);//delay 5ms
 	return 0 ;
 }
 

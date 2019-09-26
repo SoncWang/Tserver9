@@ -62,6 +62,14 @@
 #define ENABLE					1
 #define DISABLE					0
 
+//#define TEST_INIT	0
+#define TEST_OK		0
+#define TEST_NOK	1
+#define TEST_TEMP_OK		2
+#define TEST_TEMP_NOK		3
+
+
+
 /*The name of the RS485 coms*/
 typedef enum
 {
@@ -236,6 +244,35 @@ typedef enum
 }VER_READ_LIST;
 
 
+// 串口测试内容
+typedef enum
+{
+	RS232_1T = 0,//232-1发送数据
+	RS232_2T,
+	RS485_1_T,
+	RS485_2_T,
+
+	RS232_ERR,
+	RS485_ERR,
+
+	TEST_NUM	// 2
+}TEST_LIST;
+
+// 串口测试内容
+typedef enum
+{
+	WAIT_INIT = 0,
+	RS232_1_WAIT,
+	RS232_2_WAIT,
+	RS485_1_WAIT,
+	RS485_2_WAIT,
+
+	WAIT_NUM	// 3
+}TEST_WAIT_LIST;
+
+
+
+
 /*结构联合声明短整型*/
 typedef union int_union
 {
@@ -286,6 +323,9 @@ extern string StrDoSeq[SWITCH_COUNT];
 extern UINT16 DoSeq[SWITCH_COUNT];
 extern int *polling_arr;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
 extern int *polling_subarr;
+extern UINT32 testFlag;
+extern UINT8  wait_msg;
+extern UINT8  err_flag;
 
 
 void rs485init(void);

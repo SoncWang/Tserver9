@@ -22,6 +22,8 @@
 #include "Protocol.h"
 #include "rtc.h"
 #include "server.h"
+#include "rs485Com3.h"
+#include "rs485Com4.h"
 #include "rs485server.h"
 #include "arpa/inet.h"
 #include <sys/time.h>
@@ -52,7 +54,9 @@ extern string StrFlagID;
 extern void GetIPinfo(IPInfo *ipInfo);
 extern void GetIPinfo2(IPInfo *ipInfo);
 extern VA_METER_PARAMS *stuVA_Meter_Param[VA_METER_BD_MAX_NUM];
-extern THUAWEIGantry HUAWEIDevValue;	//华为机柜状态
+extern THUAWEIGantry HUAWEIDevValue;
+bool test_232_begin = false;
+bool test_485_begin = false;
 
 
 // 把如128.8.130.82转成一个4字节整型
@@ -87,7 +91,7 @@ void IP1getFromConfig(void)
 
 	memset(&IPDadaForCom,0,sizeof(IPInfo));
 	GetIPinfo(&IPDadaForCom);
-	printf("IP1s0x%s \r\n",IPDadaForCom.ip);
+	//printf("IP1s0x%s \r\n",IPDadaForCom.ip);
 	ipstring_to_ipint(IPDadaForCom.ip,&IPaddr[0]);
 }
 
@@ -212,6 +216,38 @@ int VAGetAndSaved(UINT8 *pbuf, VA_METER_PARAMS *pVA_Meter)
 }
 
 
+void *ComPort1Thread(void *param)
+{
+	param = NULL;
+	int buffPos=0;
+	int len ;
+	unsigned char buf[256] ;
+	while(1)
+	{
+		len = read(mComPort1->fd, buf+buffPos, 256) ;
+		buffPos = buffPos+len;
+
+		printf("com1 len=%d\r\n",buffPos);
+		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+
+		// 收到正常数据
+		if ((buf[BUF_HEAD1] == FRAME_TEST_1) &&(buf[BUF_HEAD2] == FRAME_TEST_2) \
+			&&(buf[2] == FRAME_TEST_3) &&(buf[3] == FRAME_TEST_4))
+		{
+			if (wait_msg == RS232_2_WAIT)
+			{
+				err_flag = TEST_OK;
+			}
+		}
+		//DealComm(buf , buffPos);
+		buffPos=0;
+		usleep(5000);//delay 5ms
+   }
+
+   return NULL ;
+
+}
+
 
 //To touchScreen
 void *ComPort2Thread(void *param)
@@ -224,33 +260,132 @@ void *ComPort2Thread(void *param)
 	{
 		len = read(mComPort2->fd, buf+buffPos, 256) ;
 		buffPos = buffPos+len;
-		if(buffPos<5) continue;
-
-		if((buf[BUF_HEAD1] != FRAME_HEAD_1) || (buf[BUF_HEAD2] != FRAME_HEAD_2))
-		{
-			printf("FRAM error\r\n");
-			if(buffPos>=256) buffPos=0;
-			continue ;
-	  	}
 
 		printf("com2 len=%d\r\n",buffPos) ;
 		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
-		if (buf[BUF_CMD] == CMD_WRITE)
+		// 收到正常数据
+		if ((buf[BUF_HEAD1] == FRAME_TEST_1) &&(buf[BUF_HEAD2] == FRAME_TEST_2) \
+			&&(buf[2] == FRAME_TEST_3) &&(buf[3] == FRAME_TEST_4))
 		{
-			;
-		}
-		else if (buf[BUF_CMD] == CMD_READ)
-		{
-			;
+			if (wait_msg == RS232_1_WAIT)
+			{
+				err_flag = TEST_OK;
+			}
 		}
 		//DealComm(buf , buffPos);
 		buffPos=0;
 		usleep(5000);//delay 5ms
    }
-
    return NULL ;
 
+}
+
+void *ComTestThread(void *param)
+{
+	param = NULL;
+	int buffPos=0;
+	int len ;
+	unsigned char sbuf[20];
+	while(1)
+	{
+		if(wait_msg != WAIT_INIT)
+		{
+			if (err_flag == TEST_OK)
+			{
+				sbuf[0] = 'o';
+				sbuf[1] = 'k';
+				sbuf[2] = '\n';
+				if (wait_msg == RS232_1_WAIT)
+				{
+					printf("232-1test OK:");
+					NetSendParm(NETCMD_TEST_232_1,(char*)sbuf,2);
+				}
+				else if (wait_msg == RS232_2_WAIT)
+				{
+					printf("232-2test OK:");
+					NetSendParm(NETCMD_TEST_232_2,(char*)sbuf,2);
+				}
+				else if (wait_msg == RS485_1_WAIT)
+				{
+					printf("485-1test OK:");
+					testFlag |= LBIT(RS485_2_T);
+				}
+				else if (wait_msg == RS485_2_WAIT)
+				{
+					printf("485-2test OK:");
+					NetSendParm(NETCMD_TEST_485,(char*)sbuf,2);
+					test_485_begin = false;
+				}
+			}
+			else if (err_flag == TEST_NOK)
+			{
+				sbuf[0] = 'f';
+				sbuf[1] = 'a';
+				sbuf[2] = 'i';
+				sbuf[3] = 'l';
+				sbuf[4] = '\n';
+				if (wait_msg == RS232_1_WAIT)
+				{
+					printf("232-1test FAIL:");
+					NetSendParm(NETCMD_TEST_232_1,(char*)sbuf,4);//测试232;
+				}
+				else if (wait_msg == RS232_2_WAIT)
+				{
+					printf("232-2test FAIL:");
+					NetSendParm(NETCMD_TEST_232_2,(char*)sbuf,4);
+				}
+				else if (wait_msg == RS485_1_WAIT)
+				{
+					printf("485-1test FAIL:");
+					NetSendParm(NETCMD_TEST_485,(char*)sbuf,4);
+					usleep(50000);//delay 500ms
+					test_485_begin = false;
+				}
+				else if (wait_msg == RS485_2_WAIT)
+				{
+					printf("485-2test FAIL:");
+					NetSendParm(NETCMD_TEST_485,(char*)sbuf,4);
+					test_485_begin = false;
+				}
+				err_flag = TEST_OK;
+			}
+			wait_msg = WAIT_INIT;
+			test_232_begin = false;	// 测试完毕
+		}
+
+		if (testFlag &(LBIT(RS232_1T)))
+		{
+			testFlag &= ~(LBIT(RS232_1T));
+			wait_msg = RS232_2_WAIT;
+			err_flag = TEST_NOK;
+			SendCom1WriteReg(NULL_VAR,TEST_MSG);
+		}
+		else if (testFlag &(LBIT(RS232_2T)))
+		{
+			// 232-2开始测试，屏蔽掉串口屏发送数据
+			test_232_begin = true;
+			//testFlag &= ~(LBIT(RS232_2T));
+			//SendCom2WriteReg(NULL_VAR,TEST_MSG);
+		}
+		else if (testFlag &(LBIT(RS485_1_T)))
+		{
+			test_485_begin = true;
+			printf("test_485_begin = 0x%02x" ,test_485_begin);printf("\r\n");
+			//testFlag &= ~(LBIT(RS485_1_T));
+			//wait_msg = RS485_1_WAIT;
+			//err_flag = TEST_NOK;
+			//SendCom3WriteReg(NULL_VAR,TEST_MSG);
+		}
+		else if (testFlag &(LBIT(RS485_2_T)))
+		{
+			//testFlag &= ~(LBIT(RS485_2_T));
+			//wait_msg = RS485_2_WAIT;
+			//err_flag = TEST_NOK;
+			//SendCom4WriteReg(NULL_VAR,TEST_MSG);
+		}
+		usleep(500000);//delay 500ms
+	}
 }
 
 
@@ -429,6 +564,14 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 		pbuf[BUF_LENTH] = len-3;
 		break;
 
+	case TEST_MSG:
+		// 测试帧
+		pbuf[len++] = FRAME_TEST_1;
+		pbuf[len++] = FRAME_TEST_2;
+		pbuf[len++] = FRAME_TEST_3;
+		pbuf[len++] = FRAME_TEST_4;
+		break;
+
 	case NOT_USED_MSG:
 		break;
 	default:
@@ -441,30 +584,58 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 void *ComPort2HandleDataThread(void *param)
 {
 	param = param;
+	UINT8 i = 0;
 	//static UINT8 cnt = 0;
 	//static bool entry = false;	//第一次进来2个命令都要发
 	while(1)
 	{
-		// 6s钟对时一次, 1s后发送显示命令
-		SendCom2WriteReg(TIME_REG_ADD,WRITE_TIME_MSG);
-		sleep(1);//delay 1seconds
-		SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
-		sleep(5);//delay 5seconds
-
-	#if 0
-		/*半分钟同步一次时间*/
-		if (cnt >= 6)
+		if (test_232_begin == false)
 		{
-			cnt = 0;
+			// 6s钟对时一次, 1s后发送显示命令
 			SendCom2WriteReg(TIME_REG_ADD,WRITE_TIME_MSG);
+			// 把1s延时分成20等分，等待测试标志,一旦有测试需要，马上进入测试
+			for(i=0; i<20;i++)
+			{
+				usleep(50000);//delay 50ms
+				if (test_232_begin == true)
+				{
+					break;	// 跳出for
+				}
+			}
+			if (test_232_begin == true)
+			{
+				continue;
+			}
+			//sleep(1);//delay 1seconds
+			SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
+			// 把5s延时分成100等分，等待测试标志,一旦有测试需要，马上进入测试
+			for(i=0; i<100;i++)
+			{
+				usleep(50000);//delay 50ms
+				if (test_232_begin == true)
+				{
+					break;	// 跳出for
+				}
+			}
+			if (test_232_begin == true)
+			{
+				continue;
+			}
+			//sleep(5);//delay 5seconds
 		}
 		else
 		{
-			SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
+			// 再次等待50ms，防止未发完屏幕数据
+			usleep(50000);//delay 5ms
+			if (testFlag &(LBIT(RS232_2T)))
+			{
+				wait_msg = RS232_1_WAIT;
+				err_flag = TEST_NOK;
+				testFlag &= ~(LBIT(RS232_2T));
+				SendCom2WriteReg(NULL_VAR,TEST_MSG);
+			}
 		}
-		cnt++;
-	  	sleep(5);//delay 10seconds
-	#endif
+		usleep(5000);//delay 5ms
 	}
 	return 0 ;
 }
@@ -472,20 +643,34 @@ void *ComPort2HandleDataThread(void *param)
 void cominit(void)
 {
 	//SetSystemTime("2017-08-30 17:03:00");
+	mComPort1 = new CComPort();
 	mComPort2 = new CComPort();
 
-	/*改用串口1,原因是外壳接错了*/
-	mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttymxc1",115200) ;//9100 To TouchScreen
+	mComPort1->fd = mComPort1->openSerial((char *)"/dev/ttymxc2",115200) ;//需要测试的串口2
+	if(mComPort1->fd>0)
+		printf("ComPort1 open secess! %d\r\n",mComPort1->fd);
+	else
+	   printf("ComPort1 open fail! %d\r\n",mComPort1->fd);
+
+	mComPort2->fd = mComPort2->openSerial((char *)"/dev/ttymxc1",115200) ;//串口2保持和正式版的一致
 	if(mComPort2->fd>0)
 		printf("ComPort2 open secess! %d\r\n",mComPort2->fd);
 	else
 	   printf("ComPort2 open fail! %d\r\n",mComPort2->fd);
 
+	pthread_t m_ComPort1Thread ;
+	pthread_create(&m_ComPort1Thread,NULL,ComPort1Thread,NULL);
+
 	pthread_t m_ComPort2Thread ;
 	pthread_create(&m_ComPort2Thread,NULL,ComPort2Thread,NULL);
 
+	/*测试时共用一个发送线程*/
 	pthread_t m_ComPortGetDataThread ;
 	pthread_create(&m_ComPortGetDataThread,NULL,ComPort2HandleDataThread,NULL);
+	// 测试语句
+
+	pthread_t m_ComTestThread ;
+	pthread_create(&m_ComTestThread,NULL,ComTestThread,NULL);
 }
 
 //发送写数据寄存器 ,没有CRC
@@ -506,4 +691,24 @@ int SendCom2WriteReg(UINT16 Addr, UINT8 Func)
 	usleep(5000);//delay 5ms
 	return 0 ;
 }
+
+//发送写数据寄存器 ,没有CRC
+int SendCom1WriteReg(UINT16 Addr, UINT8 Func)
+{
+    Com1SendCri.Lock();
+    UINT8 j;
+	UINT8 bytSend[256];
+	UINT8 datalen = 0;
+
+	datalen = message_pack(Addr,Func,bytSend);
+
+	// debug测试打印
+	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
+
+	mComPort1->SendBuf(bytSend,datalen);
+    Com1SendCri.UnLock();
+	usleep(5000);//delay 5ms
+	return 0 ;
+}
+
 

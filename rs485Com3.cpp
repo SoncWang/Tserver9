@@ -23,6 +23,7 @@
 #include "rtc.h"
 #include "server.h"
 #include "config.h"
+#include "comserver.h"
 
 /*Global definition*/
 using namespace std;
@@ -51,7 +52,7 @@ void Rs485Com3Init(void)
 	pthread_create(&m_ComPort3Thread,NULL,ComPort3Thread,NULL);
 
 	lockerDataMalloc();
-	lockerPollingInit();
+	//lockerPollingInit();
 }
 
 
@@ -66,28 +67,22 @@ void *ComPort3Thread(void *param)
    {
       	len = read(mComPort3->fd, buf+buffPos, 256);
 	  	buffPos = buffPos+len;
-//printf("ComPort3Thread len=%d\r\n",len) ;
-//int i ;for(i=0;i<buffPos;i++)printf("0x%02x ",buf[i]);printf("\r\n");
-	  	if(buffPos<5) continue;
-
-	  	//CRC
-	  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
-	  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
-		{
-		  printf("CRC error\r\n");
- 		  if(buffPos>=256) buffPos=0;
-
-		  continue ;
-	  	}
-
       	printf("com3 len=%d\r\n",buffPos) ;
 	  	/*debug the information*/
 	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
-//		NetSendParm(NETCMD_TEST_485,(char*)buf,buffPos);//测试485
-	  	DealComm485(buf, buffPos,RS485_1);
-	  	buffPos=0;
+		if (wait_msg == RS485_2_WAIT) // 注意是交叉测试
+		{
+			// 收到正常数据
+			if ((buf[BUF_HEAD1] == FRAME_TEST_1) &&(buf[BUF_HEAD2] == FRAME_TEST_2) \
+				&&(buf[2] == FRAME_TEST_3) &&(buf[3] == FRAME_TEST_4))
+			{
+				err_flag = TEST_OK;
+			}
+		}
 
+	  	//DealComm485(buf, buffPos,RS485_1);
+	  	buffPos=0;
       	usleep(5000); //delay 5ms
    }
 
@@ -151,6 +146,7 @@ int SendCom3ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
 	return 0 ;
 }
 
+#if 0
 UINT16 SendCom3Test(char *buf,int len)
 {
     Com3SendCri.Lock();
@@ -168,6 +164,27 @@ UINT16 SendCom3Test(char *buf,int len)
     Com3SendCri.UnLock();
 	usleep(5000);//delay 5ms
 	return 0;
+}
+#endif
+
+//发送写数据寄存器 ,没有CRC
+int SendCom3WriteReg(UINT16 Addr, UINT8 Func)
+{
+    Com3SendCri.Lock();
+    UINT8 j;
+	UINT8 bytSend[256];
+	UINT8 datalen = 0;
+
+	datalen = message_pack(Addr,Func,bytSend);
+
+	printf("Com3 Wdata:");
+	// debug测试打印
+	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
+
+	mComPort3->SendBuf(bytSend,datalen);
+    Com3SendCri.UnLock();
+	usleep(5000);//delay 5ms
+	return 0 ;
 }
 
 

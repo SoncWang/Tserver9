@@ -17,6 +17,7 @@
 #include "rs485server.h"
 #include "rs485Com3.h"
 #include "rs485Com4.h"
+#include "comserver.h"
 #include "MyCritical.h"
 #include <string>
 #include <semaphore.h>
@@ -68,6 +69,10 @@ extern void RemoteControl(UINT8* pRCtrl);
 
 int *polling_arr;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
 int *polling_subarr;
+UINT32 testFlag = 0;
+UINT8  wait_msg = WAIT_INIT;
+UINT8  err_flag = TEST_OK;
+
 
 const UINT32 locker_id[CARD_NUM] =
 {
@@ -496,13 +501,15 @@ void *Dev_DataPollingthread(void *param)
 	static UINT16 loop_cnt = 0;			// 表明电压电流传感器轮询循环次数,超过阈值轮询其它的设备
 	static UINT16 ver_entry = 0;		// 轮询电源板的版本号
 	static UINT16 ver_poll_counter = 0;
+	int i;
 
 	while(1)
 	{
 		if ((power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))|| (power_ctrl_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM)) \
 			|| (power_ctrl_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM)) \
 			|| (power_read_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM/2))|| (power_read_flag[1]&BITS_MSK_GET(0,POWER_CTRL_NUM/2)) \
-			|| (power_read_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM/2))|| (power_ver_flag&BITS_MSK_GET(0,POWER_BD_RD_NUM)))
+			|| (power_read_flag[2]&BITS_MSK_GET(0,POWER_CTRL_NUM/2))|| (power_ver_flag&BITS_MSK_GET(0,POWER_BD_RD_NUM))
+			|| test_485_begin)
 		{
 			comm_flag[RS485_2] = 0;
 //			printf("power_ctrl_flag0485=0x%04x\r\n",power_ctrl_flag[0]);
@@ -563,8 +570,28 @@ void *Dev_DataPollingthread(void *param)
 		// 如果没有收到回复数据,这里会一直进不来,要用带timeout的信号量
 		//if (!WAIT_response_flag)
 		{
+			if (test_485_begin)
+			{
+				usleep(40000);//delay 40ms
+				//printf("test_485_begin2=0x%02x\r\n",test_485_begin);
+				if (testFlag &(LBIT(RS485_1_T)))
+				{
+					//printf("test_485_w3\r\n");
+					wait_msg = RS485_1_WAIT;
+					err_flag = TEST_NOK;
+					testFlag &= ~(LBIT(RS485_1_T));
+					SendCom3WriteReg(NULL_VAR,TEST_MSG);
+				}
+				else if (testFlag &(LBIT(RS485_2_T)))
+				{
+					wait_msg = RS485_2_WAIT;
+					err_flag = TEST_NOK;
+					testFlag &= ~(LBIT(RS485_2_T));
+					SendCom4WriteReg(NULL_VAR,TEST_MSG);
+				}
+			}
 			// 控制,优先处理DO
-			if (power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
+			else if (power_ctrl_flag[0]&BITS_MSK_GET(0,POWER_CTRL_NUM))	// 怕高位被意外置位跳不出来
 			{
 				Power_ctrl_process(&power_ctrl_flag[0],&power_read_flag[0],POWER_BD_1);
 			}
@@ -600,7 +627,20 @@ void *Dev_DataPollingthread(void *param)
 				Ver_polling_process(&power_ver_flag);
 			}
 		}
-		usleep(DEV_INTERVAL_TIME);		// every 3.6s sending
+		for(i=0; i<9;i++)
+		{
+			usleep(40000);//delay 40ms
+			if (test_485_begin == true)
+			{
+				break;	// 跳出for
+			}
+		}
+		usleep(5000);
+		if (test_485_begin == true)
+		{
+			continue;
+		}
+		//usleep(DEV_INTERVAL_TIME);		// every 3.6s sending
 	}
 	return 0 ;
 }
@@ -908,6 +948,7 @@ int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq)
 		case WAIT_LOCKER_4_MSG:
 			DealLockerMsg(3,buf, len);
 		break;
+
 		case WAIT_VA_DATA_1_MSG:				/*MSG from the Volt-amp detector*/
 			comm_VAData_analyse(buf, len,0);
 		break;
@@ -950,6 +991,7 @@ void rs485init(void)
 	Rs485Com4Init();
 	/*开机读一次版本信息*/
 	power_ver_flag |=BITS_MSK_GET(0,POWER_BD_RD_NUM);
+	//testFlag |= LBIT(RS232_2T);
 }
 
 

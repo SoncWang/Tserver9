@@ -1009,27 +1009,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = strlen(pCMD->data);
 			}
 			break;
-		case NETCMD_SEND_FIREWALL_INFO:			//23 防火墙状态
-			if(pCMD->status==SFLAG_READ)
-			{
-				SetjsonFireWallStatusStr(pCMD->cmd,mstrdata);
-				memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
-				//printf("NETCMD_SEND_SWITCH_INFO str=%s\n",mstrdata.c_str());
-				pCMD->datalen = mstrdata.size();
-			}
-			break;
-		case NETCMD_TEST_NEST: 		//200 测试嵌套
-			if(pCMD->status==SFLAG_READ)
-			{
-				GetConfig(&vmctrl_param);
-				memset(jsonPack,0,JSON_LEN);
-				jsonPackLen=0;
-				jsonStrVMCtlParamWriterXY(pCMD->cmd,(char*)&vmctrl_param,jsonPack,&jsonPackLen);
-				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
-				pCMD->datalen = jsonPackLen;
-			}
-			break;
-/*		case NETCMD_TEST_485:			//100 测试485
+		case NETCMD_TEST_485:			//100 测试485
 			if(pCMD->status==SFLAG_WRITE)
 			{
 				testFlag |= LBIT(RS485_1_T);
@@ -1039,7 +1019,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = strlen(pCMD->data);
 			}
 			break;
-		case NETCMD_TEST_232_1: 		//101 测试232-1
+		case NETCMD_TEST_232_1:			//101 测试232-1
 			if(pCMD->status==SFLAG_WRITE)
 			{
 				testFlag |= LBIT(RS232_2T);
@@ -1050,7 +1030,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				pCMD->datalen = strlen(pCMD->data);
 			}
 			break;
-		case NETCMD_TEST_232_2: 		//101 测试232-1
+		case NETCMD_TEST_232_2:			//101 测试232-1
 			if(pCMD->status==SFLAG_WRITE)
 			{
 				testFlag |= LBIT(RS232_1T);
@@ -1060,7 +1040,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				sprintf(pCMD->data,"执行命令->执行成功!\n");
 				pCMD->datalen = strlen(pCMD->data);
 			}
-			break;*/
+			break;
 		default:
 			break;
 
