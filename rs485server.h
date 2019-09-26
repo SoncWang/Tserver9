@@ -292,7 +292,7 @@ void rs485init(void);
 int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq);
 void lockerPollingInit();
 void comm_VAData_analyse(unsigned char *buf,unsigned short int len,RS485_COM_LIST seq);
-int DealLockerMsg(unsigned char *buf,unsigned short int len);
+int DealLockerMsg(unsigned char seq,unsigned char *buf,unsigned short int len);
 void Rs485_table_set(UINT16 name, UINT16 enable, UINT16 position, UINT16 address);
 UINT16 Rs485_table_enable_get(UINT16 name);
 int Power_ctrl_process(UINT32 *pctrl_flag, UINT32 *pread_flag, RS485_DEV_LIST dev_name);

@@ -655,30 +655,34 @@ void *Locker_DataPollingthread(void *param)
 
 
 /*处理电子锁的轮询信息*/
-int DealLockerMsg(unsigned char *buf,unsigned short int len)
+int DealLockerMsg(unsigned char seq,unsigned char *buf,unsigned short int len)
 {
 	UINT8 i=0;
 	UINT8 addr = 1;
-	UINT8 addr_base = 0;
-	UINT16* pointer = &(lockerHw_Param[0]->status);
-	UINT8* pid = &(lockerHw_Param[0]->id[0]);
+	//UINT8 addr_base = 0;
+	UINT16* pointer = &(lockerHw_Param[seq]->status);
+	UINT8* pid = &(lockerHw_Param[seq]->id[0]);
 	UINT32 card_read = 0;
 	string jsonstr;
     string mstrkey = ""; //没有用户名和密码：则为“”；
 	REMOTE_CONTROL *pRCtrl;
 	int ret;
 
+	if (seq >= LOCK_MAX_NUM)
+	{
+		return 0;
+	}
 	if((len == (LOCKER_REG_NUM*2+5)))
 	{
 		addr = *(buf+0);		// the first byte is the addr.
-		addr_base = addr-lockerHw_Param[0]->address;
-		if (addr_base > 2)		// 防止内存溢出
-		{
-			return 0;
-		}
+		//addr_base = addr-lockerHw_Param[0]->address;
+		//if (addr_base > 2)		// 防止内存溢出
+		//{
+		//	return 0;
+		//}
 
-		pointer = &(lockerHw_Param[addr_base]->status);
-		pid = &(lockerHw_Param[addr_base]->id[0]);
+		pointer = &(lockerHw_Param[seq]->status);
+		pid = &(lockerHw_Param[seq]->id[0]);
 
 		/*读取前面的4个状态量,即status,open reason,...*/
 		for (i=0;i<FIXED_NUM;i++)
@@ -686,9 +690,9 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
 		}
 		// 如果本次读取的report_cnt比上次还要小,表明128次上报已经结束,锁的状态重置为未开锁
-		if(last_cnt[addr_base] >= lockerHw_Param[addr_base]->report_cnt)
+		if(last_cnt[seq] >= lockerHw_Param[seq]->report_cnt)
 		{
-			locker_opened[addr_base] = 0;
+			locker_opened[seq] = 0;
 		}
 
 		for (i=0;i< (LOCKER_REG_NUM-FIXED_NUM)*2;i++)
@@ -707,7 +711,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 	}
 
 	/*锁的ID从id1开始,id0是生产厂商编码*/
-	char_to_long(&(lockerHw_Param[addr_base]->id[1]),&card_read);
+	char_to_long(&(lockerHw_Param[seq]->id[1]),&card_read);
 
 	printf("lock begain\r\n");
 	//printf("%5hd ",lockerHw_Param[addr_base]->status);printf("\r\n");
@@ -718,8 +722,8 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 	printf("0x%08x" ,card_read);printf("\r\n");
 
 	//上传条件:1.读取到卡号 2.这张卡是第一张卡 report_cnt为1，或者换了一张卡, report_cnt为1
-	if ((card_read!=0) && ((last_cnt[addr_base] >= lockerHw_Param[addr_base]->report_cnt) \
-		||((lockerHw_Param[addr_base]->report_cnt == 1) && (last_cnt[addr_base]==0))))
+	if ((card_read!=0) && ((last_cnt[seq] >= lockerHw_Param[seq]->report_cnt) \
+		||((lockerHw_Param[seq]->report_cnt == 1) && (last_cnt[seq]==0))))
 	{
 		SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,card_read,addr,jsonstr);
 		printf("DealLockerMsg jsonstr=%s\n" ,jsonstr.c_str());
@@ -765,7 +769,7 @@ int DealLockerMsg(unsigned char *buf,unsigned short int len)
 			}
 		}
 	}*/
-	last_cnt[addr_base] = lockerHw_Param[addr_base]->report_cnt;
+	last_cnt[seq] = lockerHw_Param[seq]->report_cnt;
 	return 1 ;
 }
 
@@ -893,12 +897,17 @@ int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq)
 	switch(Recive_Flag[seq])
 	{
 		case WAIT_LOCKER_1_MSG:					/*MSG from the locker*/
-		case WAIT_LOCKER_2_MSG:
-		case WAIT_LOCKER_3_MSG:
-		case WAIT_LOCKER_4_MSG:
-			DealLockerMsg(buf, len);
+			DealLockerMsg(0,buf, len);
 		break;
-
+		case WAIT_LOCKER_2_MSG:
+			DealLockerMsg(1,buf, len);
+		break;
+		case WAIT_LOCKER_3_MSG:
+			DealLockerMsg(2,buf, len);
+		break;
+		case WAIT_LOCKER_4_MSG:
+			DealLockerMsg(3,buf, len);
+		break;
 		case WAIT_VA_DATA_1_MSG:				/*MSG from the Volt-amp detector*/
 			comm_VAData_analyse(buf, len,0);
 		break;
