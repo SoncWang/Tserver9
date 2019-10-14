@@ -71,6 +71,13 @@ extern string StrIPSwitchGetPasswd[IPSWITCH_NUM] ;//交换机get密码
 extern string StrIPSwitchSetPasswd[IPSWITCH_NUM] ;//交换机set密码
 extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 
+extern string StrAtlasCount;	//Atlas数量
+extern string StrAtlasIP[ATLAS_NUM] ;//AtlasIP
+extern string StrAtlasPasswd[ATLAS_NUM] ;//Atlas密码
+extern string StrSPDCount;	//防雷器数量
+extern string StrSPDIP[SPD_NUM] ;//防雷器IP
+extern string StrSPDPasswd[SPD_NUM] ;//防雷器密码
+
 extern string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器1的地址
 extern string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板1的地址
 extern string StrDoCount;//do数量
@@ -182,7 +189,7 @@ bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout)
 	{
 		sprintf(key,"%s",it->first.c_str());
 		sprintf(value,"%s",it->second.c_str());
-		printf("%s %s\n",key,value);
+		//printf("%s %s\n",key,value);
 		
 		if(it->first=="messagetype")	messagetype=atoi(value);
 		if(it->first=="opt") opt=atoi(value);
@@ -324,7 +331,7 @@ bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout)
 
 bool jsonComputerReader(char* jsonstr, int len)
 {
-	printf("%s \t\n",jsonstr);
+	//printf("%s \t\n",jsonstr);
 	
 	std::string json = jsonstr;
 	std::map<std::string, std::string> out;
@@ -339,7 +346,7 @@ bool jsonComputerReader(char* jsonstr, int len)
 	while (it != out.end())
 	{
 		sprintf(key,"%s",it->first.c_str());value=atoi(it->second.c_str()) ;
-		printf("%s %d\n",key,value);
+		//printf("%s %d\n",key,value);
 		
 		if(it->first=="computer")	pFRS->Computer=value;		//9 工控机状态
 		else if(it->first=="diskcapacity")	pFRS->DiskCapacity=value;	//10 硬盘容量
@@ -353,7 +360,7 @@ bool jsonComputerReader(char* jsonstr, int len)
 		
 		it++;
 	}
-	printf("\n");
+	//printf("\n");
 	return true;
 	
 /*	printf("%s \t\n",jsonstr);
@@ -392,7 +399,7 @@ bool jsonComputerReader(char* jsonstr, int len)
 
 bool jsonIPCamReaderNext(char* jsonstr, int len,int mIndex)
 {
-    printf("%s \r\n",jsonstr);
+    //printf("%s \r\n",jsonstr);
 
 
   Json::Reader reader;
@@ -408,21 +415,21 @@ bool jsonIPCamReaderNext(char* jsonstr, int len,int mIndex)
   string strdevicemodel = json_object["devicemodel"].toStyledString() ;
   if(strdevicemodel != "")
   {
-    printf("devicemodel:%s\r\n",strdevicemodel.c_str()) ;
+    //printf("devicemodel:%s\r\n",strdevicemodel.c_str()) ;
     mTIPcamState[mIndex].devicemodel = strdevicemodel ;
   }
 
   string strerrcode = json_object["errcode"].toStyledString() ;
   if(strerrcode != "")
   {
-     printf("devicemodel:%s\r\n",strerrcode.c_str()) ;
+     //printf("devicemodel:%s\r\n",strerrcode.c_str()) ;
      mTIPcamState[mIndex].errcode = strerrcode ;
   }
 
   string strfactoryid = json_object["factoryid"].toStyledString() ;
   if(strfactoryid != "")
   {
-     printf("factoryid:%s\r\n",strfactoryid.c_str()) ;
+     //printf("factoryid:%s\r\n",strfactoryid.c_str()) ;
      mTIPcamState[mIndex].factoryid = strfactoryid ;
   }
 
@@ -430,21 +437,21 @@ bool jsonIPCamReaderNext(char* jsonstr, int len,int mIndex)
   string strfilllight = json_object["filllight"].toStyledString() ;
   if(strfilllight != "")
   {
-     printf("filllight:%s\r\n",strfilllight.c_str()) ;
+     //printf("filllight:%s\r\n",strfilllight.c_str()) ;
      mTIPcamState[mIndex].filllight = strfilllight ;
   }
 
   string strip = json_object["ip"].toStyledString() ;
   if(strip != "")
   {
-     printf("ip:%s\r\n",strip.c_str()) ;
+     //printf("ip:%s\r\n",strip.c_str()) ;
      mTIPcamState[mIndex].ip = strip ;
   }
 
   string strsoftversion = json_object["softversion"].toStyledString() ;
   if(strsoftversion != "")
   {
-     printf("softversion:%s\r\n",strsoftversion.c_str()) ;
+     //printf("softversion:%s\r\n",strsoftversion.c_str()) ;
      mTIPcamState[mIndex].softversion = strsoftversion ;
   }
 
@@ -452,14 +459,14 @@ bool jsonIPCamReaderNext(char* jsonstr, int len,int mIndex)
   string strstatuscode = json_object["statuscode"].toStyledString() ;
   if(strstatuscode != "")
   {
-      printf("statuscode:%s\r\n",strstatuscode.c_str()) ;
+      //printf("statuscode:%s\r\n",strstatuscode.c_str()) ;
       mTIPcamState[mIndex].statuscode = strstatuscode ;
   }
 
   string strstatustime = json_object["statustime"].toStyledString() ;
   if(strstatustime != "")
   {
-      printf("statustime:%s\r\n",strstatustime.c_str()) ;
+      //printf("statustime:%s\r\n",strstatustime.c_str()) ;
       mTIPcamState[mIndex].statustime = strstatustime ;
   }
 
@@ -467,7 +474,7 @@ bool jsonIPCamReaderNext(char* jsonstr, int len,int mIndex)
   string strtemperature = json_object["temperature"].toStyledString() ;
   if(strtemperature != "")
   {
-      printf("temperature:%s\r\n",strtemperature.c_str()) ;
+      //printf("temperature:%s\r\n",strtemperature.c_str()) ;
       mTIPcamState[mIndex].temperature = strtemperature ;
   }
 
@@ -476,7 +483,7 @@ bool jsonIPCamReaderNext(char* jsonstr, int len,int mIndex)
 
 bool jsonIPCamReader(char* jsonstr, int len,int mIndex)
 {
-    printf("%s \r\n",jsonstr);
+    //printf("%s \r\n",jsonstr);
 
 
 Json::Reader reader;
@@ -504,7 +511,7 @@ Json::Reader reader;
   string strentity = json_object["entity"].toStyledString() ;
   if(strentity.size() > 3)
   {
-     printf("entity:%s\r\n",strentity.c_str()) ;
+     //printf("entity:%s\r\n",strentity.c_str()) ;
      jsonIPCamReaderNext((char *)(strentity.c_str()),strentity.size(),mIndex);
   }
 
@@ -520,7 +527,7 @@ return true ;
 
 bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 {
-	printf("%s \t\n",jsonstr);
+	//printf("%s \t\n",jsonstr);
 	
 	std::string json = jsonstr;
 	std::map<std::string, std::string> out;
@@ -548,7 +555,7 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 	while (it != out.end())
 	{
 		sprintf(key,"%s",it->first.c_str());value=atoi(it->second.c_str()) ;
-		printf("%s %s\n",key,it->second.c_str());
+		//printf("%s %s\n",key,it->second.c_str());
 		
 		if(it->first=="rsu1")	pRCtrl->rsu1=value;		//1500 RSU天线1 0xFF00: 遥合;0xFF01: 遥分
 		if(it->first=="door_do")	pRCtrl->door_do=value;	//1501 电子门锁 0xFF00: 关锁;0xFF01: 开锁
@@ -637,22 +644,23 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 			if(it->first==keytmp) 
 			{
 				pRCtrl->doseq[i]=value;
-				printf("%s %d doseq%d=%d\n",keytmp,value,i,pRCtrl->doseq[i]);
+				//printf("%s %d doseq%d=%d\n",keytmp,value,i,pRCtrl->doseq[i]);
 			}
 		}
 
 		it++;
 	}
-	printf("\n");
+	//printf("\n");
 	if(cabineid==1 && operate==ACT_UNLOCK) pRCtrl->FrontDoorCtrl=ACT_UNLOCK;//前门电子门锁 0：保持 1：关锁：2：开锁；3无权限
 	if(cabineid==2 && operate==ACT_UNLOCK) pRCtrl->BackDoorCtrl=ACT_UNLOCK; 	//后门电子门锁 0：保持 1：关锁：2：开锁；3无权限
 	if(cabineid==3 && operate==ACT_UNLOCK) pRCtrl->SideDoorCtrl=ACT_UNLOCK; 		//侧门电子门锁 0：保持 1：关锁：2：开锁；3无权限
+	if(cabineid==4 && operate==ACT_UNLOCK) pRCtrl->RightSideDoorCtrl=ACT_UNLOCK; 		//侧门电子门锁 0：保持 1：关锁：2：开锁；3无权限
 	return true;
 }
 
 bool jsonstrAirCondReader(char* jsonstr, int len, UINT8 *pstPam)
 {
-	printf("%s \t\n",jsonstr);
+	//printf("%s \t\n",jsonstr);
 	
 	std::string json = jsonstr;
 	std::map<std::string, std::string> out;
@@ -667,7 +675,7 @@ bool jsonstrAirCondReader(char* jsonstr, int len, UINT8 *pstPam)
 	while (it != out.end())
 	{
 		sprintf(key,"%s",it->first.c_str());value=atoi(it->second.c_str()) ;
-		printf("%s %d\n",key,value);
+		//printf("%s %d\n",key,value);
 		
 		if(it->first=="aircondset")	pRCtrl->aircondset=value;		//空调关机//1220   		1
 		else if(it->first=="aircoldstartpoint")	pRCtrl->aircoldstartpoint=value;	//空调制冷点//1221 			50
@@ -676,13 +684,13 @@ bool jsonstrAirCondReader(char* jsonstr, int len, UINT8 *pstPam)
 		else if(it->first=="airhotloop")	pRCtrl->airhotloop=value;			//空调制热回差//1224					10
 		it++;
 	}
-	printf("\n");
+	//printf("\n");
 	return true;
 }
 
 bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 {
-	printf("%s \t\n",jsonstr);
+	//printf("%s \t\n",jsonstr);
 	int i;
 	
 	std::string json = jsonstr;
@@ -793,7 +801,7 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			sprintf(pRCtrl->StationURL,"%s",value); 
 			Setconfig("StationURL=",value);
 		}
-		if(it->first=="rsucnt" && StrRSUCount!=value && atoi(value)>=0 && atoi(value)<=RSUCTL_NUM)	//RSU控制器数量
+		if(it->first=="rsucount" && StrRSUCount!=value && atoi(value)>=0 && atoi(value)<=RSUCTL_NUM)	//RSU控制器数量
 		{
 			StrRSUCount=value;
 			sprintf(pRCtrl->RSUCount,"%s",value); 
@@ -884,15 +892,15 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 				Setconfig(key,value);
 			}
 		}
-		if(it->first=="switchcount" && StrIPSwitchCount!=value && atoi(value)>=0 && atoi(value)<=IPSWITCH_NUM)	//交换机数量
+		if(it->first=="ipswitchcount" && StrIPSwitchCount!=value && atoi(value)>=0 && atoi(value)<=IPSWITCH_NUM)	//交换机数量
 		{
-			StrFireWareCount=value;	
-			sprintf(pRCtrl->FireWareCount,"%s",value);	
-			Setconfig("FireWareCount=",value);
+			StrIPSwitchCount=value;	
+			sprintf(pRCtrl->SwitchCount,"%s",value);	
+			Setconfig("SwitchCount=",value);
 		}
 		for(i=0;i<IPSWITCH_NUM;i++)
 		{
-			sprintf(keytmp,"switch%dip",i+1);//交换机IP地址
+			sprintf(keytmp,"ipswitch%dip",i+1);//交换机IP地址
 			if(it->first==keytmp && StrIPSwitchIP[i]!=value)
 			{
 				StrIPSwitchIP[i]=value;	
@@ -900,7 +908,7 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 				sprintf(key,"Switch%dIP=",i+1);
 				Setconfig(key,value);
 			}
-			sprintf(keytmp,"switch%dgetpasswd",i+1);//交换机get密码
+			sprintf(keytmp,"ipswitch%dgetpasswd",i+1);//交换机get密码
 			if(it->first==keytmp && StrIPSwitchGetPasswd[i]!=value)
 			{
 				StrIPSwitchGetPasswd[i]=value;
@@ -908,7 +916,7 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 				sprintf(key,"Switch%dGetPasswd=",i+1);
 				Setconfig(key,value);
 			}
-			sprintf(keytmp,"switch%dsetpasswd",i+1);//交换机set密码
+			sprintf(keytmp,"ipswitch%dsetpasswd",i+1);//交换机set密码
 			if(it->first==keytmp && StrIPSwitchSetPasswd[i]!=value)
 			{
 				StrIPSwitchSetPasswd[i]=value;
@@ -951,6 +959,58 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			}
 		}
 
+		//Atlas
+		if(it->first=="atlascount" && StrAtlasCount!=value && atoi(value)>=0 && atoi(value)<=ATLAS_NUM)	//Atlas数量
+		{
+			StrAtlasCount=value;	
+			sprintf(pRCtrl->AtlasCount,"%s",value);	
+			Setconfig("AtlasCount=",value);
+		}
+		for(i=0;i<ATLAS_NUM;i++)
+		{
+			sprintf(keytmp,"atlas%dip",i+1);//AtlasIP地址
+			if(it->first==keytmp && StrAtlasIP[i]!=value)
+			{
+				StrAtlasIP[i]=value;	
+				sprintf(pRCtrl->AtlasIP[i],"%s",value);	
+				sprintf(key,"Atlas%dIP=",i+1);
+				Setconfig(key,value);
+			}
+			sprintf(keytmp,"atlas%dpasswd",i+1);//Atlas密码
+			if(it->first==keytmp && StrAtlasPasswd[i]!=value)
+			{
+				StrAtlasPasswd[i]=value;
+				sprintf(pRCtrl->AtlasPasswd[i],"%s",value);	
+				sprintf(key,"Atlas%dPasswd=",i+1);
+				Setconfig(key,value);
+			}
+		}
+		//防雷器SPD
+		if(it->first=="spdcount" && StrSPDCount!=value && atoi(value)>=0 && atoi(value)<=SPD_NUM)	//Atlas数量
+		{
+			StrSPDCount=value;	
+			sprintf(pRCtrl->SPDCount,"%s",value);	
+			Setconfig("SPDCount=",value);
+		}
+		for(i=0;i<SPD_NUM;i++)
+		{
+			sprintf(keytmp,"spd%dip",i+1);//SPDIP地址
+			if(it->first==keytmp && StrSPDIP[i]!=value)
+			{
+				StrSPDIP[i]=value;	
+				sprintf(pRCtrl->SPDIP[i],"%s",value);	
+				sprintf(key,"SPD%dIP=",i+1);
+				Setconfig(key,value);
+			}
+			sprintf(keytmp,"spd%dpasswd",i+1);//SPD密码
+			if(it->first==keytmp && StrSPDPasswd[i]!=value)
+			{
+				StrSPDPasswd[i]=value;
+				sprintf(pRCtrl->SPDPasswd[i],"%s",value);	
+				sprintf(key,"SPD%dPasswd=",i+1);
+				Setconfig(key,value);
+			}
+		}
 		for(i=0;i<LOCK_MAX_NUM;i++)
 		{
 			sprintf(keytmp,"adrrlock%d",i+1);//门锁地址
@@ -1020,7 +1080,7 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 
 bool jsonstrIpInfoReader(char* jsonstr, int len, UINT8 *pstIPPam)
 {
-	printf("%s \t\n",jsonstr);
+	//printf("%s \t\n",jsonstr);
 	
 	std::string json = jsonstr;
 	std::map<std::string, std::string> out;
@@ -1035,7 +1095,7 @@ bool jsonstrIpInfoReader(char* jsonstr, int len, UINT8 *pstIPPam)
 	{
 		sprintf(key,"%s",it->first.c_str());
 		sprintf(value,"%s",it->second.c_str());
-		printf("%s %s\n",key,value);
+		//printf("%s %s\n",key,value);
 		
 		//参数设置
 		if(it->first=="ipaddr")	
@@ -1328,6 +1388,24 @@ bool jsonStrVMCtlParamWriter(int messagetype,char *pstrVMCtl, char *json, int *l
 		sprintf(str,"\"ipswitch%dgetpasswd\":\"%s\",\n",i+1,StrIPSwitchGetPasswd[i].c_str()); //交换机get密码
 		strJson = strJson + str;
 		sprintf(str,"\"ipswitch%dsetpasswd\":\"%s\",\n",i+1,StrIPSwitchSetPasswd[i].c_str()); //交换机set密码
+		strJson = strJson + str;
+	}
+	//Atlas
+	strJson = strJson + "\"atlascount\":\""+ StrAtlasCount +"\",\n";	//Atlas数量
+	for(i=0;i<ATLAS_NUM;i++)
+	{
+		sprintf(str,"\"atlas%dip\":\"%s\",\n",i+1,StrAtlasIP[i].c_str()); //AtlasIP
+		strJson = strJson + str;
+		sprintf(str,"\"atlas%dpasswd\":\"%s\",\n",i+1,StrAtlasPasswd[i].c_str()); //Atlas密码
+		strJson = strJson + str;
+	}
+	//防雷器
+	strJson = strJson + "\"spdcount\":\""+ StrSPDCount +"\",\n";	//防雷器数量
+	for(i=0;i<ATLAS_NUM;i++)
+	{
+		sprintf(str,"\"spd%dip\":\"%s\",\n",i+1,StrSPDIP[i].c_str()); //防雷器IP
+		strJson = strJson + str;
+		sprintf(str,"\"spd%dpasswd\":\"%s\",\n",i+1,StrSPDPasswd[i].c_str()); //防雷器密码
 		strJson = strJson + str;
 	}
 	
@@ -1989,7 +2067,7 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 	char str[100],sDateTime[30];
 	int i,j; 
 	static int recordno=0;
-	int va_meter_bd,phase;
+	int va_meter_bd,phase,docount;
 	
     time_t nSeconds;
     struct tm * pTM;
@@ -2014,7 +2092,8 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 	strJson = strJson + "\"rsu_count\": \"" + StrRSUCount + "\",\n";	//RSU数量
 //	strJson = strJson + "\"antenna_count\": " + stuRsuControl.AntennaCount + ",\n";	//天线头数量
 
-	for(i=0;i<SWITCH_COUNT;i++) //开关数量
+	docount=atoi(StrDoCount.c_str());
+	for(i=0;i<docount;i++) //开关数量
 	{
 		va_meter_bd=i/VA_METER_BD_MAX_NUM;
 		phase=i%VA_METER_BD_MAX_NUM;
@@ -2026,7 +2105,15 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 				sprintf(str,"\"do%d_status\":1,\n",i+1); //通电
 			strJson = strJson + str;
 			sprintf(str,"\"do%d_vol\":%.3f,\n",i+1,stuVA_Meter_Param[va_meter_bd]->phase[phase].vln/100.0); strJson = strJson + str;//电压
-			sprintf(str,"\"do%d_amp\":%.3f,\n",i+1,stuVA_Meter_Param[va_meter_bd]->phase[phase].amp/1000.0); strJson = strJson + str;//电流
+			if(i==docount-1)
+			{
+				sprintf(str,"\"do%d_amp\":%.3f\n",i+1,stuVA_Meter_Param[va_meter_bd]->phase[phase].amp/1000.0); strJson = strJson + str;//电流
+			}
+			else
+			{
+				sprintf(str,"\"do%d_amp\":%.3f,\n",i+1,stuVA_Meter_Param[va_meter_bd]->phase[phase].amp/1000.0); strJson = strJson + str;//电流
+			}
+				
 		}
 	}
 /*	for(i=0;i<VEHPLATE_NUM;i++)	//前面用作车牌识别
@@ -2051,10 +2138,10 @@ bool jsonStrSwitchStatusWriter(int messagetype, char *json, int *len)
 		sprintf(str,"\"rsucontrlor%d_vol\":%.3f,\n",i+1-11,stuVA_Meter_Param[0].phase[i].vln/100.0); strJson = strJson + str;//电压
 		sprintf(str,"\"rsucontrlor%d_amp\":%.3f,\n",i+1-11,stuVA_Meter_Param[0].phase[i].amp/1000.0); strJson = strJson + str;//电流
 	}*/
-	sprintf(str,"\"frontdoorlock\":%d,\n",lockerHw_Param[0]->status); strJson = strJson + str;//前门锁
-	sprintf(str,"\"backdoorlock\":%d\n",lockerHw_Param[1]->status); strJson = strJson + str;//后门锁
+//	sprintf(str,"\"frontdoorlock\":%d,\n",lockerHw_Param[0]->status); strJson = strJson + str;//前门锁
+//	sprintf(str,"\"backdoorlock\":%d,\n",lockerHw_Param[1]->status); strJson = strJson + str;//后门锁
 //	sprintf(str,"\"sidedoorlock\":%d,\n",lockerHw_Param[2]->status); strJson = strJson + str;//侧门锁
-//	strJson = strJson + "\"autoreclosure\": " +  + ",\n";	//
+//	sprintf(str,"\"rightsidedoorlock\":%d\n",lockerHw_Param[3]->status); strJson = strJson + str;//侧门锁
 
 	strJson +=	"}\n\n\0\0";
 

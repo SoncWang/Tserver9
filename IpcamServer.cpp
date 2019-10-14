@@ -26,6 +26,7 @@ string mstrurlctl[VEHPLATE_NUM];
 string mstrkey[VEHPLATE_NUM];
 
 extern bool jsonIPCamReader(char* jsonstr, int len,int mIndex);
+extern void WriteLog(char* str);
 
 pthread_mutex_t IpCamStateMutex ;
 TIPcamState mTIPcamState[VEHPLATE_NUM];
@@ -51,7 +52,8 @@ void *HTTP_IPCamDataGet(void *param)
 {
     int i,IntIpcamCount = atoi(StrVehPlateCount.c_str());
     int n = 0;
-
+	char str[128];
+	
 	for(i=0;i<IntIpcamCount;i++)
 	{
         mstrurlget[i] = StrVehPlateIP[i] + ":" + StrVehPlatePort[i] + "/api/LeaTop/GetDeviceStatus" ;
@@ -70,9 +72,14 @@ void *HTTP_IPCamDataGet(void *param)
 	while(1)
     {
         for(n=0;n<IntIpcamCount;n++)
-        {   printf("%s,%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
+        {   //printf("%s,%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
+sprintf(str,"HTTP_IPCamDataGet %s,%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
+WriteLog(str);
+			mStrdata="";
             HttpPostParm(mstrurlget[n],mStrdata,mstrkey[n],HTTPGET);
             pthread_mutex_lock(&IpCamStateMutex);
+sprintf(str,"HTTP_IPCamDataGet ret %s\r\n",mStrdata.c_str());
+WriteLog((char*)mStrdata.c_str());
             jsonIPCamReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
             pthread_mutex_unlock(&IpCamStateMutex);
             sleep(3);

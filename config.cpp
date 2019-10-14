@@ -67,9 +67,11 @@ string StrCAMKey[CAM_NUM];	//监控摄像头用户名密码
 char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
-string StrdeviceType="LTKJ-VMCTRL-101";	//设备型号
-string StrVersionNo="00.14.06" ;	//主程序版本号
-string StrSoftDate="2019-09-17" ;	//版本日期
+string StrdeviceType="XY-TMC-001";	//设备型号
+string StrVersionNo="V1.01.06" ;	//正式版本号
+string StrSoftDate="2019-10-10" ;	//正式版本日期
+//string StrVersionNo="V99.14.07" ;	//测试版本号
+//string StrSoftDate="2019-09-23" ;	//测试版本日期
 
 string StrCabinetType;		//机柜类型
 string StrFlagNetRoadID;	//ETC 门架路网编号
@@ -91,6 +93,12 @@ string StrIPSwitchCount;	//交换机数量
 string StrIPSwitchIP[IPSWITCH_NUM] ;//交换机IP
 string StrIPSwitchGetPasswd[IPSWITCH_NUM] ;//交换机get密码
 string StrIPSwitchSetPasswd[IPSWITCH_NUM] ;//交换机set密码
+string StrAtlasCount;	//Atlas数量
+string StrAtlasIP[ATLAS_NUM] ;//AtlasIP
+string StrAtlasPasswd[ATLAS_NUM] ;//Atlas密码
+string StrSPDCount;	//防雷器数量
+string StrSPDIP[SPD_NUM] ;//防雷器IP
+string StrSPDPasswd[SPD_NUM] ;//防雷器密码
 string StrDoCount;//do数量
 
 extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
@@ -195,6 +203,18 @@ int GetConfig(void)
 		StrIPSwitchIP[i] ="";//交换机IP
 		StrIPSwitchGetPasswd[i] ="";//交换机get密码
 		StrIPSwitchSetPasswd[i] ="";//交换机set密码
+	}
+	StrAtlasCount = "" ;	//Atlas数量
+	for(i=0;i<ATLAS_NUM;i++)
+	{
+		StrAtlasIP[i] =""; //AtlasIP
+		StrAtlasPasswd[i] ="";//Atlas密码
+	}
+	StrSPDCount = "" ; //防雷器数量
+	for(i=0;i<SPD_NUM;i++)
+	{
+		StrSPDIP[i] =""; ;//防雷器IP
+		StrSPDPasswd[i] ="";//防雷器密码
 	}
 
 	//门架信息
@@ -474,7 +494,48 @@ int GetConfig(void)
 	    StrIPSwitchSetPasswd[i] = getstring(StrConfig,key) ;//交换机set密码
 	}
 
+    //Atlas配置
+    Strkey = "AtlasCount=";
+    StrAtlasCount = getstring(StrConfig,Strkey) ;//Atlas数量
+    if(StrAtlasCount=="")
+		StrAtlasCount="0";
+	if(atoi(StrAtlasCount.c_str())>ATLAS_NUM)
+	{
+		sprintf(value,"%d", ATLAS_NUM) ;
+		StrAtlasCount=value;
+	}
+	else if(atoi(StrAtlasCount.c_str())<0)
+		StrAtlasCount="0";
+	for(i=0;i<ATLAS_NUM;i++)
+	{
+		sprintf(key,"Atlas%dIP=",i+1);
+	    StrAtlasIP[i] = getstring(StrConfig,key) ;//AtlasIP地址
+
+		sprintf(key,"Atlas%dPasswd=",i+1);
+	    StrAtlasPasswd[i] = getstring(StrConfig,key) ;//Atlas密码
+	}
     
+    //防雷器配置
+    Strkey = "SPDCount=";
+	StrSPDCount = getstring(StrConfig,Strkey) ; //防雷器数量
+    if(StrSPDCount=="")
+		StrSPDCount="0";
+	if(atoi(StrSPDCount.c_str())>SPD_NUM)
+	{
+		sprintf(value,"%d", SPD_NUM) ;
+		StrSPDCount=value;
+	}
+	else if(atoi(StrSPDCount.c_str())<0)
+		StrSPDCount="0";
+	for(i=0;i<SPD_NUM;i++)
+	{
+		sprintf(key,"SPD%dIP=",i+1);
+		StrSPDIP[i] =getstring(StrConfig,key); //防雷器IP
+
+		sprintf(key,"SPD%dPasswd=",i+1);
+	    StrSPDPasswd[i] = getstring(StrConfig,key) ;//防雷器密码
+	}
+	
 	//门架信息
     Strkey = "FlagNetRoadID=";
     StrFlagNetRoadID = getstring(StrConfig,Strkey) ;//ETC 门架路网编号

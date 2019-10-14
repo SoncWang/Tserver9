@@ -99,6 +99,8 @@ typedef unsigned int      	UINT32;
 #define CAM_NUM 4
 //预留2路ATLAS
 #define ATLAS_NUM 2
+//预留2路防雷器
+#define SPD_NUM 2
 
 // 最大支持6个伏安表, 每个伏安表为6组电流电压值
 #define VA_METER_BD_NUM		6
@@ -472,6 +474,12 @@ typedef struct vmctl_params_struct
     char SwitchIP[IPSWITCH_NUM][20];         //交换机地址(预留2台)
     char SwitchGetPasswd[IPSWITCH_NUM][20];     //交换机get密码
     char SwitchSetPasswd[IPSWITCH_NUM][20];     //交换机set密码 
+    char AtlasCount[5];            //Atlas数量
+    char AtlasIP[ATLAS_NUM][20];         //Atlas地址(预留2台)
+    char AtlasPasswd[ATLAS_NUM][20];     //Atlas密码
+    char SPDCount[5];            //防雷器数量
+    char SPDIP[SPD_NUM][20];         //防雷器地址(预留2台)
+    char SPDPasswd[SPD_NUM][20];     //防雷器密码
     
     char LockAddr[LOCK_NUM][4];         //门锁地址	最多4把锁
     char VameterAddr[VA_METER_BD_NUM][4];     //电能表地址 最多6个表 每层2个
@@ -515,6 +523,7 @@ typedef struct Remote_Control_struct	//
 	UINT16 FrontDoorCtrl;			//前门电子门锁 0：保持 1：关锁：2：开锁
 	UINT16 BackDoorCtrl;			//后门电子门锁0：保持 1：关锁：2：开锁
 	UINT16 SideDoorCtrl;			//侧门电子门锁0：保持 1：关锁：2：开锁
+	UINT16 RightSideDoorCtrl;			//侧门电子门锁0：保持 1：关锁：2：开锁
 	UINT16 AutoReclosure_Close;		//自动重合闸-合闸
 	UINT16 AutoReclosure_Open;		//自动重合闸-分闸
 	char systemtime[50];		//设置控制器时间

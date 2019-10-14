@@ -141,7 +141,7 @@ int main(void)
 	}
 	actual_locker_num = pos_cnt;
 	pos_cnt = 0;
-	printf("actual_locker_num 0x%02x ",actual_locker_num);printf("\r\n");
+//	printf("actual_locker_num 0x%02x ",actual_locker_num);printf("\r\n");
 
 	/*动态开辟一个数组，并存储有效电子锁轮询配置*/
 	polling_arr = (int*)malloc(sizeof(int)*actual_locker_num);
@@ -150,7 +150,7 @@ int main(void)
 		if ((Var_Table[i].enable)&&(j<actual_locker_num))
 		{
 			polling_arr[j] = Var_Table[i].status;
-			printf("pollingcnt 0x%02x ",polling_arr[j]);printf("\r\n");
+//			printf("pollingcnt 0x%02x ",polling_arr[j]);printf("\r\n");
 			j++;
 		}
 	}
@@ -200,7 +200,7 @@ int main(void)
 	/*动态开辟一个数组，并存储有效其它485设备的轮询配置*/
 	actual_485dev_num = pos_cnt;
 	//pos_cnt = 0;// 这里pos_cnt不要清0，后面还要用,要统计全部的485设备数量
-	printf("actual_485dev_num 0x%02x ",actual_485dev_num);printf("\r\n");
+//	printf("actual_485dev_num 0x%02x ",actual_485dev_num);printf("\r\n");
 	polling_subarr = (int*)malloc(sizeof(int)*actual_485dev_num);
 	/*暂时副轮询只针对电压电流传感器*/
 	for (i=VA_METER_1,j=0; i < POWER_BD_1; i++)
@@ -209,7 +209,7 @@ int main(void)
 		{
 			/*polling_subarr存储的是被使能的Var_Table的status,即顺序号*/
 			polling_subarr[j] = Var_Table[i].status;
-			printf("pollingsubcnt 0x%02x ",polling_subarr[j]);printf("\r\n");
+//			printf("pollingsubcnt 0x%02x ",polling_subarr[j]);printf("\r\n");
 			j++;
 		}
 	}
@@ -249,7 +249,7 @@ int main(void)
 	/////////////////  电源控制板配置结束	/////////////////////////////////////////////
 
 
-	/*打印485配置表的调试信息*/
+	/*打印485配置表的调试信息
 	printf("LOCKER_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_1].status, Var_Table[LOCKER_1].enable,Var_Table[LOCKER_1].position,Var_Table[LOCKER_1].addr);
 	printf("LOCKER_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_2].status, Var_Table[LOCKER_2].enable,Var_Table[LOCKER_2].position,Var_Table[LOCKER_2].addr);
 	printf("LOCKER_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_3].status, Var_Table[LOCKER_3].enable,Var_Table[LOCKER_3].position,Var_Table[LOCKER_3].addr);
@@ -266,6 +266,7 @@ int main(void)
 	printf("IO_BD_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[IO_BD_1].status, Var_Table[IO_BD_1].enable,Var_Table[IO_BD_1].position,Var_Table[IO_BD_1].addr);
 	printf("IO_BD_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[IO_BD_2].status, Var_Table[IO_BD_2].enable,Var_Table[IO_BD_2].position,Var_Table[IO_BD_2].addr);
 	printf("IO_BD_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[IO_BD_3].status, Var_Table[IO_BD_3].enable,Var_Table[IO_BD_3].position,Var_Table[IO_BD_3].addr);
+	*/
 
 	//控制器参数结构体
 	stuVMCtl_Param = (VMCONTROL_PARAM*)malloc(sizeof(VMCONTROL_PARAM));
@@ -299,17 +300,17 @@ int main(void)
 	// 如果都没有配置，就按DO顺序进行默认配置
 	if (temp == 0)
 	{
-		printf("temp=0\r\n");
+		//printf("temp=0\r\n");
 		for (i = 0; i < SWITCH_COUNT; i++)
 		{
 			DoSeq[i] = i;
 		}
 	}
 //printf("main 333\n");
-	for (i = 0; i < SWITCH_COUNT; i++)
+/*	for (i = 0; i < SWITCH_COUNT; i++)
 	{
 		printf("do_seqx=0x%02x\r\n",DoSeq[i]);
-	}
+	}*/
 	/////////////////  DO配置表结束/////////////////////////////////////////////
 
 	//门架自由流运行状态结构体
@@ -558,7 +559,7 @@ void WriteLog(char* str)
 	 pTM = localtime(&nSeconds);
 	 
 	 //判断前一天文件是否存在，存在就先删除
-/*	 if(pTM->tm_mday>1 && pTM->tm_mday<=31)
+	 if(pTM->tm_mday>1 && pTM->tm_mday<=31)
 	 {
 		 sprintf(stmp,"%d",pTM->tm_mday-1);   
 		 filename=exePath+"/"+stmp+".txt";
@@ -582,7 +583,7 @@ void WriteLog(char* str)
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
 		 }	
-	 }*/
+	 }
 	 
 	 //系统日期和时间,格式: yyyymmddHHMMSS 
 	 sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",

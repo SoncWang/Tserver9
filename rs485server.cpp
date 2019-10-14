@@ -524,13 +524,13 @@ void *Dev_DataPollingthread(void *param)
 						if (Rs485_table_enable_get(ver_poll_counter+POWER_BD_1))
 						{
 							power_ver_flag |= LBIT(ver_poll_counter);
-							printf("power_ver_flag=0x%04x\r\n",power_ver_flag);
+							//printf("power_ver_flag=0x%04x\r\n",power_ver_flag);
 						}
 					}
 					ver_poll_counter++;
 					if (ver_poll_counter >= POWER_BD_RD_NUM)
 					{
-						printf("verpoll over0x%02x" ,ver_poll_counter);printf("\r\n");
+						//printf("verpoll over0x%02x" ,ver_poll_counter);printf("\r\n");
 						ver_poll_counter = 0;
 					}
 				}
@@ -540,13 +540,13 @@ void *Dev_DataPollingthread(void *param)
 					if (dev_poll_counter < actual_485dev_num)
 					{
 						comm_flag[RS485_2] |= LBIT(polling_subarr[dev_poll_counter]);
-						printf("comm_flag2=0x%04x\r\n",comm_flag[RS485_2]);
+						//printf("comm_flag2=0x%04x\r\n",comm_flag[RS485_2]);
 					}
 					dev_poll_counter++;
 					if (dev_poll_counter >= actual_485dev_num)
 					{
-						printf("\r\ndevpoling over");
-						printf("0x%02x" ,dev_poll_counter);printf("\r\n");
+//						printf("\r\ndevpoling over");
+//						printf("0x%02x" ,dev_poll_counter);printf("\r\n");
 						dev_poll_counter = 0;
 						loop_cnt++;
 						// 如果有6个VA传感器，要2.9*6*6s才轮询一次电源板
@@ -616,7 +616,7 @@ void *Locker_DataPollingthread(void *param)
 		if (locker_ctrl_flag&BITS_MSK_GET(0,LOCKER_CTRL_NUM))
 		{
 			comm_flag[RS485_1] = 0;
-			printf("locker_ctrl_flag=0x%04x\r\n",locker_ctrl_flag);
+			//printf("locker_ctrl_flag=0x%04x\r\n",locker_ctrl_flag);
 		}
 		else
 		{
@@ -624,13 +624,13 @@ void *Locker_DataPollingthread(void *param)
 			if (polling_counter < actual_locker_num)
 			{
 				comm_flag[RS485_1] |= LBIT(polling_arr[polling_counter]);
-				printf("comm_flag=0x%04x\r\n",comm_flag[RS485_1]);
+				//printf("comm_flag=0x%04x\r\n",comm_flag[RS485_1]);
 			}
 			polling_counter++;
 			if (polling_counter >= actual_locker_num)
 			{
-				printf("\r\npoling over");
-				printf("0x%02x" ,polling_counter);printf("\r\n");
+//				printf("\r\npoling over");
+//				printf("0x%02x" ,polling_counter);printf("\r\n");
 				polling_counter = 0;
 			}
 		}
@@ -791,15 +791,15 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 
 	if(len == (REAL_DATA_NUM*2+5))
 	{
-		printf("va begain\r\n");
+		//printf("va begain\r\n");
 		/*第5相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[0].vln;
 		for(i = 35;i <= 36;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-35));
 		}
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].vln);printf("\r\n");
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].amp);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].vln);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[0].amp);printf("\r\n");
 
 		/*第4相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[1].vln;
@@ -807,8 +807,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-28));
 		}
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].vln);printf("\r\n");
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].amp);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].vln);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[1].amp);printf("\r\n");
 
 		/*第3相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[2].vln;
@@ -816,8 +816,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-21));
 		}
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].vln);printf("\r\n");
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].amp);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].vln);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[2].amp);printf("\r\n");
 
 		/*第2相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[3].vln;
@@ -825,8 +825,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-14));
 		}
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].vln);printf("\r\n");
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].amp);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].vln);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[3].amp);printf("\r\n");
 
 		/*第1相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[4].vln;
@@ -834,8 +834,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i-7));
 		}
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].vln);printf("\r\n");
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].amp);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].vln);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[4].amp);printf("\r\n");
 
 		/*第0相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[5].vln;
@@ -843,8 +843,8 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
 		}
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].vln);printf("\r\n");
-		printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].amp);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].vln);printf("\r\n");
+		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].amp);printf("\r\n");
 	}
 }
 
@@ -875,7 +875,7 @@ void comm_VerData_analyse(unsigned char *buf,unsigned short int len,unsigned cha
 	if(len == (VER_DATA_NUM*2+5))
 	{
 		addr_base = *(buf+0)-POWER_CTRL_ADDR_1;		// the first byte is the addr.
-		printf("ver begain\r\n");
+		//printf("ver begain\r\n");
 		// 暂时只处理程序版本号
 		char_to_int(buf + FRAME_HEAD_NUM, pointer);
 		temp1 = verCode;
@@ -886,7 +886,7 @@ void comm_VerData_analyse(unsigned char *buf,unsigned short int len,unsigned cha
 			verchar[i] = temp2;
 		}
 		sprintf(stuVMCtl_Param->secSoftVersion[addr_base],"V%d.%d%d.%d%d\0",verchar[4],verchar[3],verchar[2],verchar[1],verchar[0]);
-		printf("%s",stuVMCtl_Param->secSoftVersion[addr_base]);
+		//printf("%s",stuVMCtl_Param->secSoftVersion[addr_base]);
 	}
 }
 
@@ -908,6 +908,7 @@ int DealComm485(unsigned char *buf,unsigned short int len, RS485_COM_LIST seq)
 		case WAIT_LOCKER_4_MSG:
 			DealLockerMsg(3,buf, len);
 		break;
+
 		case WAIT_VA_DATA_1_MSG:				/*MSG from the Volt-amp detector*/
 			comm_VAData_analyse(buf, len,0);
 		break;

@@ -71,15 +71,15 @@ void *ComPort4Thread(void *param)
 	  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
 	  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
 		{
-		  printf("CRC error\r\n");
+		  //printf("CRC error\r\n");
  		  if(buffPos>=256) buffPos=0;
 
 		  continue ;
 	  	}
 
-      	printf("com4 len=%d\r\n",buffPos) ;
+      	//printf("com4 len=%d\r\n",buffPos) ;
 	  	/*debug the information*/
-	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+//	  	int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
 	  	DealComm485(buf, buffPos, RS485_2);
 	  	buffPos=0;
@@ -109,8 +109,8 @@ UINT16 SendCom4RCtlReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 code)
     unsigned short int CRC = CRC16(bytSend,len-2) ;
     bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC
     bytSend[len-1] =  CRC&0x00FF;           //CRC
-    printf("Com4 Cdata:");
-	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+    //printf("Com4 Cdata:");
+//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	mComPort4->SendBuf(bytSend,len);
     Com4SendCri.UnLock();
@@ -138,8 +138,8 @@ int SendCom4ReadReg(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
     bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC high
     bytSend[len-1] =  CRC&0x00FF;           //CRC low
 
-	printf("Com4 Rdata:");
-	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+	//printf("Com4 Rdata:");
+//	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	mComPort4->SendBuf(bytSend,len);
     Com4SendCri.UnLock();

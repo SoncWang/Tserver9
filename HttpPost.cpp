@@ -158,7 +158,7 @@ int HttpPostjpeng(unsigned char *pjpengbuf,int jpenglen)
         fclose(fp);
         */
         string strmemory = oDataChunk.memory;
-        printf("%s\r\n",strmemory.c_str()) ;
+        //printf("%s\r\n",strmemory.c_str()) ;
         return true;
     }
 

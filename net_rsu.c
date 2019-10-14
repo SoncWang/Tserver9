@@ -38,7 +38,6 @@ unsigned short CRC16_pc(unsigned char* pchMsg, unsigned short wDataLen) // 1. MS
     unsigned char i, chChar;
     unsigned short wCRC = 0xffff;
 	printf("crc_data is:");
-WriteLog("crc_data is:");
     while (wDataLen--)
     {
         chChar = *pchMsg++;  
@@ -56,9 +55,6 @@ WriteLog("crc_data is:");
     }
 	wCRC = (~wCRC) & 0xFFFF;
     printf("crc is %x\n",wCRC);
-char str[128];
-sprintf(str,"crc is %x\n",wCRC);
-WriteLog(str);
     return wCRC;
 	
 }
@@ -146,13 +142,6 @@ void send_RSU(char command,bool ReSend,char state,int num)
 	{
 		printf("%x-",send_buff[i]);
 	}
-char str[10*1024];
-WriteLog("sent_rsu data:");
-for(i=0;i<buff_len;i++)
-{
-	sprintf(str,"%x-",send_buff[i]);
-	WriteLog(str);
-}
 	printf("\n");
 	write(sockfd_rsu,send_buff,buff_len);
 }
@@ -165,7 +154,7 @@ static char* getNetworkInfo(char *maches)	//读取配置文件的内容
 	if((fp=fopen(NETWORK_FILE, "r"))==NULL)             //判断文件是否为空
    	{
         	printf( "Can 't   open   file!\n"); 
-WriteLog( "Can 't   open   file!\n"); 
+WriteLog( "Can 't   open   file!\n");
 		return 0;
     	}
 	while(fgets(szBuf,128,fp))                         //从文件开关开始向下读，把读到的内容放到szBuf中
@@ -258,7 +247,7 @@ void init_net_rsu()
 	}
 	pthread_detach(tNetwork_server_RSU);
 	
-	pthread_t tGetRSUInof; 
+	pthread_t tGetRSUInof;
 //	pthread_create(&tGetRSUInof, NULL, GetRSUInofthread,NULL); 
 }
 static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
@@ -271,11 +260,16 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 	memset(buf,0,sizeof(buf));
 	unsigned short crc_rsu;
 	int bFlag=0;
-	while((temp=obtain_net())==0)
+	temp=0;
+	while(temp==0)
 	{
-		printf("connect _rsu error\n");
+		temp=obtain_net();
+		sprintf(str,"temp=%d\n",temp);
+		WriteLog(str);
+		if(temp==0)		
+		{printf("connect _rsu error\n");
 		WriteLog("IN NETWORK_Server_thread connect _rsu error!\n");
-		obtain_net();
+		sleep(2);}
 	}
 	while(1)
 		{
@@ -283,13 +277,9 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 			nlen = read(sockfd_rsu, buf, sizeof(buf)-1);
 			if (nlen <= 0)
 			{
-				while((temp=obtain_net())==0)
-				{
 					printf("nlen is %d connect _rsu error\n",nlen);
 					sprintf(str,"nlen is %d connect _rsu error\n",nlen);
-					WriteLog(str);
-					obtain_net();
-				}				
+					WriteLog(str);			
 			} 
 		else
 		{
@@ -299,13 +289,13 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 				printf("%x-",buf[i]);
 			}
 			printf("\n");
-sprintf(str,"read %d byte data from the server:",nlen);
+/*sprintf(str,"read %d byte data from the server:",nlen);
 WriteLog(str);
 for(i=0;i<nlen;i++)
 {
 	sprintf(str,"%x-",buf[i]);
 	WriteLog(str);
-}
+}*/
 			crc_rsu=CRC16_pc(buf+2,nlen-4);
 			if(buf[8]==0xb9&&buf[nlen-2]==((crc_rsu&0xff00)>>8)&&buf[nlen-1]==(crc_rsu&0x00ff)&&buf[0]==0xff)
 			{	
@@ -315,18 +305,20 @@ for(i=0;i<nlen;i++)
 				if(temp>8)
 				{
 					printf("RSU ControlCount = %d error!\n",temp);
-sprintf(str,"RSU ControlCount = %d error!\n",temp);
-WriteLog(str);
+					sprintf(str,"RSU ControlCount = %d error!\n",temp);
+					WriteLog(str);
 					continue;
 				}
+				sprintf(str,"RSU ControlCount = %d \n",temp);
+//					WriteLog(str);
 				for(i=0;i<temp;i++)
 				{stuRsuControl.ControlStatusN[i]=buf[18+i];}		//控制器状态
 				stuRsuControl.AntennaCount=buf[18+temp];	//天线数量
 				if(stuRsuControl.AntennaCount>8)
 				{
-					printf("RSU AntennaCount = %d error!\n",stuRsuControl.AntennaCount);
-sprintf(str,"RSU AntennaCount = %d error!\n",stuRsuControl.AntennaCount);
-WriteLog(str);
+//					printf("RSU AntennaCount = %d error!\n",stuRsuControl.AntennaCount);
+//sprintf(str,"RSU AntennaCount = %d error!\n",stuRsuControl.AntennaCount);
+//WriteLog(str);
 					continue;
 				}
 				for(j=0;j<stuRsuControl.AntennaCount;j++)
@@ -336,11 +328,18 @@ WriteLog(str);
 					stuRsuControl.AntennaInfoN[j].Channel=buf[21+temp+j*4];;
 					stuRsuControl.AntennaInfoN[j].Control_state=buf[22+temp+j*4];
 				}
-				printf("ControlCount=%d AntennaCount=%d\t\n",stuRsuControl.ControlCount,stuRsuControl.AntennaCount);
+				sprintf(str,"ControlCount=%d AntennaCount=%d\t\n",stuRsuControl.ControlCount,stuRsuControl.AntennaCount);
+//				WriteLog(str);
 				for(i=0;i<stuRsuControl.ControlCount;i++)
-					printf("Control %d ControlStatusN=%d\t\n",i,stuRsuControl.ControlStatusN[i]);
+				{
+					sprintf(str,"Control %d ControlStatusN=%d\t\n",i,stuRsuControl.ControlStatusN[i]);
+//					WriteLog(str);
+				}
 				for(j=0;j<stuRsuControl.AntennaCount;j++)
-					printf("Antenna %d Status=%d  Power=%d  Channel=%d  Control_state=%d\t\n",j,stuRsuControl.AntennaInfoN[j].Status,stuRsuControl.AntennaInfoN[j].Power,stuRsuControl.AntennaInfoN[j].Channel,stuRsuControl.AntennaInfoN[j].Control_state);
+				{
+					sprintf(str,"Antenna %d Status=%d  Power=%d  Channel=%d  Control_state=%d\t\n",j,stuRsuControl.AntennaInfoN[j].Status,stuRsuControl.AntennaInfoN[j].Power,stuRsuControl.AntennaInfoN[j].Channel,stuRsuControl.AntennaInfoN[j].Control_state);
+//					WriteLog(str);
+				}
 				if(bFlag==0)
 				{
 					bFlag=1;

@@ -87,7 +87,7 @@ void IP1getFromConfig(void)
 
 	memset(&IPDadaForCom,0,sizeof(IPInfo));
 	GetIPinfo(&IPDadaForCom);
-	printf("IP1s0x%s \r\n",IPDadaForCom.ip);
+	//printf("IP1s0x%s \r\n",IPDadaForCom.ip);
 	ipstring_to_ipint(IPDadaForCom.ip,&IPaddr[0]);
 }
 
@@ -98,7 +98,7 @@ void IP2getFromConfig(void)
 
 	memset(&IPDadaForCom,0,sizeof(IPInfo));
 	GetIPinfo2(&IPDadaForCom);
-	printf("IP2s0x%s \r\n",IPDadaForCom.ip);
+	//printf("IP2s0x%s \r\n",IPDadaForCom.ip);
 	ipstring_to_ipint(IPDadaForCom.ip,&IPaddr[1]);
 }
 
@@ -233,8 +233,8 @@ void *ComPort2Thread(void *param)
 			continue ;
 	  	}
 
-		printf("com2 len=%d\r\n",buffPos) ;
-		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+//		printf("com2 len=%d\r\n",buffPos) ;
+//		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
 		if (buf[BUF_CMD] == CMD_WRITE)
 		{
@@ -499,7 +499,7 @@ int SendCom2WriteReg(UINT16 Addr, UINT8 Func)
 	datalen = message_pack(Addr,Func,bytSend);
 
 	// debug测试打印
-	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
+//	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	mComPort2->SendBuf(bytSend,datalen);
     Com2SendCri.UnLock();

@@ -34,11 +34,11 @@ void UpdataHUAWEIGantryStr(char* mstr,int len,EM_HUAWEIGantry mIntHUAWEIGantry)
    //锂电
 	  case hwMonEquipSoftwareVersion:			 //软件版本
 		  HUAWEIDevValue.strhwMonEquipSoftwareVersion = mstr;
-		  printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipSoftwareVersion).c_str());
+		  //printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipSoftwareVersion).c_str());
 		  break;
 	  case hwMonEquipManufacturer:			 //设备生产商
 		  HUAWEIDevValue.strhwMonEquipManufacturer = mstr ;
-		  printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipManufacturer).c_str());
+		  //printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipManufacturer).c_str());
 		  break;
 	 default:
 		 break;
@@ -507,26 +507,26 @@ void *snmpthread(void *param)
 		if (status == STAT_SUCCESS && response->errstat == SNMP_ERR_NOERROR) 
 		{
 			// SUCCESS: Print the result variables
-			for(vars = response->variables; vars; vars = vars->next_variable)
+/*			for(vars = response->variables; vars; vars = vars->next_variable)
 			{
 				print_variable(vars->name, vars->name_length, vars);     
-			}
+			}*/
 			// manipuate the information ourselves 
 			for(vars = response->variables; vars; vars = vars->next_variable) 
 			{
 				if (vars->type == ASN_OCTET_STR) 
 				{
-					printf("ASN_OCTET_STR len=%d, str=%s\n",vars->val_len,vars->val.string);
+					//printf("ASN_OCTET_STR len=%d, str=%s\n",vars->val_len,vars->val.string);
 					memcpy(sp, vars->val.string, vars->val_len);
 					sp[vars->val_len] = '\0';
-					printf("value #%d is a string: %s\n", count++, sp);
+					//printf("value #%d is a string: %s\n", count++, sp);
                     //UpdataHUAWEIGantryStr(sp,vars->val_len+1,(EM_HUAWEIGantry)IntHUAWEIGantry);
 				}
 	            else
 	            {
-					printf("ASN_OCTET_INT len=%d\n",*(vars->val.integer));
+					//printf("ASN_OCTET_INT len=%d\n",*(vars->val.integer));
 					unsigned int IntegerValue = *(vars->val.integer) ;
-					printf("value #%d is a integer: %d\n", count++, IntegerValue);
+					//printf("value #%d is a integer: %d\n", count++, IntegerValue);
 					//printf("value #%d is NOT a string! Ack!/n", count++);
                     //UpdataHUAWEIGantry(IntegerValue,(EM_HUAWEIGantry)IntHUAWEIGantry);
 

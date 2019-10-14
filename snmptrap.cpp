@@ -62,12 +62,12 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 	for(vars = pdu->variables; vars; vars = vars->next_variable) 
 	{
         getStroid = "";
-        printf("oididex: ");
+        //printf("oididex: ");
         for(i=0; i<vars->name_length; i++)
         {
             if(*(vars->name_loc+i) == 0)
                 break;
-            printf(".%d", *(vars->name_loc+i));
+            //printf(".%d", *(vars->name_loc+i));
 
 
             memset(oidbuf,0,20);
@@ -79,7 +79,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
                // getstradd = getStroid ;
             getIndex = *(vars->name_loc+i) ;
         }
-        printf("\r\n");
+        //printf("\r\n");
         //printf("getStroid=%s,getstradd=%s,getIndex=%d\r\n",getStroid.c_str(),getstradd.c_str(),getIndex);
         if(getStroid == StrAlarmID)
         {
@@ -154,7 +154,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
         */
 		count++;
 	}
-    //printf("Stroid=%s,getAlarmID=%d,getDevAddr=%d\r\n",Stroid.c_str(),getAlarmID,getDevAddr);
+    printf("Stroid=%s,getAlarmID=%d,getDevAddr=%d\r\n",Stroid.c_str(),getAlarmID,getDevAddr);
     DealAlarm(Stroid,getAlarmID,getDevAddr);
 	
 	string mstrjson;
