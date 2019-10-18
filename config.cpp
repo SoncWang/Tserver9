@@ -1,13 +1,13 @@
 
 #include <stdio.h>
-#include <stdlib.h> 
-#include <unistd.h>  
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 #include <termios.h>
-#include <errno.h>   
-#include <limits.h> 
+#include <errno.h>
+#include <limits.h>
 #include <asm/ioctls.h>
 #include <time.h>
 #include <pthread.h>
@@ -17,10 +17,11 @@
 #include "comserver.h"
 #include "MyCritical.h"
 #include <string>
-#include <semaphore.h>  
+#include <semaphore.h>
 #include "Protocol.h"
 #include "config.h"
 #include "rs485server.h"
+#include "net_spd.h"
 
 
 using namespace std;//寮??ユ?翠釜??绌洪??
@@ -67,6 +68,14 @@ string StrCAMKey[CAM_NUM];	//监控摄像头用户名密码
 char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
+string StrSPDCount;	//PSD数量
+string StrSPDIP;	//PSD控制器IP地址
+string StrSPDPort;	//PSD控制器端口
+string StrSPDAddr;
+string StrSPDResAddr;
+char gsSPDIP[20];	//PSD-IP地址
+char gsSPDPort[10];	//PSD端口
+
 string StrdeviceType="XY-TMC-001";	//设备型号
 string StrVersionNo="V1.01.06" ;	//正式版本号
 string StrSoftDate="2019-10-10" ;	//正式版本日期
@@ -96,10 +105,14 @@ string StrIPSwitchSetPasswd[IPSWITCH_NUM] ;//交换机set密码
 string StrAtlasCount;	//Atlas数量
 string StrAtlasIP[ATLAS_NUM] ;//AtlasIP
 string StrAtlasPasswd[ATLAS_NUM] ;//Atlas密码
+#if 0
 string StrSPDCount;	//防雷器数量
 string StrSPDIP[SPD_NUM] ;//防雷器IP
 string StrSPDPasswd[SPD_NUM] ;//防雷器密码
+#endif
+
 string StrDoCount;//do数量
+
 
 extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 extern string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
@@ -116,7 +129,7 @@ string getstring(string str,string strkey)
   lenpos = str.find(strkey) ;
   if(lenpos >= 0)
   {
-      str = str.substr(lenpos+strkey.length()) ; 
+      str = str.substr(lenpos+strkey.length()) ;
   }
   else
      return strget ;
@@ -124,12 +137,12 @@ string getstring(string str,string strkey)
   lenpos = str.find('\n') ;
   if(lenpos >= 0)
   {
-      str = str.substr(0,lenpos) ; 
+      str = str.substr(0,lenpos) ;
       strget = str ;
   }
   else
      return strget ;
-  
+
 
   return strget ;
 }
@@ -137,15 +150,15 @@ string getstring(string str,string strkey)
 
 int GetConfig(void)
 {
-    int i,j,vehplatecnt,rsucnt;
+    int i,j,vehplatecnt,rsucnt,psdcnt;
 	char key[128],value[10],devicename[128];
-	char *strbuf; 
+	char *strbuf;
 	string strvalue;
 	int isize;
 	char stripbuf[1501];
     char stripbuf2[1501];
 
-    char strwifibuf[1001]; 
+    char strwifibuf[1001];
     memset(strwifibuf,0x00,1001) ;
 
     StrID  = "" ;			//硬件ID
@@ -211,11 +224,9 @@ int GetConfig(void)
 		StrAtlasPasswd[i] ="";//Atlas密码
 	}
 	StrSPDCount = "" ; //防雷器数量
-	for(i=0;i<SPD_NUM;i++)
-	{
-		StrSPDIP[i] =""; ;//防雷器IP
-		StrSPDPasswd[i] ="";//防雷器密码
-	}
+
+	StrSPDIP =""; ;//防雷器IP
+	StrSPDPort ="";//防雷器端口
 
 	//门架信息
 	StrFlagNetRoadID = "";	//ETC 门架路网编号
@@ -224,12 +235,12 @@ int GetConfig(void)
 	StrPosId = "";			//ETC 门架序号
 	StrDirection = "";		//行车方向
 	StrDirDescription = "";	//行车方向说明
-	
+
 //	StrdeviceType = "";		//设备型号
 //	StrVersionNo = "" ;		//主程序版本号
     StrWIFIUSER = "";		//WIIFI用户名
     StrWIFIKEY = "" ;		//WIIFI密码
-    
+
 	for (i = 0; i < LOCK_MAX_NUM; i++)
 	{
 		StrAdrrLock[i] = "" ;			//门锁地址
@@ -243,7 +254,7 @@ int GetConfig(void)
 		StrAdrrPower[i] = "" ;			//电源板的地址
 	}
 	StrDoCount="";						//DO 数量
-	
+
     ConfigCri.Lock();
     //read config
     FILE* fdd ;
@@ -296,9 +307,9 @@ int GetConfig(void)
 
     printf("-----netconfig----\n%s\n----end netconfig----\n",stripbuf) ;
     STRWIFIWAP = strwifibuf ;
-    
+
     printf("-----netconfig2----\n%s\n----end netconfig2----\n",stripbuf2) ;
-  
+
 
 
     string Strkey ;
@@ -348,7 +359,7 @@ int GetConfig(void)
 
     Strkey = "HWSetPasswd=";
     StrHWSetPasswd = getstring(StrConfig,Strkey) ;//SNMP SET 密码
-    
+
     Strkey = "ServerURL1=";
     StrServerURL1 = getstring(StrConfig,Strkey) ;
 
@@ -386,13 +397,50 @@ int GetConfig(void)
 		sprintf(key,"RSU%dIP=",i+1);
 	    StrRSUIP[i] = getstring(StrConfig,key) ;//RSU IP 地址
 	    sprintf(gsRSUIP[i],StrRSUIP[i].c_str());//RSUIP地址
-	    
+
 		sprintf(key,"RSU%dPort=",i+1);
 	    StrRSUPort[i] = getstring(StrConfig,key) ;//RSU端口
 	    sprintf(gsRSUPort[i],StrRSUPort[i].c_str());//RSU端口
 
 	}
-	
+
+
+	Strkey = "SPDCount=";
+    StrSPDCount = getstring(StrConfig,Strkey) ;//PSD数量
+    if(StrSPDCount=="")
+		StrSPDCount="0";
+	psdcnt=atoi(StrSPDCount.c_str());
+	if(psdcnt>SPD_NUM)
+	{
+		sprintf(value,"%d", SPD_NUM) ;
+		StrSPDCount=value;
+		psdcnt=SPD_NUM;
+	}
+	else if(psdcnt<0)
+	{
+		StrSPDCount="0";
+		psdcnt=0;
+	}
+
+	Strkey = "SPDAddr=";
+	StrSPDAddr = getstring(StrConfig,Strkey);
+	SPD_Address = atoi(StrSPDAddr.c_str());
+
+	Strkey = "SPDResAddr=";
+	StrSPDResAddr = getstring(StrConfig,Strkey);
+	SPD_Res_Address = atoi(StrSPDResAddr.c_str());
+
+	sprintf(key,"SPDIP=");
+	//key = "SPDIP=";
+	StrSPDIP = getstring(StrConfig,key) ;//PSD IP 地址
+	sprintf(gsSPDIP,StrSPDIP.c_str());//PSDIP地址
+
+	sprintf(key,"SPDPort=");
+	//key = "SPDPort=";
+	StrSPDPort = getstring(StrConfig,key) ;//PSD端口
+	sprintf(gsSPDPort,StrSPDPort.c_str());//PSD端口
+
+
     Strkey = "VehPlateCount=";
     StrVehPlateCount = getstring(StrConfig,Strkey) ;//识别仪数量
     if(StrVehPlateCount=="")
@@ -413,14 +461,14 @@ int GetConfig(void)
 	{
 		sprintf(key,"VehPlate%dIP=",i+1);
 	    StrVehPlateIP[i] = getstring(StrConfig,key) ;//识别仪IP地址
-	    
+
 		sprintf(key,"VehPlate%dPort=",i+1);
 	    StrVehPlatePort[i] = getstring(StrConfig,key) ;//识别仪端口
-	    
+
 		sprintf(key,"VehPlate%dKey=",i+1);
 	    StrVehPlateKey[i] = getstring(StrConfig,key) ;//识别仪用户名密码
 	}
-    
+
     Strkey = "CAMCount=";
     StrCAMCount = getstring(StrConfig,Strkey) ;//监控摄像头数量
     if(StrCAMCount=="")
@@ -436,14 +484,14 @@ int GetConfig(void)
 	{
 		sprintf(key,"CAM%dIP=",i+1);
 	    StrCAMIP[i] = getstring(StrConfig,key) ;//监控摄像头IP地址
-	    
+
 		sprintf(key,"CAM%dPort=",i+1);
 	    StrCAMPort[i] = getstring(StrConfig,key) ;//监控摄像头端口
-	    
+
 		sprintf(key,"CAM%dKey=",i+1);
 	    StrCAMKey[i] = getstring(StrConfig,key) ;//监控摄像头用户名密码
 	}
-    
+
     Strkey = "CabinetType=";
     StrCabinetType = getstring(StrConfig,Strkey) ;//机柜类型
 
@@ -514,7 +562,8 @@ int GetConfig(void)
 		sprintf(key,"Atlas%dPasswd=",i+1);
 	    StrAtlasPasswd[i] = getstring(StrConfig,key) ;//Atlas密码
 	}
-    
+
+#if 0
     //防雷器配置
     Strkey = "SPDCount=";
 	StrSPDCount = getstring(StrConfig,Strkey) ; //防雷器数量
@@ -535,26 +584,27 @@ int GetConfig(void)
 		sprintf(key,"SPD%dPasswd=",i+1);
 	    StrSPDPasswd[i] = getstring(StrConfig,key) ;//防雷器密码
 	}
-	
+#endif
+
 	//门架信息
     Strkey = "FlagNetRoadID=";
     StrFlagNetRoadID = getstring(StrConfig,Strkey) ;//ETC 门架路网编号
-    
+
     Strkey = "FlagRoadID=";
     StrFlagRoadID = getstring(StrConfig,Strkey) ;//ETC 门架路段编号
-    
+
     Strkey = "FlagID=";
     StrFlagID = getstring(StrConfig,Strkey) ;//ETC 门架编号
-    
+
     Strkey = "PosId=";
     StrPosId = getstring(StrConfig,Strkey) ;//ETC 门架序号
-    
+
     Strkey = "Direction=";
     StrDirection = getstring(StrConfig,Strkey) ;//行车方向
-    
+
     Strkey = "DirDescription=";
     StrDirDescription = getstring(StrConfig,Strkey) ;//行车方向说明
-	
+
 /*
     Strkey = "WIFIUSER=";
     StrWIFIUSER = getstring(StrConfig,Strkey) ;
@@ -591,7 +641,7 @@ int GetConfig(void)
 		sprintf(value,"%d", SWITCH_COUNT) ;
 		StrDoCount=value;
 	}
-	
+
 	//DO映射设备，最大支持36路DO
 	//车牌识别映射DO
 	j=0;
@@ -604,7 +654,7 @@ int GetConfig(void)
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
 		if(strvalue!="")
 		{
-			
+
 			StrDeviceNameSeq[j]=devicename; //设备名
 			StrDoSeq[j] = strvalue; 	//对应DO
 			j++;
@@ -618,7 +668,7 @@ int GetConfig(void)
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
 		if(strvalue!="")
 		{
-			
+
 			StrDeviceNameSeq[j]=devicename; //设备名
 			StrDoSeq[j] = strvalue; 	//对应DO
 			j++;
@@ -632,7 +682,7 @@ int GetConfig(void)
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
 		if(strvalue!="")
 		{
-			
+
 			StrDeviceNameSeq[j]=devicename; //设备名
 			StrDoSeq[j] = strvalue; 	//对应DO
 			j++;
@@ -647,7 +697,7 @@ int GetConfig(void)
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
 		if(strvalue!="")
 		{
-			
+
 			StrDeviceNameSeq[j]=devicename; //设备名
 			StrDoSeq[j] = strvalue; 	//对应DO
 			j++;
@@ -662,7 +712,7 @@ int GetConfig(void)
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
 		if(strvalue!="")
 		{
-			
+
 			StrDeviceNameSeq[j]=devicename; //设备名
 			StrDoSeq[j] = strvalue; 	//对应DO
 			j++;
@@ -677,7 +727,7 @@ int GetConfig(void)
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
 		if(strvalue!="")
 		{
-			
+
 			StrDeviceNameSeq[j]=devicename; //设备名
 			StrDoSeq[j] = strvalue; 	//对应DO
 			j++;
@@ -692,7 +742,7 @@ int GetConfig(void)
 //			printf("config key=%s,strvalue=%s\n",key,strvalue.c_str());
 		if(strvalue!="")
 		{
-			
+
 			StrDeviceNameSeq[j]=devicename; //设备名
 			StrDoSeq[j] = strvalue; 	//对应DO
 			j++;
@@ -719,10 +769,10 @@ printf("j=%d\n",j);*/
 
 int Setconfig(string StrKEY,string StrSetconfig)
 {
-    string setconfig = ""; 
+    string setconfig = "";
     string strstart = "";
     string strend = "";
-    
+
     ConfigCri.Lock();
     setconfig =  STRCONFIG ;
 
@@ -730,14 +780,14 @@ int Setconfig(string StrKEY,string StrSetconfig)
     lenpos = setconfig.find(StrKEY) ;
     if(lenpos >= 0)
     {
-       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ; 
+       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ;
     }
     else
     {
        ConfigCri.UnLock();
        return 1 ;
     }
- 
+
     lenpos = setconfig.find('\n',lenpos) ;
     if(lenpos >= 0)
     {
@@ -766,24 +816,24 @@ int Writeconfig(void)
        ConfigCri.UnLock();
        return 1 ;
     }
-	
+
 //printf("setconfig=%s\r\n",setconfig.c_str() );
     int len = setconfig.length();
     fwrite(setconfig.c_str(),len, 1, fdd);
     fflush(fdd);
     fclose(fdd);
     ConfigCri.UnLock();
-    
+
     return 0 ;
 
 }
 
 int SetWificonfig(string StrKEY,string StrSetconfig)
 {
-    string setconfig = ""; 
+    string setconfig = "";
     string strstart = "";
     string strend = "";
-    
+
     ConfigCri.Lock();
     setconfig =  STRWIFIWAP ;
 
@@ -791,14 +841,14 @@ int SetWificonfig(string StrKEY,string StrSetconfig)
     lenpos = setconfig.find(StrKEY) ;
     if(lenpos >= 0)
     {
-       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ; 
+       strstart = setconfig.substr(0,lenpos+StrKEY.length()) ;
     }
     else
     {
        ConfigCri.UnLock();
        return 1 ;
     }
- 
+
     lenpos = setconfig.find('\n',lenpos) ;
     if(lenpos >= 0)
     {
@@ -833,7 +883,7 @@ int WriteWificonfig(void)
     fflush(fdd);
     fclose(fdd);
     ConfigCri.UnLock();
-    
+
     return 0 ;
 
 }

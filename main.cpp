@@ -2,7 +2,7 @@
 #include <linux/watchdog.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>  
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <string>
 #include <sys/time.h>
@@ -13,6 +13,7 @@
 #include "config.h"
 #include <pthread.h>
 #include "main.h"
+#include "net_spd.h"
 
 #define WDT "/dev/watchdog"
 
@@ -90,12 +91,12 @@ void InitTimer(void)
      //设置时间间隔为10秒
      interval.tv_sec = 10;
 	 interval.tv_usec =0;
-      
+
      timer.it_interval = interval;
      timer.it_value = interval;
-      
+
      setitimer(ITIMER_VIRTUAL, &timer, NULL);//让它产生SIGVTALRM信号
-      
+
      //为SIGVTALRM注册信号处理函数
      signal(SIGALRM, sig_handler);
 }
@@ -106,11 +107,11 @@ int main(void)
 	unsigned int pos_cnt = 0;
 	unsigned int temp = 0;
 	//初始化看门狗
-    WatchDogInit();
+    //WatchDogInit();
 
 	//读设置文件
 	GetConfig();
-	
+
 	// 环境数据结构体
 	stuEnvi_Param = (ENVI_PARAMS*)malloc(sizeof(ENVI_PARAMS));
 	InitStuEnvi_Param(stuEnvi_Param);
@@ -214,7 +215,7 @@ int main(void)
 		}
 	}
 	/////////////////  电压电流传感器配置开始完毕/////////////////////////////////////
-	
+
 	/////////////////  电源控制板配置开始	/////////////////////////////////////////////
 	//装置参数寄存器,分为电源板和IO板
 	temp = 0;	//统计到底有几个电源板
@@ -320,9 +321,9 @@ int main(void)
 	stuHUAWEIDevValue = &HUAWEIDevValue;
     initHUAWEIGantry();
 	initHUAWEIALARM();
-	
+
 	//初始化RSU控制器状态
-	memset(&stuRsuControl,0,sizeof(RSUCONTROLER)); 
+	memset(&stuRsuControl,0,sizeof(RSUCONTROLER));
 	for(j=0;j<8;j++)
 		memset(&stuRsuControl.ControlStatusN,0,sizeof(AntennaInfoN_n));
 /*	for(j=0;j<12;j++)
@@ -333,12 +334,12 @@ int main(void)
 //	for(j=0;j<8;j++)
 //		memset(&stuRsuControl.ControlStatusN,0,sizeof(AntennaInfoN_n));*/
 	//初始化RSU设备信息结构体
-	memset(&stuRsuData,0,sizeof(RSU_DATA_INIT)); 
+	memset(&stuRsuData,0,sizeof(RSU_DATA_INIT));
 	for(j=0;j<8;j++)
 		memset(&stuRsuData.PSAMInfoN,0,sizeof(PSAMInfoN_n));
 	//初始化天线软件复位状态结构体
-	memset(&stuRsuReset,0,sizeof(RSU_RESET)); 
-	
+	memset(&stuRsuReset,0,sizeof(RSU_RESET));
+
 	//读空调状态结构体
 	stuAirCondRead = (AIRCOND_PARAM*)malloc(sizeof(AIRCOND_PARAM));
 	memset(stuAirCondRead,0,sizeof(AIRCOND_PARAM));
@@ -369,6 +370,11 @@ int main(void)
 	usleep(100000); //delay 100ms
 	write(WDTfd, "\0", 1);
 
+	//初始化防雷检测线程
+	init_net_spd();
+	usleep(500000); //delay 500ms
+	write(WDTfd, "\0", 1);
+
 	//初始化定时取工控机状态线程
 //	init_HTTP_DataGet();
 //	usleep(100000); //delay 100ms
@@ -394,7 +400,7 @@ int main(void)
     {
         write(WDTfd, "\0", 1);
 		sleep(5);
-		
+
         //判断snmp 获取机柜是否有数据返回 120分钟
         pthread_mutex_lock(&snmpdataMutex);
         if(++ snmpdataTime > 12*120)
@@ -452,7 +458,7 @@ void InitStuEnvi_Param(ENVI_PARAMS *pParam)
 	pParam->air_cond_temp_in=0x7fff;		//当前空调室内温度值317 ×10
 	pParam->air_cond_amp=0x7fff;					//当前空调电流值318 ×1000
 	pParam->air_cond_volt=0x7fff;					//当前空调电压值319 ×1
-	
+
 	pParam->air_cond_hightemp_alarm=0x7fff;			//空调高温告警320
 	pParam->air_cond_lowtemp_alarm=0x7fff;			//空调低温告警321
 	pParam->air_cond_highmoist_alarm=0x7fff;		//空调高湿告警322
@@ -510,7 +516,7 @@ void InitStuUPS_Param(UPS_PARAMS *pParam)
 	pParam->load_Aout=0x7fff;		// 负载
 	pParam->load_Bout=0x7fff;		// 负载
 	pParam->load_Cout=0x7fff;		// 负载
-	
+
 	//电池参数
 	pParam->running_day=0x7fff; 		// UPS运行时间 56 天
 	pParam->battery_volt=0x7fff;		//UPS电池电压	57 ×10
@@ -551,71 +557,71 @@ void WriteLog(char* str)
 	 exePath="logs";
 	 if(access(exePath.c_str(),0) == -1)
 	 	mkdir(exePath.c_str(),0755);
-	 
+
 	 time_t nSeconds;
 	 struct tm * pTM;
-	 
+
 	 time(&nSeconds);
 	 pTM = localtime(&nSeconds);
-	 
+
 	 //判断前一天文件是否存在，存在就先删除
 	 if(pTM->tm_mday>1 && pTM->tm_mday<=31)
 	 {
-		 sprintf(stmp,"%d",pTM->tm_mday-1);   
+		 sprintf(stmp,"%d",pTM->tm_mday-1);
 		 filename=exePath+"/"+stmp+".txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }		 
+		 }
 	 }
 	 else if(pTM->tm_mday==1)
 	 {
 		 filename=exePath+"/30.txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }		 
+		 }
 		 filename=exePath+"/31.txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }	
+		 }
 	 }
-	 
-	 //系统日期和时间,格式: yyyymmddHHMMSS 
+
+	 //系统日期和时间,格式: yyyymmddHHMMSS
 	 sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
 			 pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
 			 pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
-	 
-	 sprintf(stmp,"%d",pTM->tm_mday);	 
+
+	 sprintf(stmp,"%d",pTM->tm_mday);
 	 filename=exePath+"/"+stmp+".txt";
 	 fpLog = fopen(filename.c_str(), "a");
-	 
+
 	 fseek(fpLog, 0, SEEK_END);
 	 fprintf(fpLog, "%s->%s\n", sDateTime,str);
-	 printf("%s-->%s",sDateTime,str);	 
-	 
+	 printf("%s-->%s",sDateTime,str);
+
 	 fclose(fpLog);
  }
- 
+
  void myprintf(char* str)
   {
 	  char sDateTime[30],stmp[10];
 	  time_t nSeconds;
 	  struct tm * pTM;
-	  
+
 	  time(&nSeconds);
 	  pTM = localtime(&nSeconds);
-	  
-	  //系统日期和时间,格式: yyyymmddHHMMSS 
+
+	  //系统日期和时间,格式: yyyymmddHHMMSS
 	  sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
 			  pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
 			  pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
-	  
-	  printf("%s-->%s",sDateTime,str);	  
+
+	  printf("%s-->%s",sDateTime,str);
   }
 
 

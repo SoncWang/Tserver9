@@ -218,6 +218,7 @@ void char_to_long(UINT8* buffer,UINT32* value)
 	*value = long_value.i;
 }
 
+
 /******************************************************************************
 *  函数名: void char_to_long(INT8U* buffer,LONG32U* value)
 *
