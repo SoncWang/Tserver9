@@ -42,6 +42,7 @@ extern char gsSPDPort[10];	//SPD-端口
 extern SPD_PARAMS *stuSpd_Param;		//防雷器结构体
 
 
+int obtain_net();
 extern void char_to_int(UINT8* buffer,UINT16* value);
 extern void WriteLog(char* str);
 //void myprintf(char* str);
@@ -696,7 +697,7 @@ void *NetWork_DataGet_thread_SPD(void *param)
 {
 	param = NULL;
 	int buffPos=0;
-	int len ;
+	int len,temp;
 	unsigned char buf[256] ;
 	while(1)
 	{
@@ -721,11 +722,14 @@ void *NetWork_DataGet_thread_SPD(void *param)
 		  	DealNetSPD(buf, buffPos);
 		  	buffPos=0;
 		}
+		// 断线了
 		else
 		{
-			;// 断线了
+			while(temp==0)
+			{
+				temp=obtain_net();
+			}
 		}
-
       	usleep(5000); //delay 5ms
 	}
 }
