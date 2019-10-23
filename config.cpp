@@ -68,13 +68,14 @@ string StrCAMKey[CAM_NUM];	//监控摄像头用户名密码
 char gsRSUIP[RSUCTL_NUM][20];	//RSUIP地址
 char gsRSUPort[RSUCTL_NUM][10];	//RSU端口
 
+string StrSPDType;	//PSD厂家类型,1:雷迅,2:华咨,3...
 string StrSPDCount;	//PSD数量
-string StrSPDIP;	//PSD控制器IP地址
-string StrSPDPort;	//PSD控制器端口
-string StrSPDAddr;
+string StrSPDIP[SPD_NUM+RES_NUM];	//PSD控制器IP地址
+string StrSPDPort[SPD_NUM+RES_NUM];	//PSD控制器端口
+string StrSPDAddr[SPD_NUM];
 string StrSPDResAddr;
-char gsSPDIP[20];	//PSD-IP地址
-char gsSPDPort[10];	//PSD端口
+char gsSPDIP[SPD_NUM+RES_NUM][20];	//PSD-IP地址
+char gsSPDPort[SPD_NUM+RES_NUM][10];	//PSD端口
 
 string StrdeviceType="XY-TMC-001";	//设备型号
 string StrVersionNo="V1.01.06" ;	//正式版本号
@@ -150,7 +151,7 @@ string getstring(string str,string strkey)
 
 int GetConfig(void)
 {
-    int i,j,vehplatecnt,rsucnt,psdcnt;
+    int i,j,vehplatecnt,rsucnt;
 	char key[128],value[10],devicename[128];
 	char *strbuf;
 	string strvalue;
@@ -225,8 +226,16 @@ int GetConfig(void)
 	}
 	StrSPDCount = "" ; //防雷器数量
 
-	StrSPDIP =""; ;//防雷器IP
-	StrSPDPort ="";//防雷器端口
+	for (i = 0; i < (SPD_NUM+RES_NUM); i++)
+	{
+		StrSPDIP[i] =""; ;//防雷器IP
+		StrSPDPort[i] ="";//防雷器端口
+	}
+	for (i = 0; i < SPD_NUM; i++)
+	{
+		StrSPDAddr[i] ="";
+	}
+	StrSPDResAddr=="";
 
 	//门架信息
 	StrFlagNetRoadID = "";	//ETC 门架路网编号
@@ -404,41 +413,62 @@ int GetConfig(void)
 
 	}
 
+	Strkey = "SPDType=";
+    StrSPDType = getstring(StrConfig,Strkey);	//PSD类型
+	SPD_Type = atoi(StrSPDType.c_str());
 
 	Strkey = "SPDCount=";
-    StrSPDCount = getstring(StrConfig,Strkey) ;//PSD数量
+    StrSPDCount = getstring(StrConfig,Strkey);	//PSD数量
     if(StrSPDCount=="")
+	{
 		StrSPDCount="0";
-	psdcnt=atoi(StrSPDCount.c_str());
-	if(psdcnt>SPD_NUM)
+	}
+	SPD_num =atoi(StrSPDCount.c_str());
+	if(SPD_num>SPD_NUM)
 	{
 		sprintf(value,"%d", SPD_NUM) ;
 		StrSPDCount=value;
-		psdcnt=SPD_NUM;
+		SPD_num=SPD_NUM;
 	}
-	else if(psdcnt<0)
+	else if(SPD_num<0)
 	{
 		StrSPDCount="0";
-		psdcnt=0;
+		SPD_num=0;
 	}
+	printf("SPD_type=%d\n\r",SPD_Type);
+	printf("SPD_num=%d\n\r",SPD_num);
 
-	Strkey = "SPDAddr=";
-	StrSPDAddr = getstring(StrConfig,Strkey);
-	SPD_Address = atoi(StrSPDAddr.c_str());
+	// 防雷检测兼容2个
+	for(i=0;i<SPD_num;i++)
+	{
+		sprintf(key,"SPD%dAddr=",i+1);
+		//Strkey = "SPDAddr=";
+		StrSPDAddr[i] = getstring(StrConfig,key);
+		SPD_Address[i] = atoi(StrSPDAddr[i].c_str());
 
+		sprintf(key,"SPD%dIP=",i+1);
+		//sprintf(key,"SPDIP=");
+		StrSPDIP[i] = getstring(StrConfig,key);			//PSD IP 地址
+		sprintf(gsSPDIP[i],StrSPDIP[i].c_str());
+
+		//sprintf(key,"SPDPort=");
+		sprintf(key,"SPD%dPort=",i+1);
+		StrSPDPort[i] = getstring(StrConfig,key);		//PSD端口
+		sprintf(gsSPDPort[i],StrSPDPort[i].c_str());
+	}
+	// 接地电阻只有1个
 	Strkey = "SPDResAddr=";
 	StrSPDResAddr = getstring(StrConfig,Strkey);
 	SPD_Res_Address = atoi(StrSPDResAddr.c_str());
 
-	sprintf(key,"SPDIP=");
-	//key = "SPDIP=";
-	StrSPDIP = getstring(StrConfig,key) ;//PSD IP 地址
-	sprintf(gsSPDIP,StrSPDIP.c_str());//PSDIP地址
+	// 接地电阻如果是网络型的
+	sprintf(key,"SPDResIP=");
+	StrSPDIP[SPD_NUM] = getstring(StrConfig,key);			//接地电阻 IP 地址
+	sprintf(gsSPDIP[SPD_NUM],StrSPDIP[SPD_NUM].c_str());
 
-	sprintf(key,"SPDPort=");
-	//key = "SPDPort=";
-	StrSPDPort = getstring(StrConfig,key) ;//PSD端口
-	sprintf(gsSPDPort,StrSPDPort.c_str());//PSD端口
+	sprintf(key,"SPDResPort=");
+	StrSPDPort[SPD_NUM] = getstring(StrConfig,key);			//接地电阻端口
+	sprintf(gsSPDPort[SPD_NUM],StrSPDPort[SPD_NUM].c_str());
 
 
     Strkey = "VehPlateCount=";

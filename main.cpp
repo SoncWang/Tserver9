@@ -122,6 +122,7 @@ int main(void)
 	stuSpd_Param = (SPD_PARAMS*)malloc(sizeof(SPD_PARAMS));
 	memset(stuSpd_Param,0,sizeof(SPD_PARAMS));
 
+
 	//电子锁参数配置
 	for (i = 0; i < LOCK_MAX_NUM; i++)
 	{

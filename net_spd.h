@@ -6,6 +6,10 @@
 #define BIT(i)	(1<<(i))	// 32位平台32位?
 
 
+#define TYPE_LEIXUN		1
+#define TYPE_HUAZI		2
+
+
 #define SPD_ID_ADDR		10		// 改设备id的地址
 #define DO_ON_CMD	0xFF00	// 清零
 #define DO_OFF_CMD	0x0
@@ -45,8 +49,8 @@
 
 
 #define SPD_INTERVAL_TIME	350000		// 350ms,让控制命令更快下发
-#define SPD_POLLING_INTERVAL 4			// 1.2s轮询一次参数
-
+#define SPD_POLLING_INTERVAL 3			// 1.05s轮询一次参数
+#define SPD_TEST_RES_INTERVAL	600		// 1.05*600 = 630s,10.5min
 
 // 4字节表示一个float型
 typedef union {
@@ -125,21 +129,123 @@ typedef struct spd_ai_struct
 typedef struct spd_di_struct
 {
 	UINT8 SPD_DI;	// DI数据
-
-	UINT8 bit_0;	// 对DI位的解析
-	UINT8 bit_1;	// 对DI位的解析
-	UINT8 bit_2;	// 对DI位的解析
-	UINT8 C1_status;		// bit3,C1遥信
-	UINT8 grd_alarm;		// bit4,接地告警
-	UINT8 bit_5;	// 对DI位的解析
-	UINT8 leak_alarm;		// bit6,漏电流告警
-	UINT8 volt_alarm;		// bit7,市电电压告警
 }SPD_DI_PARAMS;
 
 typedef struct spd_do_struct
 {
-	UINT8 SPD_DO;	// 漏电流
+	UINT8 SPD_DO;
 }SPD_DO_PARAMS;
+
+// 华咨的协议参数
+typedef struct spd_hz_struct
+{
+	UINT16 breaker_alarm;	// 脱扣
+	UINT16 reserved0;
+	UINT16 grd_alarm;		// 接地报警
+	UINT16 struck_cnt;		// 雷击计数
+	UINT16 reserved1;
+	UINT16 volt_A;			// A相电压
+	UINT16 volt_B;
+	UINT16 volt_C;
+	UINT16 leak_A;			// A相漏电流
+	UINT16 leak_B;
+	UINT16 leak_C;
+	UINT16 spd_temp;		// 防雷器温度
+	UINT16 envi_temp;		// 环境温度
+	UINT16 reserved2;
+	UINT16 life_time;
+}SPD_HZ_PARAMS;
+
+
+// 华咨的协议参数
+typedef struct spd_real_struct
+{
+	UINT16 id;				// 设备地址
+	float ref_volt;			// 基准电压
+	float real_volt;		// 实时电网电压, 单相
+	float volt_A;			// A相电压
+	float volt_B;
+
+	float volt_C;
+	float leak_current;		// 漏电流
+	float leak_A;			// A相漏电流
+	float leak_B;
+	float leak_C;
+
+	float struck_cnt;	// 雷击计数
+	float struck_total;	// 合计雷击计数
+	float spd_temp;			// 防雷器温度
+	float envi_temp;		// 环境温度
+	UINT16 life_time;		// 寿命值0%-100%
+	float soft_version;				// 软件版本号
+	float leak_alarm_threshold;		// 报警阈值
+
+	float day_time;				// 在线天数
+
+	// DI报警的值
+	UINT8 DI_bit_0;			// 对DI位的解析
+	UINT8 DI_bit_1;			// 对DI位的解析
+	UINT8 DI_bit_2;			// 对DI位的解析
+	UINT8 DI_C1_status;		// bit3,C1遥信
+	UINT8 DI_grd_alarm;		// bit4,接地告警
+	UINT8 DI_bit_5;	// 对DI位的解析
+	UINT8 DI_leak_alarm;		// bit6,漏电流告警
+	UINT8 DI_volt_alarm;		// bit7,市电电压告警
+
+
+	// DO报警的值
+	UINT8 DO_spdcnt_clear;	// 雷击计数清0
+	UINT8 DO_totalspdcnt_clear;	// 总雷击计数清0
+	UINT8 DO_leak_type;		// 0:内置漏电流，1：外接漏电流
+	UINT8 DO_bit3;
+	UINT8 DO_psdtime_clear;	// 雷击时间清0
+	UINT8 DO_daytime_clear;	// 在线时间清0
+	UINT8 DO_bit6;
+	UINT8 DO_bit7;
+
+	// 系统时间
+	UINT16 systime_year;		// 在线时间_年份
+	UINT16 systime_month;		// 在线时间_月份
+	UINT16 systime_day;		// 在线时间_日期
+	UINT16 systime_hour;		// 在线时间_时
+	UINT16 systime_min;		// 在线时间_分
+	UINT16 systime_sec;		// 在线时间_秒
+	// 最近一次防雷发生时间
+	UINT16 last_1_struck_year;
+	UINT16 last_1_struck_month;
+	UINT16 last_1_struck_day;
+	UINT16 last_1_struck_hour;
+	UINT16 last_1_struck_min;
+
+	// 最近第2次防雷发生时间
+	UINT16 last_2_struck_year;
+	UINT16 last_2_struck_month;
+	UINT16 last_2_struck_day;
+	UINT16 last_2_struck_hour;
+	UINT16 last_2_struck_min;
+
+	// 最近第3次防雷发生时间
+	UINT16 last_3_struck_year;
+	UINT16 last_3_struck_month;
+	UINT16 last_3_struck_day;
+	UINT16 last_3_struck_hour;
+	UINT16 last_3_struck_min;
+
+	// 最近第4次防雷发生时间
+	UINT16 last_4_struck_year;
+	UINT16 last_4_struck_month;
+	UINT16 last_4_struck_day;
+	UINT16 last_4_struck_hour;
+	UINT16 last_4_struck_min;
+
+	// 最近第5次防雷发生时间
+	UINT16 last_5_struck_year;
+	UINT16 last_5_struck_month;
+	UINT16 last_5_struck_day;
+	UINT16 last_5_struck_hour;
+	UINT16 last_5_struck_min;
+}SPD_REAL_PARAMS;
+
 
 
 typedef struct spd_res_st_struct
@@ -179,9 +285,14 @@ typedef struct spd_modbus_array_struct
 /*防雷读写类型定义*/
 typedef enum
 {
+	// 雷迅的轮询标志
 	SPD_AI_DATA = 0,
 	SPD_DI_DATA,
 	SPD_DO_DATA,
+
+	// 华咨的轮询标志
+	SPD_HZ_DATA_1,
+	SPD_HZ_DATA_2,
 
 	SPD_RES_DATA,	// 接地电阻部分
 
@@ -203,10 +314,19 @@ typedef enum
 // 防雷器结构体
 typedef struct spd_struct
 {
+	// 雷迅的防雷
 	SPD_AI_PARAMS dSPD_AIdata;
 	SPD_DI_PARAMS dSPD_DI;
 	SPD_DO_PARAMS dSPD_DO;
-	SPD_RES_ST_PARAMS dSPD_res;
+
+	// 华咨有2个防雷
+	SPD_HZ_PARAMS dSPD_HZ[SPD_NUM];	// 华咨的防雷器
+
+	// 共性，接地电阻值数据, 不需要再设置一个协议值了
+	SPD_RES_ST_PARAMS rSPD_res;
+
+	// 上面的防雷都要转换成与后台交互的协议数据
+	SPD_REAL_PARAMS rSPD_data[SPD_NUM];
 }SPD_PARAMS;
 
 
@@ -221,19 +341,22 @@ typedef struct spd_ctrl_value_struct
 
 
 extern SPD_CTRL_VALUE SPD_ctrl_value;
-extern UINT8 SPD_Address;
+extern UINT8 SPD_Address[SPD_NUM];
 extern UINT8 SPD_Res_Address;
+extern UINT8 SPD_Type;
+extern UINT8 SPD_num;
 
 
-void init_net_spd(void);
+void init_net_spd();
 //void send_SPD(char command,bool ReSend,char state,int num);
 int spd_send_process(UINT16 *pnet_flag, SPD_DATA_LIST SPD_data_event);
 int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event);
-int obtain_net_psd(void);
+int obtain_net_psd(UINT16 seq);
 void DealSPDAiMsg(unsigned char *buf,unsigned short int len);
 void DealSPDDiMsg(unsigned char *buf,unsigned short int len);
-int DealNetSPD(unsigned char *buf,unsigned short int len);
+int DealNetSPD(int seq,unsigned char *buf,unsigned short int len);
 int Ex_SPD_Set_Process(SPD_CTRL_LIST SPD_ctrl_event, UINT8 set_addr, FDATA ai_data,UINT16 data);
+void RealDataCopy(SPD_DATA_LIST msg_t);
 
 
 #endif

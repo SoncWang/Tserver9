@@ -102,7 +102,8 @@ typedef unsigned int      	UINT32;
 //预留2路ATLAS
 #define ATLAS_NUM 2
 //预留2路防雷器
-#define SPD_NUM 1
+#define SPD_NUM 2
+#define RES_NUM 1	// 预留1路网口接地电阻
 
 // 最大支持6个伏安表, 每个伏安表为6组电流电压值
 #define VA_METER_BD_NUM		6
