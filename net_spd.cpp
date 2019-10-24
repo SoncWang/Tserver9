@@ -27,7 +27,7 @@ UINT16  spd_ctl_flag = 0;	// SPD控制标志
 UINT8  WAIT_net_res_flag=0;	// 等待信息回应
 
 UINT16 gsocket = 0;
-
+UINT16 net_Conneted = 0;	// 连接标志1:已经连接
 
 
 UINT8 SPD_Type = TYPE_LEIXUN;
@@ -708,7 +708,7 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 		stuSpd_Param->rSPD_data[0].struck_total = stuSpd_Param->dSPD_AIdata.struck_total.f;
 		stuSpd_Param->rSPD_data[0].spd_temp = stuSpd_Param->dSPD_AIdata.spd_temp.f;
 		stuSpd_Param->rSPD_data[0].envi_temp = stuSpd_Param->dSPD_AIdata.envi_temp.f;
-		stuSpd_Param->rSPD_data[0].life_time = stuSpd_Param->dSPD_AIdata.life_time;
+		stuSpd_Param->rSPD_data[0].life_time = (float)stuSpd_Param->dSPD_AIdata.life_time;
 		stuSpd_Param->rSPD_data[0].soft_version = stuSpd_Param->dSPD_AIdata.soft_version.f;
 		stuSpd_Param->rSPD_data[0].leak_alarm_threshold = stuSpd_Param->dSPD_AIdata.leak_alarm_threshold.f;
 		stuSpd_Param->rSPD_data[0].day_time = stuSpd_Param->dSPD_AIdata.day_time.f;
@@ -770,8 +770,14 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 		}
 		printf("spd_real begain\r\n");
 		printf("leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_current);
+		printf("A_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_A);
+		printf("B_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_B);
+		printf("C_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_C);
 		printf("ref_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[0].ref_volt);
 		printf("real_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[0].real_volt);
+		printf("volt_A = %7.3f \r\n",stuSpd_Param->rSPD_data[0].volt_A);
+		printf("volt_B = %7.3f \r\n",stuSpd_Param->rSPD_data[0].volt_B);
+		printf("volt_C = %7.3f \r\n",stuSpd_Param->rSPD_data[0].volt_C);
 		printf("struck_cnt = %7.3f \r\n",stuSpd_Param->rSPD_data[0].struck_cnt);
 		printf("struck_total = %7.3f \r\n",stuSpd_Param->rSPD_data[0].struck_total);
 		printf("spd_temp = %7.3f \r\n",stuSpd_Param->rSPD_data[0].spd_temp);
@@ -821,9 +827,11 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 		break;
 
 	case (SPD_DI_DATA):
-		stuSpd_Param->rSPD_data[0].DI_C1_status = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(3))?1:0;
-		stuSpd_Param->rSPD_data[0].DI_grd_alarm = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(4))?1:0;
-		stuSpd_Param->rSPD_data[0].DI_leak_alarm  =  (stuSpd_Param->dSPD_DI.SPD_DI & BIT(6))?1:0;
+		// 这3个0：告警，1:正常,所以要反一下
+		stuSpd_Param->rSPD_data[0].DI_C1_status = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(3))?0:1;
+		stuSpd_Param->rSPD_data[0].DI_grd_alarm = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(4))?0:1;
+		stuSpd_Param->rSPD_data[0].DI_leak_alarm  =  (stuSpd_Param->dSPD_DI.SPD_DI & BIT(6))?0:1;
+		// 这里0：正常，1:告警
 		stuSpd_Param->rSPD_data[0].DI_volt_alarm  =  (stuSpd_Param->dSPD_DI.SPD_DI & BIT(7))?1:0;
 
 		printf("C1_status = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_C1_status);
@@ -901,7 +909,7 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 {
 	param = NULL;
 	int buffPos=0;
-	int len,temp;
+	int len,temp = 0;
 	unsigned char buf[256];
 	//gsocket = 0;
 	while(1)
@@ -930,11 +938,12 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 		// 断线了
 		else
 		{
-			while(temp==0)
+			net_Conneted = 0;
+			while(net_Conneted==0)
 			{
 				// SPD断线了
-				printf("spd-break%d\n\r",temp);
-				temp=obtain_net_psd(0);
+				printf("spd-break%d\n\r",net_Conneted);
+				net_Conneted=obtain_net_psd(0);
 			}
 		}
       	usleep(5000); //delay 5ms
@@ -950,6 +959,44 @@ void *NetWork_DataGet_thread_SPD_H1(void *param)
 	while(1)
 	{
       	usleep(5000); //delay 5ms
+	}
+}
+
+// 统一创建接收线程
+void DataGet_Thread_Create(UINT16 SPD_t)
+{
+	if (SPD_t == TYPE_LEIXUN)
+	{
+		pthread_t tNetwork_dataget_SPD_L;
+		if (pthread_create(&tNetwork_dataget_SPD_L, NULL, NetWork_DataGet_thread_SPD_L,NULL))
+		{
+			printf("NetWork SPD data create failed!\n");
+			WriteLog("NetWork SPD data create failed!\n");
+		}
+		pthread_detach(tNetwork_dataget_SPD_L);
+	}
+
+	else if (SPD_t == TYPE_HUAZI)
+	{
+		pthread_t tNetwork_dataget_SPD_H1;
+		if (pthread_create(&tNetwork_dataget_SPD_H1, NULL, NetWork_DataGet_thread_SPD_H1,NULL))
+		{
+			printf("NetWork SPD_1 data create failed!\n");
+			WriteLog("NetWork SPD_1 data create failed!\n");
+		}
+		pthread_detach(tNetwork_dataget_SPD_H1);
+
+	#if 0
+		// 这也是网口的
+		pthread_t tNetwork_dataget_SPD_res;
+		if (pthread_create(&tNetwork_dataget_SPD_res, NULL, NetWork_DataGet_thread_SPD_Res,NULL))
+		{
+			printf("NetWork SPD_res data create failed!\n");
+			WriteLog("NetWork SPD_res data create failed!\n");
+		}
+		pthread_detach(tNetwork_dataget_SPD_res);
+	#endif
+
 	}
 }
 
@@ -980,13 +1027,14 @@ void* NetWork_server_thread_SPD(void*arg)//接收PSD数据线程
 	temp=0;
 	if (SPD_Type == TYPE_LEIXUN)
 	{
-		while(temp==0)
+		net_Conneted=0;		// 开始连接前置0
+		while(net_Conneted==0)
 		{
 			// 雷迅的防雷只有1个IP地址
-			temp=obtain_net_psd(0);
-			sprintf(str,"temp=%d\n",temp);
+			net_Conneted=obtain_net_psd(0);
+			sprintf(str,"net_Conneted=%d\n",net_Conneted);
 			WriteLog(str);
-			if(temp==0)
+			if(net_Conneted==0)
 			{
 				printf("connect _psd error\n");
 				WriteLog("IN NETWORK_Server_thread connect _psd error!\n");
@@ -998,7 +1046,10 @@ void* NetWork_server_thread_SPD(void*arg)//接收PSD数据线程
 	{
 		;	// 等待完善
 	}
+	// 连接成功后再创建接收的线程
+	DataGet_Thread_Create(SPD_Type);
 
+	sleep(2);	//连接后等待2s稳定
 	while(1)
 	{
 		#if 0
@@ -1132,10 +1183,14 @@ void init_net_spd()
 		WriteLog("NetWork SPD create failed!\n");
 	}
 	pthread_detach(tNetwork_server_SPD);
+#if 0
 
 	// 数据接收线程
+	if (net_Conneted)
+	{
 	if (SPD_Type == TYPE_LEIXUN)
 	{
+		printf("SPD thread create BEGIN!\n");
 		pthread_t tNetwork_dataget_SPD_L;
 		if (pthread_create(&tNetwork_dataget_SPD_L, NULL, NetWork_DataGet_thread_SPD_L,NULL))
 		{
@@ -1155,7 +1210,7 @@ void init_net_spd()
 		}
 		pthread_detach(tNetwork_dataget_SPD_H1);
 
-	#if 0
+
 		// 这也是网口的
 		pthread_t tNetwork_dataget_SPD_res;
 		if (pthread_create(&tNetwork_dataget_SPD_res, NULL, NetWork_DataGet_thread_SPD_Res,NULL))
@@ -1164,9 +1219,11 @@ void init_net_spd()
 			WriteLog("NetWork SPD_res data create failed!\n");
 		}
 		pthread_detach(tNetwork_dataget_SPD_res);
-	#endif
+
 
 	}
+	}
+#endif
 
 	pthread_mutex_init(&SPDdataHandleMutex,NULL);
 }

@@ -176,7 +176,7 @@ typedef struct spd_real_struct
 	float struck_total;	// 合计雷击计数
 	float spd_temp;			// 防雷器温度
 	float envi_temp;		// 环境温度
-	UINT16 life_time;		// 寿命值0%-100%
+	float life_time;		// 寿命值0%-100%
 	float soft_version;				// 软件版本号
 	float leak_alarm_threshold;		// 报警阈值
 
