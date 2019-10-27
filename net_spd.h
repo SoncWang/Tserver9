@@ -10,6 +10,8 @@
 #define TYPE_HUAZI		2
 
 
+/**********************************************/
+// 雷迅检测器的定义
 #define SPD_ID_ADDR		10		// 改设备id的地址
 #define DO_ON_CMD	0xFF00	// 清零
 #define DO_OFF_CMD	0x0
@@ -46,6 +48,21 @@
 
 #define SPD_RES_STATUS_ADDR			0x0C
 #define SPD_RES_STATUS_NUM			8	// 8个数据,后面3个是可读可写的
+
+
+/**********************************************/
+// 华咨检测器的定义
+#define HZ_ADDR		0x01
+#define HZ_SPD_READ	0x0C
+#define HZ_RES_READ	0x0D
+
+#define HZ_SPD_LEN 0x2E
+#define HZ_RES_LEN 	0x1A
+
+#define HZ_HEAD_NUM		12		// 收到的数据前面有12个前导
+#define HZ_SPD_DATA_NUM	15		// 15个数据
+#define HZ_RES_DATA_NUM	5		// 5个数据
+
 
 
 #define SPD_INTERVAL_TIME	350000		// 350ms,让控制命令更快下发
