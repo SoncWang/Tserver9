@@ -33,8 +33,8 @@ UINT16 net_Conneted = 0;	// 连接标志1:已经连接
 
 UINT8 SPD_Type = TYPE_LEIXUN;
 UINT8 SPD_num = SPD_NUM;
-UINT8 SPD_Address[SPD_NUM] = {SPD_ADDR,};
-UINT8 SPD_Res_Address = SPD_RES_ADDR;
+UINT8 SPD_Address[SPD_NUM+RES_NUM] = {SPD_ADDR,SPD_ADDR,SPD_RES_ADDR};
+//UINT8 SPD_Res_Address = SPD_RES_ADDR;
 SPD_CTRL_VALUE SPD_ctrl_value;
 
 pthread_mutex_t SPDdataHandleMutex;
@@ -492,7 +492,7 @@ int spd_send_process(UINT16 *pnet_flag, SPD_DATA_LIST SPD_data_event)
 		}
 		else
 		{
-			addr_temp = SPD_Res_Address;	// 接地电阻仪地址
+			addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
 		}
 		if (*pnet_flag & (BIT(SPD_data_event)))
 		{
@@ -519,7 +519,7 @@ int spd_send_process(UINT16 *pnet_flag, SPD_DATA_LIST SPD_data_event)
 		else
 		{
 			seq = 2;
-			addr_temp = SPD_Res_Address;	// 接地电阻仪地址
+			addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
 			func_temp = HZ_RES_READ;
 		}
 
@@ -554,7 +554,7 @@ int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
 		}
 		else
 		{
-			addr_temp = SPD_Res_Address;	// 接地电阻仪地址
+			addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
 		}
 	}
 
@@ -584,7 +584,7 @@ int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
 			// 改了id后要更新地址
 			if (SPD_ctrl_value.ref_addr == RES_ID_ADDR)
 			{
-				SPD_Res_Address = (UINT8)SPD_ctrl_value.res_set;
+				SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
 			}
 			break;
 		default:
@@ -1109,7 +1109,7 @@ int DealNetSPD(int seq,unsigned char *buf,unsigned short int len)
 				break;
 			}
 		}
-		else if (buf[0] == SPD_Res_Address)
+		else if (buf[0] == SPD_Address[SPD_NUM])
 		{
 			// 根据命令码来进行信息的区分
 			switch(buf[1])

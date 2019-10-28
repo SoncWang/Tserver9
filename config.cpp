@@ -72,8 +72,8 @@ string StrSPDType;	//PSD厂家类型,1:雷迅,2:华咨,3...
 string StrSPDCount;	//PSD数量
 string StrSPDIP[SPD_NUM+RES_NUM];	//PSD控制器IP地址
 string StrSPDPort[SPD_NUM+RES_NUM];	//PSD控制器端口
-string StrSPDAddr[SPD_NUM];
-string StrSPDResAddr;
+string StrSPDAddr[SPD_NUM+RES_NUM];	// 包含了地阻的地址
+//string StrSPDResAddr;
 char gsSPDIP[SPD_NUM+RES_NUM][20];	//PSD-IP地址
 char gsSPDPort[SPD_NUM+RES_NUM][10];	//PSD端口
 
@@ -230,12 +230,8 @@ int GetConfig(void)
 	{
 		StrSPDIP[i] =""; ;//防雷器IP
 		StrSPDPort[i] ="";//防雷器端口
-	}
-	for (i = 0; i < SPD_NUM; i++)
-	{
 		StrSPDAddr[i] ="";
 	}
-	StrSPDResAddr=="";
 
 	//门架信息
 	StrFlagNetRoadID = "";	//ETC 门架路网编号
@@ -458,8 +454,8 @@ int GetConfig(void)
 	}
 	// 接地电阻只有1个
 	Strkey = "SPDResAddr=";
-	StrSPDResAddr = getstring(StrConfig,Strkey);
-	SPD_Res_Address = atoi(StrSPDResAddr.c_str());
+	StrSPDAddr[SPD_NUM] = getstring(StrConfig,Strkey);
+	SPD_Address[SPD_NUM] = atoi(StrSPDAddr[SPD_NUM].c_str());
 
 	// 接地电阻如果是网络型的
 	sprintf(key,"SPDResIP=");

@@ -358,8 +358,8 @@ typedef struct spd_ctrl_value_struct
 
 
 extern SPD_CTRL_VALUE SPD_ctrl_value;
-extern UINT8 SPD_Address[SPD_NUM];
-extern UINT8 SPD_Res_Address;
+extern UINT8 SPD_Address[SPD_NUM+RES_NUM];
+//extern UINT8 SPD_Res_Address;
 extern UINT8 SPD_Type;
 extern UINT8 SPD_num;
 
