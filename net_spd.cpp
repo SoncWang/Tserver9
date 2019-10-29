@@ -806,16 +806,17 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 	switch (msg_t)
 	{
 	case (SPD_AI_DATA):
+		// 不能memset清0, 因为会把DI值清掉
 		stuSpd_Param->rSPD_data[0].id = (UINT16)stuSpd_Param->dSPD_AIdata.id.f;
 		stuSpd_Param->rSPD_data[0].ref_volt = stuSpd_Param->dSPD_AIdata.ref_volt.f;
 		stuSpd_Param->rSPD_data[0].real_volt = stuSpd_Param->dSPD_AIdata.real_volt.f;
-		stuSpd_Param->rSPD_data[0].volt_A = 0;	// 雷迅没有
-		stuSpd_Param->rSPD_data[0].volt_B = 0;
-		stuSpd_Param->rSPD_data[0].volt_C = 0;
+		stuSpd_Param->rSPD_data[0].volt_A = NULL_VALUE;	// 雷迅没有
+		stuSpd_Param->rSPD_data[0].volt_B = NULL_VALUE;
+		stuSpd_Param->rSPD_data[0].volt_C = NULL_VALUE;
 		stuSpd_Param->rSPD_data[0].leak_current = stuSpd_Param->dSPD_AIdata.leak_current.f;
-		stuSpd_Param->rSPD_data[0].leak_A = 0;
-		stuSpd_Param->rSPD_data[0].leak_B = 0;
-		stuSpd_Param->rSPD_data[0].leak_C = 0;
+		stuSpd_Param->rSPD_data[0].leak_A = NULL_VALUE;
+		stuSpd_Param->rSPD_data[0].leak_B = NULL_VALUE;
+		stuSpd_Param->rSPD_data[0].leak_C = NULL_VALUE;
 		stuSpd_Param->rSPD_data[0].struck_cnt = stuSpd_Param->dSPD_AIdata.struck_cnt.f;
 		stuSpd_Param->rSPD_data[0].struck_total = stuSpd_Param->dSPD_AIdata.struck_total.f;
 		stuSpd_Param->rSPD_data[0].spd_temp = stuSpd_Param->dSPD_AIdata.spd_temp.f;
@@ -966,13 +967,17 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 	case (SPD_HZ_DATA_2):
 		seq = msg_t - SPD_HZ_DATA_1;
 		stuSpd_Param->rSPD_data[seq].id = 1;	// 地址是1不会变
+		stuSpd_Param->rSPD_data[seq].ref_volt = NULL_VALUE;	// 没有的清0
+		stuSpd_Param->rSPD_data[seq].real_volt = NULL_VALUE;
 		stuSpd_Param->rSPD_data[seq].volt_A = (float)stuSpd_Param->dSPD_HZ[seq].volt_A/10;
 		stuSpd_Param->rSPD_data[seq].volt_B = (float)stuSpd_Param->dSPD_HZ[seq].volt_B/10;
 		stuSpd_Param->rSPD_data[seq].volt_C = (float)stuSpd_Param->dSPD_HZ[seq].volt_C/10;
 
-		stuSpd_Param->rSPD_data[seq].leak_A = (float)stuSpd_Param->dSPD_HZ[seq].leak_A/10;
-		stuSpd_Param->rSPD_data[seq].leak_B = (float)stuSpd_Param->dSPD_HZ[seq].leak_B/10;
-		stuSpd_Param->rSPD_data[seq].leak_C = (float)stuSpd_Param->dSPD_HZ[seq].leak_C/10;
+		stuSpd_Param->rSPD_data[seq].leak_current = NULL_VALUE;
+		// 漏电流转为mA单位
+		stuSpd_Param->rSPD_data[seq].leak_A = (float)stuSpd_Param->dSPD_HZ[seq].leak_A/10000;
+		stuSpd_Param->rSPD_data[seq].leak_B = (float)stuSpd_Param->dSPD_HZ[seq].leak_B/10000;
+		stuSpd_Param->rSPD_data[seq].leak_C = (float)stuSpd_Param->dSPD_HZ[seq].leak_C/10000;
 
 		stuSpd_Param->rSPD_data[seq].DI_C1_status = (float)stuSpd_Param->dSPD_HZ[seq].breaker_alarm;
 		stuSpd_Param->rSPD_data[seq].DI_grd_alarm = (float)stuSpd_Param->dSPD_HZ[seq].grd_alarm;
@@ -981,12 +986,66 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 		stuSpd_Param->rSPD_data[seq].spd_temp = (float)stuSpd_Param->dSPD_HZ[seq].spd_temp/10;
 		stuSpd_Param->rSPD_data[seq].envi_temp = (float)stuSpd_Param->dSPD_HZ[seq].envi_temp/10;
 		stuSpd_Param->rSPD_data[seq].life_time = (float)stuSpd_Param->dSPD_HZ[seq].life_time/10;
+		stuSpd_Param->rSPD_data[seq].soft_version = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].leak_alarm_threshold = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].day_time = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].DI_bit_0 = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].DI_bit_1 = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].DI_bit_2 = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].DI_bit_5 = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].DI_leak_alarm = 0;
+		stuSpd_Param->rSPD_data[seq].DI_volt_alarm = 0;
 
-		printf("HZspd_real begain\r\n");
+		pdes = &stuSpd_Param->rSPD_data[seq].systime_year;
+		// 系统时间
+		for(i = 0;i < 6;i++)
+		{
+			*pdes = 0;
+			pdes++;
+		}
+		// 最近1次雷击
+		pdes = &stuSpd_Param->rSPD_data[seq].last_1_struck_year;
+		for(i = 0;i < 5;i++)
+		{
+			*pdes = 0;
+			pdes++;
+		}
+		// 倒数第2次雷击
+		pdes = &stuSpd_Param->rSPD_data[seq].last_2_struck_year;
+		for(i = 0;i < 5;i++)
+		{
+			*pdes = 0;
+			pdes++;
+		}
+		// 倒数第3次雷击
+		pdes = &stuSpd_Param->rSPD_data[seq].last_3_struck_year;
+		for(i = 0;i < 5;i++)
+		{
+			*pdes = 0;
+			pdes++;
+		}
+		// 倒数第4次雷击
+		pdes = &stuSpd_Param->rSPD_data[seq].last_4_struck_year;
+		for(i = 0;i < 5;i++)
+		{
+			*pdes = 0;
+			pdes++;
+		}
+		// 倒数第5次雷击
+		pdes = &stuSpd_Param->rSPD_data[seq].last_5_struck_year;
+		for(i = 0;i < 5;i++)
+		{
+			*pdes = 0;
+			pdes++;
+		}
+
+		printf("HZspd_real begain,%5hd\r\n",seq);
+		printf("breaker_alarm = %5hd \r\n",stuSpd_Param->rSPD_data[seq].DI_C1_status);
+		printf("grd_alarm = %5hd \r\n",stuSpd_Param->rSPD_data[seq].DI_grd_alarm);
 		printf("leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_current);
-		printf("A_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_A);
-		printf("B_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_B);
-		printf("C_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_C);
+		printf("A_leak_current = %7.4f \r\n",stuSpd_Param->rSPD_data[seq].leak_A);
+		printf("B_leak_current = %7.4f \r\n",stuSpd_Param->rSPD_data[seq].leak_B);
+		printf("C_leak_current = %7.4f \r\n",stuSpd_Param->rSPD_data[seq].leak_C);
 		printf("ref_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].ref_volt);
 		printf("real_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].real_volt);
 		printf("volt_A = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].volt_A);
@@ -999,8 +1058,8 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 		printf("id =  %5hd \r\n",stuSpd_Param->rSPD_data[seq].id);
 		printf("soft_version = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].soft_version);
 		printf("leak_alarm_threshold = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_alarm_threshold);
-		printf("day_time = %5hd \r\n",stuSpd_Param->rSPD_data[seq].day_time);
-		printf("life_time = %5hd \r\n",stuSpd_Param->rSPD_data[seq].life_time);
+		printf("day_time = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].day_time);
+		printf("life_time = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].life_time);
 
 		printf("systime_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_year);
 		printf("systime_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_month);
@@ -1062,7 +1121,9 @@ void DealHZSPDMsg(int seq,unsigned char *buf,unsigned short int len)
 		for (i=0;i<HZ_SPD_DATA_NUM;i++)
 		{
 			HZ_char_to_int(buf + HZ_HEAD_NUM + i*2, (pointer+i));
+			//printf("HZitem%5hd = %5hd \r\n",i,*(pointer+i));
 		}
+		//printf("life_time = %5hd \r\n",stuSpd_Param->dSPD_HZ[seq].life_time);
 	}
 }
 
@@ -1077,7 +1138,7 @@ void DealHZResMsg(int seq,unsigned char *buf,unsigned short int len)
 	{
 		// 前面2个字节保留
 		HZ_char_to_int(buf + HZ_HEAD_NUM +2*2, pointer);
-		stuSpd_Param->rSPD_res.grd_res_real = (float)stuSpd_Param->rSPD_res.grd_res_real/100;
+		stuSpd_Param->rSPD_res.grd_res_real = (float)stuSpd_Param->rSPD_res.grd_res_value/100;
 		printf("HZ_grd_res_real = %7.3f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
 	}
 }

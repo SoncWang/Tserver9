@@ -9,7 +9,7 @@
 #define TYPE_LEIXUN		1
 #define TYPE_HUAZI		2
 
-
+#define NULL_VALUE		0		// 定义没有这个参数时的默认值
 /**********************************************/
 // 雷迅检测器的定义
 #define SPD_ID_ADDR		10		// 改设备id的地址
