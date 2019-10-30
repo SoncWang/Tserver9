@@ -146,7 +146,7 @@ typedef struct
     string strhwEnvTemperature[2];              //环境温度值
     string strhwEnvHumidity[2];            //环境湿度值
 	//直流空调
-    string strhwDcAirCtrlMode[2];			//空调控制模式
+//    string strhwDcAirCtrlMode[2];			//空调控制模式
     string strhwDcAirRunStatus[2];			//空调运行状态
     string strhwDcAirCompressorRunStatus[2];		//空调压缩机运行状态
     string strhwDcAirInnrFanSpeed[2];			//空调内机转速
@@ -197,10 +197,16 @@ typedef struct
     string strhwEntityCpuUsage;                //CPU 
     string strhwEntityMemUsage ;              //内存使用率
     string strhwEntityTemperature;            //温度
+    string strhwEntityCpuUsage1;                //CPU
+    string strhwEntityMemUsage1 ;              //内存使用率
+    string strhwEntityTemperature1;            //温度
     //交换机
     string strhwswitchEntityCpuUsage;          //CPU 
     string strhwswitchEntityMemUsage;          //内存使用率
     string strhwswitchEntityTemperature;       //温度
+    string strhwswitchEntityCpuUsage1;          //CPU
+    string strhwswitchEntityMemUsage1;          //内存使用率
+    string strhwswitchEntityTemperature1;       //温度
 
 }THUAWEIGantry;
 

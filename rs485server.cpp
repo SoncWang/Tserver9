@@ -218,7 +218,6 @@ void char_to_long(UINT8* buffer,UINT32* value)
 	*value = long_value.i;
 }
 
-
 /******************************************************************************
 *  函数名: void char_to_long(INT8U* buffer,LONG32U* value)
 *
@@ -714,13 +713,13 @@ int DealLockerMsg(unsigned char seq,unsigned char *buf,unsigned short int len)
 	/*锁的ID从id1开始,id0是生产厂商编码*/
 	char_to_long(&(lockerHw_Param[seq]->id[1]),&card_read);
 
-	printf("lock begain\r\n");
+	//printf("lock begain\r\n");
 	//printf("%5hd ",lockerHw_Param[addr_base]->status);printf("\r\n");
 	//printf("%5hd ",lockerHw_Param[addr_base]->open_reason);printf("\r\n");
 	//printf("%5hd ",lockerHw_Param[addr_base]->report_cnt);printf("\r\n");
 	//printf("%5hd ",lockerHw_Param[addr_base]->id_length);printf("\r\n");
 	int j ;//for(j=0;j<(LOCKER_REG_NUM-FIXED_NUM)*2;j++) printf("0x%02x ",lockerHw_Param->id[j]);
-	printf("0x%08x" ,card_read);printf("\r\n");
+	//printf("0x%08x" ,card_read);printf("\r\n");
 
 	//上传条件:1.读取到卡号 2.这张卡是第一张卡 report_cnt为1，或者换了一张卡, report_cnt为1
 	if ((card_read!=0) && ((last_cnt[seq] >= lockerHw_Param[seq]->report_cnt) \

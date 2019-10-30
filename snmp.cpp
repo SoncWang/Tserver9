@@ -585,8 +585,8 @@ void initHUAWEIGantry()
    HUAWEIDevValue.strhwEnvHumidity[0]="2147483647";            //环境湿度值
    HUAWEIDevValue.strhwEnvHumidity[1]="2147483647";            //环境湿度值
    //直流空调
-	HUAWEIDevValue.strhwDcAirCtrlMode[0]="2147483647";			//空调控制模式
-	HUAWEIDevValue.strhwDcAirCtrlMode[1]="2147483647";		   //空调控制模式
+//	HUAWEIDevValue.strhwDcAirCtrlMode[0]="2147483647";			//空调控制模式
+//	HUAWEIDevValue.strhwDcAirCtrlMode[1]="2147483647";		   //空调控制模式
 	HUAWEIDevValue.strhwDcAirRunStatus[0]="2147483647";			//空调运行状态
 	HUAWEIDevValue.strhwDcAirRunStatus[1]="2147483647";			//空调运行状态
 	HUAWEIDevValue.strhwDcAirCompressorRunStatus[0]="2147483647";		//空调压缩机运行状态

@@ -14,6 +14,7 @@
 #include "snmp.h"
 #include "IpcamServer.h"
 #include "ipscan.h"
+#include "net_spd.h"
 
 
 void InitStuEnvi_Param(ENVI_PARAMS *pParam);

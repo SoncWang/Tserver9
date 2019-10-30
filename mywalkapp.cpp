@@ -48,10 +48,14 @@ extern string StrDeviceNameSeq[SWITCH_COUNT];	//设备名的配置
 
 //交换机网络数据
 TFIRESWITCH mTFIRESWITCH[32];
+TFIRESWITCH mTFIRESWITCH1[32];
 string strswitchjson = "";
+string strswitchjson1 = "";
 //防火墙网络数据
 TFIRESWITCH mTFIREWALL[32];
+TFIRESWITCH mTFIREWALL1[32];
 string strfirewalljson = "";
+string strfirewalljson1 = "";
 
 //空调地址
 unsigned int hwAirAddrbuf[2];
@@ -110,7 +114,7 @@ void snmp_get_and_print(netsnmp_session *ss,oid *theoid,size_t theoid_len)
 }  
 
 
-int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
+int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype,string mstrip)
 {
    //printf("oidindex=%d\r\n",mgetindx);
    pthread_mutex_lock(&snmpoidMutex);
@@ -130,7 +134,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatVolt = mbuf ;
-       //printf("电池电压:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatVolt).c_str());
+       printf("电池电压:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatVolt).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -146,7 +150,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%f",fmIntegerValue) ;
        HUAWEIDevValue.strhwAcbGroupBatCurr = mbuf ;
-       //printf("电池电流:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatCurr).c_str());
+       printf("电池电流:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatCurr).c_str());
    }
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -159,7 +163,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupTotalCapacity = mbuf ;
-       //printf("电池总容量:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalCapacity).c_str());
+       printf("电池总容量:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalCapacity).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -171,7 +175,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity = mbuf ;
-       //printf("电池剩余容量:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity).c_str());
+       printf("电池剩余容量:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -183,7 +187,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBackupTime = mbuf ;
-       //printf("电池备电时长:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBackupTime).c_str());
+       printf("电池备电时长:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBackupTime).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -195,7 +199,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupBatSoh = mbuf ;
-       //printf("电池 SOH:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatSoh).c_str());
+       printf("电池 SOH:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatSoh).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -208,7 +212,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwApOrAblVoltage = mbuf ;
-       //printf("A/AB 电压:%s\r\n",(HUAWEIDevValue.strhwApOrAblVoltage).c_str());
+       printf("A/AB 电压:%s\r\n",(HUAWEIDevValue.strhwApOrAblVoltage).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -220,7 +224,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwBpOrBclVoltage = mbuf ;
-       //printf("B/BC 电压:%s\r\n",(HUAWEIDevValue.strhwBpOrBclVoltage).c_str());
+       printf("B/BC 电压:%s\r\n",(HUAWEIDevValue.strhwBpOrBclVoltage).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -232,7 +236,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwCpOrCalVoltage = mbuf ;
-       //printf("C/CA 电压:%s\r\n",(HUAWEIDevValue.strhwCpOrCalVoltage).c_str());
+       printf("C/CA 电压:%s\r\n",(HUAWEIDevValue.strhwCpOrCalVoltage).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -244,7 +248,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
            sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAphaseCurrent = mbuf ;
-       //printf("A 相电流:%s\r\n",(HUAWEIDevValue.strhwAphaseCurrent).c_str());
+       printf("A 相电流:%s\r\n",(HUAWEIDevValue.strhwAphaseCurrent).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -256,7 +260,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwBphaseCurrent = mbuf ;
-       //printf("B 相电流:%s\r\n",(HUAWEIDevValue.strhwBphaseCurrent).c_str());
+       printf("B 相电流:%s\r\n",(HUAWEIDevValue.strhwBphaseCurrent).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -268,7 +272,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwCphaseCurrent = mbuf ;
-       //printf("C 相电流:%s\r\n",(HUAWEIDevValue.strhwCphaseCurrent).c_str());
+       printf("C 相电流:%s\r\n",(HUAWEIDevValue.strhwCphaseCurrent).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -280,7 +284,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwDcOutputVoltage = mbuf ;
-       //printf("DC 输出电压:%s\r\n",(HUAWEIDevValue.strhwDcOutputVoltage).c_str());
+       printf("DC 输出电压:%s\r\n",(HUAWEIDevValue.strhwDcOutputVoltage).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -292,7 +296,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
            sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwDcOutputCurrent = mbuf ;
-       //printf("DC 输出电流:%s\r\n",(HUAWEIDevValue.strhwDcOutputCurrent).c_str());
+       printf("DC 输出电流:%s\r\n",(HUAWEIDevValue.strhwDcOutputCurrent).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -304,12 +308,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwTemAddrbuf[0])
        {
            HUAWEIDevValue.strhwEnvTemperature[0] = mbuf ;
-           //printf("设备柜环境温度值:%s\r\n",(HUAWEIDevValue.strhwEnvTemperature[0]).c_str());
+           printf("设备柜环境温度值:%s\r\n",(HUAWEIDevValue.strhwEnvTemperature[0]).c_str());
        }
        else if(mgetindx == hwTemAddrbuf[1])
        {
            HUAWEIDevValue.strhwEnvTemperature[1] = mbuf ;
-           //printf("电池柜环境温度值:%s\r\n",(HUAWEIDevValue.strhwEnvTemperature[1]).c_str());
+           printf("电池柜环境温度值:%s\r\n",(HUAWEIDevValue.strhwEnvTemperature[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -321,12 +325,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwTemAddrbuf[0])
        {
            HUAWEIDevValue.strhwEnvHumidity[0] = mbuf ;
-           //printf("设备柜环境湿度值:%s\r\n",(HUAWEIDevValue.strhwEnvHumidity[0]).c_str());
+           printf("设备柜环境湿度值:%s\r\n",(HUAWEIDevValue.strhwEnvHumidity[0]).c_str());
        }
        else if(mgetindx == hwTemAddrbuf[1])
        {
            HUAWEIDevValue.strhwEnvHumidity[1] = mbuf ;
-           //printf("电池柜环境湿度值:%s\r\n",(HUAWEIDevValue.strhwEnvHumidity[1]).c_str());
+           printf("电池柜环境湿度值:%s\r\n",(HUAWEIDevValue.strhwEnvHumidity[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -362,12 +366,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwAirAddrbuf[0])
        {
            HUAWEIDevValue.strhwDcAirRunStatus[0] = mbuf ;
-           //printf("空调设备柜运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirRunStatus[0]).c_str());
+           printf("空调设备柜运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirRunStatus[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            HUAWEIDevValue.strhwDcAirRunStatus[1] = mbuf ;
-           //printf("空调电池柜运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirRunStatus[1]).c_str());
+           printf("空调电池柜运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirRunStatus[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -383,12 +387,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwAirAddrbuf[0])
        {
            HUAWEIDevValue.strhwDcAirCompressorRunStatus[0] = mbuf ;
-           //printf("空调设备柜压缩机运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunStatus[0]).c_str());
+           printf("空调设备柜压缩机运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunStatus[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            HUAWEIDevValue.strhwDcAirCompressorRunStatus[1] = mbuf ;
-           //printf("空调电池柜压缩机运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunStatus[1]).c_str());
+           printf("空调电池柜压缩机运行状态:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunStatus[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -400,12 +404,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwAirAddrbuf[0])
        {
            HUAWEIDevValue.strhwDcAirInnrFanSpeed[0] = mbuf ;
-           //printf("空调设备柜内机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirInnrFanSpeed[0]).c_str());
+           printf("空调设备柜内机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirInnrFanSpeed[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            HUAWEIDevValue.strhwDcAirInnrFanSpeed[1] = mbuf ;
-           //printf("空调电池柜内机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirInnrFanSpeed[1]).c_str());
+           printf("空调电池柜内机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirInnrFanSpeed[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -417,12 +421,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwAirAddrbuf[0])
        {
            HUAWEIDevValue.strhwDcAirOuterFanSpeed[0] = mbuf ;
-           //printf("空调设备柜外风机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirOuterFanSpeed[0]).c_str());
+           printf("空调设备柜外风机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirOuterFanSpeed[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            HUAWEIDevValue.strhwDcAirOuterFanSpeed[1] = mbuf ;
-           //printf("空调电池柜外风机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirOuterFanSpeed[1]).c_str());
+           printf("空调电池柜外风机转速:%s\r\n",(HUAWEIDevValue.strhwDcAirOuterFanSpeed[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -434,12 +438,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwAirAddrbuf[0])
        {
            HUAWEIDevValue.strhwDcAirCompressorRunTime[0] = mbuf ;
-           //printf("空调设备柜压缩机运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunTime[0]).c_str());
+           printf("空调设备柜压缩机运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunTime[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            HUAWEIDevValue.strhwDcAirCompressorRunTime[1] = mbuf ;
-           //printf("空调电池柜压缩机运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunTime[1]).c_str());
+           printf("空调电池柜压缩机运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirCompressorRunTime[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -451,12 +455,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwAirAddrbuf[0])
        {
            HUAWEIDevValue.strhwDcAirEnterChannelTemp[0] = mbuf ;
-           //printf("空调设备柜回风口温度:%s\r\n",(HUAWEIDevValue.strhwDcAirEnterChannelTemp[0]).c_str());
+           printf("空调设备柜回风口温度:%s\r\n",(HUAWEIDevValue.strhwDcAirEnterChannelTemp[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            HUAWEIDevValue.strhwDcAirEnterChannelTemp[1] = mbuf ;
-           //printf("空调电池柜回风口温度:%s\r\n",(HUAWEIDevValue.strhwDcAirEnterChannelTemp[1]).c_str());
+           printf("空调电池柜回风口温度:%s\r\n",(HUAWEIDevValue.strhwDcAirEnterChannelTemp[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -469,13 +473,13 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        {
            sethwDcAirPowerOnTempPointCtlIndex[0] = mgetindx;
            HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0] = mbuf ;
-           //printf("空调设备柜开机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0]).c_str());
+           printf("空调设备柜开机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            sethwDcAirPowerOnTempPointCtlIndex[1] = mgetindx;
            HUAWEIDevValue.strhwDcAirPowerOnTempPoint[1] = mbuf ;
-           //printf("空调电池柜开机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOnTempPoint[1]).c_str());
+           printf("空调电池柜开机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOnTempPoint[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -488,13 +492,13 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        {
            sethwDcAirPowerOffTempPointCtlIndex[0] = mgetindx;
            HUAWEIDevValue.strhwDcAirPowerOffTempPoint[0] = mbuf ;
-           //printf("空调设备柜关机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOffTempPoint[0]).c_str());
+           printf("空调设备柜关机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOffTempPoint[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            sethwDcAirPowerOffTempPointCtlIndex[1] = mgetindx;
            HUAWEIDevValue.strhwDcAirPowerOffTempPoint[1] = mbuf ;
-           //printf("空调电池柜关机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOffTempPoint[1]).c_str());
+           printf("空调电池柜关机温度点:%s\r\n",(HUAWEIDevValue.strhwDcAirPowerOffTempPoint[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -509,7 +513,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwAcbGroupTemperature = mbuf ;
-       //printf("电池温度:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTemperature).c_str());
+       printf("电池温度:%s\r\n",(HUAWEIDevValue.strhwAcbGroupTemperature).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -521,7 +525,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/100,mIntegerValue%100) ;
        HUAWEIDevValue.strhwAcbGroupOverCurThr = mbuf ;
-       //printf("充电过流告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupOverCurThr).c_str());
+       printf("充电过流告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupOverCurThr).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -530,7 +534,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbGroupHighTempThr:			  //高温告警点
        sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwAcbGroupHighTempThr = mbuf ;
-       //printf("高温告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupHighTempThr).c_str());
+       printf("高温告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupHighTempThr).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -539,7 +543,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbGroupLowTempTh:			  //低温告警点
        sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwAcbGroupLowTempTh = mbuf ;
-       //printf("低温告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupLowTempTh).c_str());
+       printf("低温告警点:%s\r\n",(HUAWEIDevValue.strhwAcbGroupLowTempTh).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -548,7 +552,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbGroupDodToAcidBattery:			  //锂电放电DOD
        sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwAcbGroupDodToAcidBattery = mbuf ;
-       //printf("锂电放电DOD:%s\r\n",(HUAWEIDevValue.strhwAcbGroupDodToAcidBattery).c_str());
+       printf("锂电放电DOD:%s\r\n",(HUAWEIDevValue.strhwAcbGroupDodToAcidBattery).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -559,7 +563,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        sprintf(mbuf,"%d",mIntegerValue) ;
        sethwSetAcsUpperVoltLimitIndex = mgetindx;
        HUAWEIDevValue.strhwSetAcsUpperVoltLimit = mbuf ;
-       //printf("AC过压点设置:%s\r\n",(HUAWEIDevValue.strhwSetAcsUpperVoltLimit).c_str());
+       printf("AC过压点设置:%s\r\n",(HUAWEIDevValue.strhwSetAcsUpperVoltLimit).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -569,7 +573,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        sprintf(mbuf,"%d",mIntegerValue) ;
        sethwSetAcsLowerVoltLimitIndex = mgetindx;
        HUAWEIDevValue.strhwSetAcsLowerVoltLimit = mbuf ;
-       //printf("AC欠压点设置:%s\r\n",(HUAWEIDevValue.strhwSetAcsLowerVoltLimit).c_str());
+       printf("AC欠压点设置:%s\r\n",(HUAWEIDevValue.strhwSetAcsLowerVoltLimit).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -582,7 +586,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        sethwSetDcsUpperVoltLimitIndex = mgetindx;
        HUAWEIDevValue.strhwSetDcsUpperVoltLimit = mbuf ;
-       //printf("设置DC过压点:%s\r\n",(HUAWEIDevValue.strhwSetDcsUpperVoltLimit).c_str());
+       printf("设置DC过压点:%s\r\n",(HUAWEIDevValue.strhwSetDcsUpperVoltLimit).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -595,7 +599,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        sethwSetDcsLowerVoltLimitIndex = mgetindx;
        HUAWEIDevValue.strhwSetDcsLowerVoltLimit = mbuf ;
-       //printf("设置DC欠压点:%s\r\n",(HUAWEIDevValue.strhwSetDcsLowerVoltLimit).c_str());
+       printf("设置DC欠压点:%s\r\n",(HUAWEIDevValue.strhwSetDcsLowerVoltLimit).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -607,7 +611,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        else
             sprintf(mbuf,"%d.%d",mIntegerValue/10,mIntegerValue%10) ;
        HUAWEIDevValue.strhwSetLvdVoltage = mbuf ;
-       //printf("设置LVD电压:%s\r\n",(HUAWEIDevValue.strhwSetLvdVoltage).c_str());
+       printf("设置LVD电压:%s\r\n",(HUAWEIDevValue.strhwSetLvdVoltage).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -620,13 +624,13 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        {
            sethwSetEnvTempUpperLimitIndex[0] = mgetindx;
            HUAWEIDevValue.strhwSetEnvTempUpperLimit[0] = mbuf ;
-           //printf("设备柜环境温度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUpperLimit[0]).c_str());
+           printf("设备柜环境温度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUpperLimit[0]).c_str());
        }
        else if(mgetindx == hwTemAddrbuf[1])
        {
            sethwSetEnvTempUpperLimitIndex[1] = mgetindx;
            HUAWEIDevValue.strhwSetEnvTempUpperLimit[1] = mbuf ;
-           //printf("电池柜环境温度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUpperLimit[1]).c_str());
+           printf("电池柜环境温度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUpperLimit[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -639,13 +643,13 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        {
            sethwSetEnvTempLowerLimitIndex[0] = mgetindx;
            HUAWEIDevValue.strhwSetEnvTempLowerLimit[0] = mbuf ;
-           //printf("设备柜环境温度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempLowerLimit[0]).c_str());
+           printf("设备柜环境温度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempLowerLimit[0]).c_str());
        }
        else if(mgetindx == hwTemAddrbuf[1])
        {
            sethwSetEnvTempLowerLimitIndex[1] = mgetindx;
            HUAWEIDevValue.strhwSetEnvTempLowerLimit[1] = mbuf ;
-           //printf("电池柜环境温度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempLowerLimit[1]).c_str());
+           printf("电池柜环境温度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempLowerLimit[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -655,7 +659,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwSetEnvTempUltraHighTempThreshold:			  //环境高高温告警点
        sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold = mbuf ;
-       //printf("环境高高温告警点:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold).c_str());
+       printf("环境高高温告警点:%s\r\n",(HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -667,13 +671,13 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        {
            sethwSetEnvHumidityUpperLimitIndex[0] = mgetindx;
            HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[0] = mbuf ;
-           //printf("设备柜环境湿度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[0]).c_str());
+           printf("设备柜环境湿度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[0]).c_str());
        }
        else if(mgetindx == hwTemAddrbuf[1])
        {
            sethwSetEnvHumidityUpperLimitIndex[1] = mgetindx;
            HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[1] = mbuf ;
-           //printf("电池柜环境湿度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[1]).c_str());
+           printf("电池柜环境湿度告警上限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -686,13 +690,13 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        {
            sethwSetEnvHumidityLowerLimitIndex[0] = mgetindx;
            HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[0] = mbuf ;
-           //printf("设备柜环境湿度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[0]).c_str());
+           printf("设备柜环境湿度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[0]).c_str());
        }
        else if(mgetindx == hwTemAddrbuf[1])
        {
            sethwSetEnvHumidityLowerLimitIndex[1] = mgetindx;
            HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[1] = mbuf ;
-           //printf("电池柜环境湿度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[1]).c_str());
+           printf("电池柜环境湿度告警下限:%s\r\n",(HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -705,12 +709,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(mgetindx == hwAirAddrbuf[0])
        {
            HUAWEIDevValue.strhwDcAirRunTime[0] = mbuf ;
-           //printf("空调设备柜运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirRunTime[0]).c_str());
+           printf("空调设备柜运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirRunTime[0]).c_str());
        }
        else if(mgetindx == hwAirAddrbuf[1])
        {
            HUAWEIDevValue.strhwDcAirRunTime[1] = mbuf ;
-           //printf("空调电池柜运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirRunTime[1]).c_str());
+           printf("空调电池柜运行时间:%s\r\n",(HUAWEIDevValue.strhwDcAirRunTime[1]).c_str());
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -721,7 +725,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        sethwCoolingDevicesModeIndex = mgetindx;
        sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwCoolingDevicesMode = mbuf ;
-       //printf("温控模式:%s\r\n",(HUAWEIDevValue.strhwCoolingDevicesMode).c_str());
+       printf("温控模式:%s\r\n",(HUAWEIDevValue.strhwCoolingDevicesMode).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -731,7 +735,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbGroupBatRunningState:			  //电池状态
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbGroupBatRunningState = mbuf ;
-	   //printf("电池状态:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatRunningState).c_str());
+	   printf("电池状态:%s\r\n",(HUAWEIDevValue.strhwAcbGroupBatRunningState).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -740,7 +744,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwSmokeSensorStatus:			  //烟雾传感器状态
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevAlarm.hwSmokeAlarmTraps = mbuf ;
-	   //printf("烟雾传感器状态:%s\r\n",(HUAWEIDevAlarm.hwSmokeAlarmTraps).c_str());
+	   printf("烟雾传感器状态:%s\r\n",(HUAWEIDevAlarm.hwSmokeAlarmTraps).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -749,7 +753,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwWaterSensorStatus:			  //水浸传感器状态
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevAlarm.hwWaterAlarmTraps = mbuf ;
-	   //printf("水浸传感器状态:%s\r\n",(HUAWEIDevAlarm.hwWaterAlarmTraps).c_str());
+	   printf("水浸传感器状态:%s\r\n",(HUAWEIDevAlarm.hwWaterAlarmTraps).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -758,7 +762,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwDoorSensorStatus:			  //门磁传感器状态
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevAlarm.hwDoorAlarmTraps = mbuf ;
-	   //printf("门磁传感器状态:%s\r\n",(HUAWEIDevAlarm.hwDoorAlarmTraps).c_str());
+	   printf("门磁传感器状态:%s\r\n",(HUAWEIDevAlarm.hwDoorAlarmTraps).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -771,12 +775,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(HUAWEIDevValue.strhwDcAirEquipAddress == "21")
        {
            hwAirAddrbuf[0] = mgetindx ;
-           //printf("空调设备柜索引:%d\r\n",mgetindx);
+           printf("空调设备柜索引:%d\r\n",mgetindx);
        }
        else if(HUAWEIDevValue.strhwDcAirEquipAddress == "22")
        {
            hwAirAddrbuf[1] = mgetindx ;
-           //printf("空调电池柜索引:%d\r\n",mgetindx);
+           printf("空调电池柜索引:%d\r\n",mgetindx);
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -790,12 +794,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        if(HUAWEIDevValue.strhwTemHumEquipAddress == "51")
        {
            hwTemAddrbuf[0] = mgetindx ;
-           //printf("温湿度设备柜索引:%d\r\n",mgetindx);
+           printf("温湿度设备柜索引:%d\r\n",mgetindx);
        }
        else if(HUAWEIDevValue.strhwTemHumEquipAddress == "52")
        {
            hwTemAddrbuf[1] = mgetindx ;
-           //printf("温湿度电池柜索引:%d\r\n",mgetindx);
+           printf("温湿度电池柜索引:%d\r\n",mgetindx);
        }
 
        pthread_mutex_lock(&snmpdataMutex);
@@ -806,7 +810,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbBatVolt:			  //单个电池电压
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbBatVolt = mbuf ;
-	   //printf("单个电池电压:%s\r\n",(HUAWEIDevValue.strhwAcbBatVolt).c_str());
+	   printf("单个电池电压:%s\r\n",(HUAWEIDevValue.strhwAcbBatVolt).c_str());
        if(mAcbIndex > 3)
            mAcbIndex = 0 ;
        hwAcbAddrbuf[mAcbIndex] =  mgetindx ;
@@ -818,7 +822,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbBatCurr:			  //单个电池电流
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbBatCurr = mbuf ;
-	   //printf("单个电池电流:%s\r\n",(HUAWEIDevValue.strhwAcbBatCurr).c_str());
+	   printf("单个电池电流:%s\r\n",(HUAWEIDevValue.strhwAcbBatCurr).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -827,7 +831,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbBatSoh:			  //单个电池串SOH
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbBatSoh = mbuf ;
-	   //printf("单个电池串SOH:%s\r\n",(HUAWEIDevValue.strhwAcbBatSoh).c_str());
+	   printf("单个电池串SOH:%s\r\n",(HUAWEIDevValue.strhwAcbBatSoh).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -836,7 +840,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwAcbBatCapacity:			  //单个电池容量
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwAcbBatCapacity = mbuf ;
-	   //printf("单个电池容量:%s\r\n",(HUAWEIDevValue.strhwAcbBatCapacity).c_str());
+	   printf("单个电池容量:%s\r\n",(HUAWEIDevValue.strhwAcbBatCapacity).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -847,7 +851,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        sethwCtrlSmokeResetIndex = mgetindx ;
        sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwCtrlSmokeReset = mbuf ;
-       //printf("控制烟感复位:%s\r\n",(HUAWEIDevValue.strhwCtrlSmokeReset).c_str());
+       printf("控制烟感复位:%s\r\n",(HUAWEIDevValue.strhwCtrlSmokeReset).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -857,7 +861,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
        sethwCtrlMonEquipResetIndex = mgetindx ;
        sprintf(mbuf,"%d",mIntegerValue) ;
        HUAWEIDevValue.strhwCtrlMonEquipReset = mbuf ;
-       //printf("控制单板复位:%s\r\n",(HUAWEIDevValue.strhwCtrlMonEquipReset).c_str());
+       printf("控制单板复位:%s\r\n",(HUAWEIDevValue.strhwCtrlMonEquipReset).c_str());
 
        pthread_mutex_lock(&snmpdataMutex);
        snmpdataTime = 0;
@@ -866,17 +870,36 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
 
    //防火墙
    case hwEntityCpuUsage:               //CPU
-       sprintf(mbuf,"%d",mIntegerValue) ;
-       HUAWEIDevValue.strhwEntityCpuUsage = mbuf ;
-       //printf("防火墙CPU:%s\r\n",(HUAWEIDevValue.strhwEntityCpuUsage).c_str());
+       if(mstrip == StrFireWareIP[0])
+       {
+          sprintf(mbuf,"%d",mIntegerValue) ;
+          HUAWEIDevValue.strhwEntityCpuUsage = mbuf ;
+          //printf("防火墙CPU:%s\r\n",(HUAWEIDevValue.strhwEntityCpuUsage).c_str());
+       }
+       else
+       {
+           sprintf(mbuf,"%d",mIntegerValue) ;
+           HUAWEIDevValue.strhwEntityCpuUsage1 = mbuf ;
+           //printf("防火墙CPU:%s\r\n",(HUAWEIDevValue.strhwEntityCpuUsage).c_str());
+       }
        break;
     //交换机
     case hwswitchEntityCpuUsage:               //CPU
+       if(mstrip == StrIPSwitchIP[0])
+       {
          sprintf(mbuf,"%d",mIntegerValue) ;
          HUAWEIDevValue.strhwswitchEntityCpuUsage = mbuf ;
          //printf("交换机CPU:%s\r\n",(HUAWEIDevValue.strhwswitchEntityCpuUsage).c_str());
+       }
+       else
+       {
+           sprintf(mbuf,"%d",mIntegerValue) ;
+           HUAWEIDevValue.strhwswitchEntityCpuUsage1 = mbuf ;
+           //printf("交换机CPU:%s\r\n",(HUAWEIDevValue.strhwswitchEntityCpuUsage).c_str());
+       }
          break;
    case hwEntityCpuUCheck:
+        if(mstrip == StrFireWareIP[0])
         {
           stringstream ss;
           ss<<mgetindx;
@@ -907,8 +930,40 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
           strsend = StrFireWareIP[0]+ ";" + StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.11;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
           SendWalkSnmpOid(strsend);
         }
+        else
+        {
+          stringstream ss;
+          ss<<mgetindx;
+          string strmgetindx = ss.str();
+
+          string strsend;
+          int IntEM = (int)hwEntityCpuUsage;
+          stringstream sscpu;
+          sscpu<<IntEM;
+          strsend = sscpu.str();
+          //查询CPU
+          strsend = StrFireWareIP[1]+ ";" + StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.5;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
+          SendWalkSnmpOid(strsend);
+          //发送查询内存使用率 mgetindx
+          IntEM = (int)hwEntityMemUsage;
+          stringstream ssmem;
+          ssmem<<IntEM;
+          strsend = ssmem.str();
+
+          strsend = StrFireWareIP[1]+ ";" + StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.7;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
+          SendWalkSnmpOid(strsend);
+          //查询温度
+          IntEM = (int)hwEntityTemperature;
+          stringstream sstemper;
+          sstemper<<IntEM;
+          strsend = sstemper.str();
+
+          strsend = StrFireWareIP[1]+ ";" + StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.11;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
+          SendWalkSnmpOid(strsend);
+        }
         break ;
     case hwEntityMemUsage:
+        if(mstrip == StrFireWareIP[0])
         {
            //获取内存使用率
            //pthread_mutex_lock(&snmpoidMutex);
@@ -916,8 +971,17 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
            //pthread_mutex_unlock(&snmpoidMutex);
            //printf("防火墙内存使用率:%s\r\n",getsp.c_str());
         }
+        else
+        {
+          //获取内存使用率
+          //pthread_mutex_lock(&snmpoidMutex);
+          HUAWEIDevValue.strhwEntityMemUsage = getsp;
+          //pthread_mutex_unlock(&snmpoidMutex);
+          //printf("防火墙内存使用率:%s\r\n",getsp.c_str());
+        }
         break;
     case hwEntityTemperature:
+        if(mstrip == StrFireWareIP[0])
         {
            //获取查询温度
            //pthread_mutex_lock(&snmpoidMutex);
@@ -925,10 +989,20 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
            //pthread_mutex_unlock(&snmpoidMutex);
            //printf("防火墙温度:%s\r\n",getsp.c_str());
         }
+        else
+        {
+          //获取查询温度
+          //pthread_mutex_lock(&snmpoidMutex);
+          HUAWEIDevValue.strhwEntityTemperature = getsp;
+          //pthread_mutex_unlock(&snmpoidMutex);
+          //printf("防火墙温度:%s\r\n",getsp.c_str());
+        }
+
         break;
 
    //交换机
    case hwswitchEntityCpuCheck:
+       if(mstrip == StrIPSwitchIP[0])
         {
           stringstream ss;
           ss<<mgetindx;
@@ -959,8 +1033,41 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
           strsend = StrIPSwitchIP[0]+ ";" + StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.11;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
           SendWalkSnmpOid(strsend);
         }
+       else
+       {
+         stringstream ss;
+         ss<<mgetindx;
+         string strmgetindx = ss.str();
+
+         string strsend;
+         int IntEM = (int)hwswitchEntityCpuUsage;
+         stringstream sscpu;
+         sscpu<<IntEM;
+         strsend = sscpu.str();
+         //查询CPU
+         strsend = StrIPSwitchIP[1]+ ";" + StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.5;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
+         SendWalkSnmpOid(strsend);
+         //发送查询内存使用率 mgetindx
+         IntEM = (int)hwswitchEntityMemUsage;
+         stringstream ssmem;
+         ssmem<<IntEM;
+         strsend = ssmem.str();
+
+         strsend = StrIPSwitchIP[1]+ ";" + StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.7;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
+         SendWalkSnmpOid(strsend);
+         //查询温度
+         IntEM = (int)hwswitchEntityTemperature;
+         stringstream sstemper;
+         sstemper<<IntEM;
+         strsend = sstemper.str();
+
+         strsend = StrIPSwitchIP[1]+ ";" + StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.4.1.2011.5.25.31.1.1.1.1.11;" + "15;" + strmgetindx + ";" + "RPU;" + strsend+ ";" ;
+         SendWalkSnmpOid(strsend);
+       }
+
         break;
     case hwswitchEntityMemUsage:
+       if(mstrip == StrIPSwitchIP[0])
         {
           //获取内存使用率
           //pthread_mutex_lock(&snmpoidMutex);
@@ -968,12 +1075,29 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
           //pthread_mutex_unlock(&snmpoidMutex);
           //printf("交换机内存使用率:%s\r\n",getsp.c_str());
        }
+       else
+       {
+         //获取内存使用率
+         //pthread_mutex_lock(&snmpoidMutex);
+         HUAWEIDevValue.strhwswitchEntityMemUsage1 = getsp;
+         //pthread_mutex_unlock(&snmpoidMutex);
+         //printf("交换机内存使用率:%s\r\n",getsp.c_str());
+      }
        break;
     case hwswitchEntityTemperature:
+       if(mstrip == StrIPSwitchIP[0])
        {
          //获取查询温度
          //pthread_mutex_lock(&snmpoidMutex);
          HUAWEIDevValue.strhwswitchEntityTemperature = getsp;
+         //pthread_mutex_unlock(&snmpoidMutex);
+         //printf("交换机温度:%s\r\n",getsp.c_str());
+       }
+       else
+       {
+         //获取查询温度
+         //pthread_mutex_lock(&snmpoidMutex);
+         HUAWEIDevValue.strhwswitchEntityTemperature1 = getsp;
          //pthread_mutex_unlock(&snmpoidMutex);
          //printf("交换机温度:%s\r\n",getsp.c_str());
        }
@@ -982,6 +1106,7 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
    case hwswitchEntityDescr://接口查询
        //printf("接口:%d,%s\r\n",mgetindx,getsp.c_str());
       // mTFIRESWITCH
+   if(mstrip == StrIPSwitchIP[0])
    {
        char buf[10];
        string strbuf = "";
@@ -1006,10 +1131,37 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
            }
        }
    }
+   else
+   {
+       char buf[10];
+       string strbuf = "";
+       string strbufg = "";
+       string strbufx = "";
+       for(int i=0;i<32;i++)
+       {
+           memset(buf,0x00,10);
+           sprintf(buf,"%d",i+1);
+           strbuf = buf;
+           strbufg = "GigabitEthernet0/0/" + strbuf;
+           strbufx = "XGigabitEthernet0/0/" + strbuf;
+           if(getsp == strbufg)
+           {
+               mTFIRESWITCH1[i].type = "g";
+               mTFIRESWITCH1[i].Descr = mgetindx;
+           }
+           else if(getsp == strbufx)
+           {
+               mTFIRESWITCH1[i+25].type = "x";
+               mTFIRESWITCH1[i+25].Descr = mgetindx;
+           }
+       }
+   }
        break;
    case hwswitchEntityOperStatus://接口状态查询
         //printf("接口状态查询:%d,%s\r\n",mgetindx,getsp.c_str());
         //strJson = strJson + "\"switchip\":\""+ StrIPSwitchIP[0] +"\",\n";	//交换机IP
+     if(mstrip == StrIPSwitchIP[0])
+     {
        for(int i=0;i<32;i++)
        {
            if((mTFIRESWITCH[i].Descr == mgetindx) && ((mTFIRESWITCH[i].type == "g") || (mTFIRESWITCH[i].type == "x")))
@@ -1020,9 +1172,26 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
                    mTFIRESWITCH[i].state = mTFIRESWITCH[i].type + "down";
            }
        }
+      }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+           if((mTFIRESWITCH1[i].Descr == mgetindx) && ((mTFIRESWITCH1[i].type == "g") || (mTFIRESWITCH1[i].type == "x")))
+           {
+               if(getsp == "1")
+                   mTFIRESWITCH1[i].state = mTFIRESWITCH1[i].type + "up";
+               else
+                   mTFIRESWITCH1[i].state = mTFIRESWITCH1[i].type + "down";
+           }
+       }
+      }
+
        break;
    case hwswitchEntityInOctets://总字节数
         //printf("总字节数:%d,%s\r\n",mgetindx,getsp.c_str());
+     if(mstrip == StrIPSwitchIP[0])
+     {
        for(int i=0;i<32;i++)
        {
          if((mTFIRESWITCH[i].Descr == mgetindx) && ((mTFIRESWITCH[i].type == "g") || (mTFIRESWITCH[i].type == "x")))
@@ -1030,9 +1199,23 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIRESWITCH[i].inoctets = getsp;
          }
        }
+      }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIRESWITCH1[i].Descr == mgetindx) && ((mTFIRESWITCH1[i].type == "g") || (mTFIRESWITCH1[i].type == "x")))
+         {
+             mTFIRESWITCH1[i].inoctets = getsp;
+         }
+       }
+      }
+
        break;
    case hwswitchEntityInErrors://出错数
        //printf("出错数:%d,%s\r\n",mgetindx,getsp.c_str());
+     if(mstrip == StrIPSwitchIP[0])
+     {
        for(int i=0;i<32;i++)
        {
          if((mTFIRESWITCH[i].Descr == mgetindx) && ((mTFIRESWITCH[i].type == "g") || (mTFIRESWITCH[i].type == "x")))
@@ -1040,9 +1223,22 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIRESWITCH[i].inerrors = getsp;
          }
        }
+      }
+      else
+     {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIRESWITCH1[i].Descr == mgetindx) && ((mTFIRESWITCH1[i].type == "g") || (mTFIRESWITCH1[i].type == "x")))
+         {
+             mTFIRESWITCH1[i].inerrors = getsp;
+         }
+       }
+      }
        break;
    case hwswitchEntityOutOctets://总字节数
        //printf("总字节数:%d,%s\r\n",mgetindx,getsp.c_str());
+     if(mstrip == StrIPSwitchIP[0])
+     {
        for(int i=0;i<32;i++)
        {
          if((mTFIRESWITCH[i].Descr == mgetindx) && ((mTFIRESWITCH[i].type == "g") || (mTFIRESWITCH[i].type == "x")))
@@ -1050,9 +1246,22 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIRESWITCH[i].outoctets = getsp;
          }
        }
+     }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIRESWITCH1[i].Descr == mgetindx) && ((mTFIRESWITCH1[i].type == "g") || (mTFIRESWITCH1[i].type == "x")))
+         {
+             mTFIRESWITCH1[i].outoctets = getsp;
+         }
+       }
+     }
        break;
    case hwswitchEntityOutErrors://出错数
        //printf("出错数:%d,%s\r\n",mgetindx,getsp.c_str());
+     if(mstrip == StrIPSwitchIP[0])
+     {
        for(int i=0;i<32;i++)
        {
          if((mTFIRESWITCH[i].Descr == mgetindx) && ((mTFIRESWITCH[i].type == "g") || (mTFIRESWITCH[i].type == "x")))
@@ -1060,12 +1269,24 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIRESWITCH[i].outerrors = getsp;
          }
        }
+     }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIRESWITCH1[i].Descr == mgetindx) && ((mTFIRESWITCH1[i].type == "g") || (mTFIRESWITCH1[i].type == "x")))
+         {
+             mTFIRESWITCH1[i].outerrors = getsp;
+         }
+       }
+     }
 
        break;
 
    case hwEntityDescr://接口查询
        //printf("防火墙接口:%d,%s\r\n",mgetindx,getsp.c_str());
       // mTFIRESWITCH
+   if(mstrip == StrFireWareIP[0])
    {
        char buf[10];
        string strbuf = "";
@@ -1090,10 +1311,37 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
            }
        }
    }
+   else
+   {
+       char buf[10];
+       string strbuf = "";
+       string strbufg = "";
+       string strbufx = "";
+       for(int i=0;i<32;i++)
+       {
+           memset(buf,0x00,10);
+           sprintf(buf,"%d",i);
+           strbuf = buf;
+           strbufg = "GigabitEthernet0/0/" + strbuf;
+           strbufx = "XGigabitEthernet0/0/" + strbuf;
+           if(getsp == strbufg)
+           {
+               mTFIREWALL1[i].type = "g";
+               mTFIREWALL1[i].Descr = mgetindx;
+           }
+           else if(getsp == strbufx)
+           {
+               mTFIREWALL1[i+24].type = "x";
+               mTFIREWALL1[i+24].Descr = mgetindx;
+           }
+       }
+   }
        break;
    case hwEntityOperStatus://接口状态查询
         //printf("防火墙接口状态查询:%d,%s\r\n",mgetindx,getsp.c_str());
         //strJson = strJson + "\"switchip\":\""+ StrIPSwitchIP[0] +"\",\n";	//交换机IP
+     if(mstrip == StrFireWareIP[0])
+     {
        for(int i=0;i<32;i++)
        {
            if((mTFIREWALL[i].Descr == mgetindx) && ((mTFIREWALL[i].type == "g") || (mTFIREWALL[i].type == "x")))
@@ -1104,9 +1352,25 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
                    mTFIREWALL[i].state = mTFIREWALL[i].type + "down";
            }
        }
+     }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+           if((mTFIREWALL1[i].Descr == mgetindx) && ((mTFIREWALL1[i].type == "g") || (mTFIREWALL1[i].type == "x")))
+           {
+               if(getsp == "1")
+                   mTFIREWALL1[i].state = mTFIREWALL1[i].type + "up";
+               else
+                   mTFIREWALL1[i].state = mTFIREWALL1[i].type + "down";
+           }
+       }
+     }
        break;
    case hwEntityInOctets://总字节数
         //printf("防火墙总字节数:%d,%s\r\n",mgetindx,getsp.c_str());
+     if(mstrip == StrFireWareIP[0])
+     {
        for(int i=0;i<32;i++)
        {
          if((mTFIREWALL[i].Descr == mgetindx) && ((mTFIREWALL[i].type == "g") || (mTFIREWALL[i].type == "x")))
@@ -1114,9 +1378,23 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIREWALL[i].inoctets = getsp;
          }
        }
+     }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIREWALL1[i].Descr == mgetindx) && ((mTFIREWALL1[i].type == "g") || (mTFIREWALL1[i].type == "x")))
+         {
+             mTFIREWALL1[i].inoctets = getsp;
+         }
+       }
+     }
+
        break;
    case hwEntityInErrors://出错数
        //printf("防火墙出错数:%d,%s\r\n",mgetindx,getsp.c_str());
+     if(mstrip == StrFireWareIP[0])
+     {
        for(int i=0;i<32;i++)
        {
          if((mTFIREWALL[i].Descr == mgetindx) && ((mTFIREWALL[i].type == "g") || (mTFIREWALL[i].type == "x")))
@@ -1124,9 +1402,22 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIREWALL[i].inerrors = getsp;
          }
        }
+     }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIREWALL1[i].Descr == mgetindx) && ((mTFIREWALL1[i].type == "g") || (mTFIREWALL1[i].type == "x")))
+         {
+             mTFIREWALL1[i].inerrors = getsp;
+         }
+       }
+     }
        break;
    case hwEntityOutOctets://总字节数
        //printf("防火墙总字节数:%d,%s\r\n",mgetindx,getsp.c_str());
+    if(mstrip == StrFireWareIP[0])
+    {
        for(int i=0;i<32;i++)
        {
          if((mTFIREWALL[i].Descr == mgetindx) && ((mTFIREWALL[i].type == "g") || (mTFIREWALL[i].type == "x")))
@@ -1134,9 +1425,22 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIREWALL[i].outoctets = getsp;
          }
        }
+    }
+    else
+    {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIREWALL1[i].Descr == mgetindx) && ((mTFIREWALL1[i].type == "g") || (mTFIREWALL1[i].type == "x")))
+         {
+             mTFIREWALL1[i].outoctets = getsp;
+         }
+       }
+    }
        break;
    case hwEntityOutErrors://出错数
        //printf("防火墙出错数:%d,%s\r\n",mgetindx,getsp.c_str());
+     if(mstrip == StrFireWareIP[0])
+     {
        for(int i=0;i<32;i++)
        {
          if((mTFIREWALL[i].Descr == mgetindx) && ((mTFIREWALL[i].type == "g") || (mTFIREWALL[i].type == "x")))
@@ -1144,6 +1448,17 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,int Intstrtype)
              mTFIREWALL[i].outerrors = getsp;
          }
        }
+     }
+     else
+     {
+       for(int i=0;i<32;i++)
+       {
+         if((mTFIREWALL1[i].Descr == mgetindx) && ((mTFIREWALL1[i].type == "g") || (mTFIREWALL1[i].type == "x")))
+         {
+             mTFIREWALL1[i].outerrors = getsp;
+         }
+       }
+     }
 
        break;
 
@@ -1337,7 +1652,7 @@ void *Walksnmpthread(void *param)
                         char *sp = (char *)malloc(1 + vars->val_len); 
                         memcpy(sp, vars->val.string, vars->val_len); 
                         sp[vars->val_len] = '\0'; 
-                       // printf("string:%s\r\n",sp);
+                        //printf("string:%s\r\n",sp);
 						UpdataHUAWEIGantryStr(sp,vars->val_len+1,(EM_HUAWEIGantry)Intstrtype);
                         getsp = sp ;
                         free(sp);
@@ -1346,14 +1661,14 @@ void *Walksnmpthread(void *param)
                         if(Intstroidtype == 0x7FFFFFFF)
                         {
                               int mgetindx = vars->name_loc[Intstroidindx] ;
-                              UpdataHUAWEIFirewall(mgetindx,getsp,Intstrtype);
+                              UpdataHUAWEIFirewall(mgetindx,getsp,Intstrtype,strip);
                         }
                         else if(Intstroidtype == 0) //查找一个
                         {
                             if(getsp == strHUAWEIGantry)
                              {
                                   int mgetindx = vars->name_loc[Intstroidindx] ;
-                                  UpdataHUAWEIFirewall(mgetindx,strHUAWEIGantry,Intstrtype);
+                                  UpdataHUAWEIFirewall(mgetindx,strHUAWEIGantry,Intstrtype,strip);
                              }
                         }
 
@@ -1383,11 +1698,11 @@ void *Walksnmpthread(void *param)
                         if(Intstroidtype == 0x7FFFFFFF)
                         {
                            //UpdataHUAWEIFirewall(Intstroidtype,getsp,Intstrtype);
-                            UpdataHUAWEIFirewall(vars->name_loc[Intstroidindx],getsp,Intstrtype);
+                            UpdataHUAWEIFirewall(vars->name_loc[Intstroidindx],getsp,Intstrtype,strip);
                         }
                         else if(Intstroidtype == vars->name_loc[Intstroidindx]) //查找一个
                         {
-                           UpdataHUAWEIFirewall(Intstroidtype,getsp,Intstrtype);
+                           UpdataHUAWEIFirewall(Intstroidtype,getsp,Intstrtype,strip);
                         }
 
                        /*
@@ -1428,7 +1743,7 @@ void *Walksnmpthread(void *param)
             {
                 running = 0;  
                 if (response->errstat == SNMP_ERR_NOSUCHNAME) {  
-                    ;//printf("End of MIB\n");  
+                    ;printf("End of MIB\n");  
                 } else {  
                     fprintf(stderr, "Error in packet.\nReason: %s\n",  
                             snmp_errstring(response->errstat));  
@@ -1488,7 +1803,7 @@ int SendWalkSnmpOid(string mSnmpOid)
 }
 
 
-int SendHUAWEIsnmpWalk(EM_HUAWEIGantry mEM_HUAWEIGantry)
+int SendHUAWEIsnmpWalk(EM_HUAWEIGantry mEM_HUAWEIGantry,int nIndex)
 {
    int IntEM = (int)mEM_HUAWEIGantry;
    stringstream ss;
@@ -1730,52 +2045,138 @@ int SendHUAWEIsnmpWalk(EM_HUAWEIGantry mEM_HUAWEIGantry)
        break;
 
    case hwswitchEntityDescr:			 //交换机接口查询
-       strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.2;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       if(nIndex == 0)
+         strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.2;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       else
+         strsend = StrIPSwitchIP[1]+";"+StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.2;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
        break;
-   case hwswitchEntityOperStatus:			 //交换机接口状态查询      
-       strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.8;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+   case hwswitchEntityOperStatus:			 //交换机接口状态查询
+       if(nIndex == 0)
+          strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.8;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       else
+          strsend = StrIPSwitchIP[1]+";"+StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.8;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
        break;
    case hwswitchEntityInOctets:			 //交换机输入总字节数
+       if(nIndex == 0)
+       {
        strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.10;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrIPSwitchIP[1]+";"+StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.10;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwswitchEntityInErrors:			 //交换机出错数
+       if(nIndex == 0)
+       {
        strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.14;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrIPSwitchIP[1]+";"+StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.14;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwswitchEntityOutOctets:			 //交换机输出总字节数
+       if(nIndex == 0)
+       {
        strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.16;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrIPSwitchIP[1]+";"+StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.16;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwswitchEntityOutErrors:			 //交换机出错数
+       if(nIndex == 0)
+       {
        strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.20;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrIPSwitchIP[1]+";"+StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.20;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwEntityDescr:			 //防火墙接口查询
+       if(nIndex == 0)
+       {
        strsend = StrFireWareIP[0]+";"+StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.2;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrFireWareIP[1]+";"+StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.2;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwEntityOperStatus:			 //防火墙接口状态查询
+       if(nIndex == 0)
+       {
        strsend = StrFireWareIP[0]+";"+StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.8;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrFireWareIP[1]+";"+StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.8;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwEntityInOctets:			 //防火墙输入总字节数
+       if(nIndex == 0)
+       {
        strsend = StrFireWareIP[0]+";"+StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.10;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrFireWareIP[1]+";"+StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.10;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwEntityInErrors:			 //防火墙出错数
+       if(nIndex == 0)
+       {
        strsend = StrFireWareIP[0]+";"+StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.14;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrFireWareIP[1]+";"+StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.14;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwEntityOutOctets:			 //防火墙输出总字节数
+       if(nIndex == 0)
+       {
        strsend = StrFireWareIP[0]+";"+StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.16;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrFireWareIP[1]+";"+StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.16;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    case hwEntityOutErrors:			 //防火墙出错数
+       if(nIndex == 0)
+       {
        strsend = StrFireWareIP[0]+";"+StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.2.1.2.2.1.20;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
        SendWalkSnmpOid(strsend);
+       }
+       else
+       {
+       strsend = StrFireWareIP[1]+";"+StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.2.1.2.2.1.20;" + "10;" + "2147483647‬;" + "Ethernet;" + strsend+ ";" ;
+       SendWalkSnmpOid(strsend);
+       }
        break;
    default:
        break;
@@ -1797,8 +2198,12 @@ void *WalkSendsnmpthread(void *param)
     {
         mTFIRESWITCH[i].Descr = 0x7FFFFFFF;
         mTFIRESWITCH[i].type = "";
+        mTFIRESWITCH1[i].Descr = 0x7FFFFFFF;
+        mTFIRESWITCH1[i].type = "";
         mTFIREWALL[i].Descr = 0x7FFFFFFF;
         mTFIREWALL[i].type = "";
+        mTFIREWALL1[i].Descr = 0x7FFFFFFF;
+        mTFIREWALL1[i].type = "";
     }
 
     //空调地址
@@ -1824,52 +2229,81 @@ void *WalkSendsnmpthread(void *param)
     sleep(5);
     while(1)
     {
+       //交换机1
        strsend = StrIPSwitchIP[0]+";"+StrIPSwitchGetPasswd[0] + ";" + ".1.3.6.1.2.1.47.1.1.1.1.7;" + "12;" + "0;" + "MPU Board 0;" + "11000;";
        SendWalkSnmpOid(strsend);
        sleep(1);
        //交换机网络参数
        for(int i=hwswitchEntityDescr;i<=hwswitchEntityDescr+6;i++)
        {
-//			printf("SendHUAWEIsnmp %d\n",i);
-           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i);
+			printf("SendHUAWEIsnmp %d\n",i);
+           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i,0);
+       }
+       sleep(3);
+
+       //交换机2
+       strsend = StrIPSwitchIP[1]+";"+StrIPSwitchGetPasswd[1] + ";" + ".1.3.6.1.2.1.47.1.1.1.1.7;" + "12;" + "0;" + "MPU Board 0;" + "11000;";
+       SendWalkSnmpOid(strsend);
+       sleep(1);
+       //交换机网络参数
+       for(int i=hwswitchEntityDescr;i<=hwswitchEntityDescr+6;i++)
+       {
+			printf("SendHUAWEIsnmp %d\n",i);
+           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i,1);
        }
        sleep(3);
 
 
+       //防火墙1
        strsend = StrFireWareIP[0]+";"+StrFireWareGetPasswd[0] + ";" + ".1.3.6.1.2.1.47.1.1.1.1.7;" + "12;" + "0;" + "RPU;" + "10000;";
        SendWalkSnmpOid(strsend);
        sleep(1);
        //防火墙网络参数
        for(int i=hwEntityDescr;i<=hwEntityDescr+6;i++)
        {
-//			printf("SendHUAWEIsnmp %d\n",i);
-           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i);
+			printf("SendHUAWEIsnmp %d\n",i);
+           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i,0);
+       }
+       sleep(3);
+
+       //防火墙2
+       strsend = StrFireWareIP[1]+";"+StrFireWareGetPasswd[1] + ";" + ".1.3.6.1.2.1.47.1.1.1.1.7;" + "12;" + "0;" + "RPU;" + "10000;";
+       SendWalkSnmpOid(strsend);
+       sleep(1);
+       //防火墙网络参数
+       for(int i=hwEntityDescr;i<=hwEntityDescr+6;i++)
+       {
+			printf("SendHUAWEIsnmp %d\n",i);
+           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i,1);
        }
        sleep(3);
 
 
+
        //获取空调地址
-       SendHUAWEIsnmpWalk(hwDcAirEquipAddress);
+       SendHUAWEIsnmpWalk(hwDcAirEquipAddress,0);
        //获取温适度地址
-       SendHUAWEIsnmpWalk(hwTemHumEquipAddress);
+       SendHUAWEIsnmpWalk(hwTemHumEquipAddress,0);
        for(int i=1;i<=HWGANTRY_COUNT;i++)
        {
-//			printf("SendHUAWEIsnmp %d\n",i);
-           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i);
+			printf("SendHUAWEIsnmp %d\n",i);
+           SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i,0);
        }
 
        sleep(5);
 
        int portcount = 0;
+       string strportcount = "";
+       //交换机1
        for(int i=0;i<32;i++)
        {
           if(mTFIRESWITCH[i].Descr != 0x7FFFFFFF)
               ++ portcount;
        }
 
-       stringstream ss;
-       ss<<portcount;
-       string strportcount = ss.str();
+       stringstream ssswitch;
+       ssswitch<<portcount;
+       strportcount = ssswitch.str();
 
        string strswitchnet = "" ;
        strswitchnet = "\"ip\":\""+ StrIPSwitchIP[0] +"\",\n";
@@ -1877,7 +2311,7 @@ void *WalkSendsnmpthread(void *param)
        strswitchnet = strswitchnet + "\"portcount\":\""+ strportcount +"\",\n";
        strswitchnet = strswitchnet + "\"portinfolist\":[\n";
 	   portcnt=atoi(strportcount.c_str());
-	   //printf("ip switch port count=%d\n",portcnt);
+	   printf("ip switch port count=%d\n",portcnt);
        for(int i=0,j=0;i<32;i++)
        {
          if(mTFIRESWITCH[i].Descr != 0x7FFFFFFF)
@@ -1906,10 +2340,62 @@ void *WalkSendsnmpthread(void *param)
 
        strswitchnet = strswitchnet + "]\n";
        strswitchjson = strswitchnet;
-       //printf("%s\r\n",strswitchnet.c_str());
+       printf("strswitchjson：%s\r\n",strswitchjson.c_str());
        sleep(5);
 
 
+       //交换机2
+       portcount = 0;
+       for(int i=0;i<32;i++)
+       {
+          if(mTFIRESWITCH1[i].Descr != 0x7FFFFFFF)
+              ++ portcount;
+       }
+
+       stringstream ssswitch1;
+       ssswitch1<<portcount;
+       strportcount = ssswitch1.str();
+
+       strswitchnet = "" ;
+       strswitchnet = "\"ip\":\""+ StrIPSwitchIP[1] +"\",\n";
+       strswitchnet = strswitchnet + "\"type\":\"switch\",\n";
+       strswitchnet = strswitchnet + "\"portcount\":\""+ strportcount +"\",\n";
+       strswitchnet = strswitchnet + "\"portinfolist\":[\n";
+       portcnt=atoi(strportcount.c_str());
+       printf("ip switch port count=%d\n",portcnt);
+       for(int i=0,j=0;i<32;i++)
+       {
+         if(mTFIRESWITCH1[i].Descr != 0x7FFFFFFF)
+         {
+             stringstream ssport;
+             if((mTFIRESWITCH1[i].type == "x") && (i>24))
+                 ssport<<i-24;
+             else
+                 ssport<<i+1;
+
+             string strport = ssport.str();
+             strswitchnet = strswitchnet + "{\n";
+             strswitchnet = strswitchnet + "\"port_id\":\""+ strport +"\",\n";
+             strswitchnet = strswitchnet + "\"state\":\""+ mTFIRESWITCH1[i].state +"\",\n";
+             strswitchnet = strswitchnet + "\"inoctets\":\""+ mTFIRESWITCH1[i].inoctets +"\",\n";
+             strswitchnet = strswitchnet + "\"inerrors\":\""+ mTFIRESWITCH1[i].inerrors +"\",\n";
+             strswitchnet = strswitchnet + "\"outoctets\":\""+ mTFIRESWITCH1[i].outoctets +"\",\n";
+             strswitchnet = strswitchnet + "\"outerrors\":\""+ mTFIRESWITCH1[i].outerrors +"\"\n";
+             if(j==portcnt-1)
+                 strswitchnet = strswitchnet + "}\n";
+             else
+                 strswitchnet = strswitchnet + "},\n";
+             j++;
+         }
+       }
+
+       strswitchnet = strswitchnet + "]\n";
+       strswitchjson1 = strswitchnet;
+       printf("strswitchjson1%s\r\n",strswitchjson1.c_str());
+       sleep(5);
+
+
+       //防火墙1
        portcount = 0;
        for(int i=0;i<32;i++)
        {
@@ -1922,12 +2408,12 @@ void *WalkSendsnmpthread(void *param)
        strportcount = ssfirewall.str();
 
        strswitchnet = "" ;
-       strswitchnet = "\"ip\":\""+ StrIPSwitchIP[0] +"\",\n";
+       strswitchnet = "\"ip\":\""+ StrFireWareIP[0] +"\",\n";
        strswitchnet = strswitchnet + "\"type\":\"fireware\",\n";
        strswitchnet = strswitchnet + "\"portcount\":\""+ strportcount +"\",\n";
        strswitchnet = strswitchnet + "\"portinfolist\":[\n";
 	   portcnt=atoi(strportcount.c_str());
-	   //printf("firewall port count=%d\n",portcnt);
+	   printf("firewall port count=%d\n",portcnt);
        for(int i=0,j=0;i<32;i++)
        {
          if(mTFIREWALL[i].Descr != 0x7FFFFFFF)
@@ -1956,8 +2442,62 @@ void *WalkSendsnmpthread(void *param)
 
        strswitchnet = strswitchnet + "]\n";
        strfirewalljson = strswitchnet ;
-       //printf("%s\r\n",strswitchnet.c_str());
-       sleep(60*5);
+       printf("strfirewalljson%s\r\n",strfirewalljson.c_str());
+
+
+       sleep(5);
+       //防火墙2
+       portcount = 0;
+       for(int i=0;i<32;i++)
+       {
+          if(mTFIREWALL1[i].Descr != 0x7FFFFFFF)
+              ++ portcount;
+       }
+
+       stringstream ssfirewall1;
+       ssfirewall1<<portcount;
+       strportcount = ssfirewall1.str();
+
+       strswitchnet = "" ;
+       strswitchnet = "\"ip\":\""+ StrFireWareIP[1] +"\",\n";
+       strswitchnet = strswitchnet + "\"type\":\"fireware\",\n";
+       strswitchnet = strswitchnet + "\"portcount\":\""+ strportcount +"\",\n";
+       strswitchnet = strswitchnet + "\"portinfolist\":[\n";
+       portcnt=atoi(strportcount.c_str());
+       printf("firewall port count=%d\n",portcnt);
+       for(int i=0,j=0;i<32;i++)
+       {
+         if(mTFIREWALL1[i].Descr != 0x7FFFFFFF)
+         {
+             stringstream ssport;
+             if((mTFIREWALL1[i].type == "x") && (i>23))
+                 ssport<<i-23;
+             else
+                 ssport<<i;
+
+             string strport = ssport.str();
+             strswitchnet = strswitchnet + "{\n";
+             strswitchnet = strswitchnet + "\"port_id\":\""+ strport +"\",\n";
+             strswitchnet = strswitchnet + "\"state\":\""+ mTFIREWALL1[i].state +"\",\n";
+             strswitchnet = strswitchnet + "\"inoctets\":\""+ mTFIREWALL1[i].inoctets +"\",\n";
+             strswitchnet = strswitchnet + "\"inerrors\":\""+ mTFIREWALL1[i].inerrors +"\",\n";
+             strswitchnet = strswitchnet + "\"outoctets\":\""+ mTFIREWALL1[i].outoctets +"\",\n";
+             strswitchnet = strswitchnet + "\"outerrors\":\""+ mTFIREWALL1[i].outerrors +"\"\n";
+             if(j==portcnt-1)
+                strswitchnet = strswitchnet + "}\n";
+             else
+                 strswitchnet = strswitchnet + "},\n";
+             j++;
+         }
+       }
+
+       strswitchnet = strswitchnet + "]\n";
+       strfirewalljson1 = strswitchnet ;
+       printf("strfirewalljson1%s\r\n",strfirewalljson1.c_str());
+
+
+//       sleep(60*5);
+       sleep(15);
 
 
 
@@ -1981,7 +2521,7 @@ int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue,int mIndex)
          ssIndex<<sethwCtrlSmokeResetIndex;
          string strIndex = ssIndex.str();
          msetoid = "./snmpset -v 2c -c " + StrHWSetPasswd + " " + StrHWServer + " .1.3.6.1.4.1.2011.6.164.1.8.1.3." + strIndex + " i " + mIntValue ;
-         //printf("控制烟感复位:%s\r\n",msetoid.c_str());
+         printf("控制烟感复位:%s\r\n",msetoid.c_str());
          system(msetoid.c_str());
         }
          break;
@@ -2190,7 +2730,7 @@ int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue,int mIndex)
              string strIndex = ssIndex.str();
              msetoid = "./snmpset -v 2c -c " + StrHWSetPasswd + " " + StrHWServer + " .1.3.6.1.4.1.2011.6.164.1.6.1.8." + strIndex + " u " + mIntValue ;
              system(msetoid.c_str());
-            // printf("%s\r\n",msetoid.c_str());
+             printf("%s\r\n",msetoid.c_str());
          }
          break;
         //控制单板复位
@@ -2209,6 +2749,7 @@ int SnmpSetOid(EM_HUAWEIGantry mEM_HUAWEIGantry,string mIntValue,int mIndex)
             break;
 
     }
+	printf("SnmpSetOid: %s\n",msetoid.c_str());
     
     pthread_mutex_unlock(&SetsnmpoidMutex);
     return 0 ;

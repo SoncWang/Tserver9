@@ -73,13 +73,11 @@ void *HTTP_IPCamDataGet(void *param)
     {
         for(n=0;n<IntIpcamCount;n++)
         {   //printf("%s,%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
-sprintf(str,"HTTP_IPCamDataGet %s,%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
-WriteLog(str);
+printf("HTTP_IPCamDataGet %s:%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
 			mStrdata="";
             HttpPostParm(mstrurlget[n],mStrdata,mstrkey[n],HTTPGET);
             pthread_mutex_lock(&IpCamStateMutex);
-sprintf(str,"HTTP_IPCamDataGet ret %s\r\n",mStrdata.c_str());
-WriteLog((char*)mStrdata.c_str());
+printf("HTTP_IPCamDataGet ret %s\r\n",mStrdata.c_str());
             jsonIPCamReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
             pthread_mutex_unlock(&IpCamStateMutex);
             sleep(3);
@@ -117,6 +115,25 @@ void initIPcamState()
 		mTIPcamState[i].statustime="";//状态时间
 		mTIPcamState[i].filllight="2147483647";//闪光灯状态 0:正常，1:异常
 		mTIPcamState[i].temperature="2147483647";//摄像枪温度（摄氏度）
+		//交通部协议的状态内容部分
+		mTIPcamState[i].picstateid="\"\"";	 //流水号
+		mTIPcamState[i].gantryid="\"\"";	 //门架编号,全网唯一编号
+		mTIPcamState[i].statetime="\"\"";	 //状态采集时间
+		mTIPcamState[i].overstockImageJourCount="\"\"" ; //积压图片流水数
+		mTIPcamState[i].overstockImageCount="\"\""; 	 //积压图片数
+		mTIPcamState[i].cameranum="\"\"";	 //相机编号（101~299）
+		mTIPcamState[i].lanenum="\"\""; 	 //车道编号
+		mTIPcamState[i].connectstatus="\"\""; //连接状态
+		mTIPcamState[i].workstatus="\"\"";	  //工作状态
+		mTIPcamState[i].lightworkstatus="\"\""; //补光灯的工作状态
+		mTIPcamState[i].recognitionrate="\"\""; //识别成功率
+		mTIPcamState[i].hardwareversion="\"\""; //固件版本
+		mTIPcamState[i].softwareversion="\"\""; //软件版本
+		mTIPcamState[i].runningtime="\"\""; 	//设备从开机到现在的运行时间（秒）
+		mTIPcamState[i].brand="\"\"";			//厂商型号
+		mTIPcamState[i].devicetype="\"\"";		//设备型号
+		mTIPcamState[i].statuscode="\"\"";		//状态码,详见附录A3 0-正常；其他由厂商自定义
+		mTIPcamState[i].statusmsg="\"\"";		//状态描述 由厂商自定义,最大长度256 例如：正常
 	}
 }
 	
