@@ -347,6 +347,66 @@ int SPD_Res_Set_Reg(int socket_addr,UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UI
 	return 0 ;
 }
 
+/* psd发送数据--时间同步 */
+int SPD_Time_Set_Reg(int socket_addr,UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR,UINT16 REFS_COUNT)
+{
+	UINT8 i,j,bytSend[30]={0x00,};
+	int len=0;
+	int temp = 0;
+	UINT16 real_year = 2019;
+
+	time_t nSeconds;
+	struct tm * pTM;
+
+	pthread_mutex_lock(&SPDdataHandleMutex);
+	// 取得当前时间
+	time(&nSeconds);
+	pTM = localtime(&nSeconds);
+
+	bytSend[len++]        = Addr;
+    bytSend[len++]        = Func;	// 0x10
+    bytSend[len++] = (REFS_ADDR&0xFF00) >> 8;     // Register address
+    bytSend[len++] =  REFS_ADDR&0x00FF;
+    bytSend[len++] = (REFS_COUNT&0xFF00) >> 8;  // Register counter
+    temp = REFS_COUNT&0x00FF;
+    bytSend[len++] =  temp;
+	bytSend[len++] =  temp*2;
+
+	// tm_year是从1900开始算的
+	real_year = 1900+pTM->tm_year;
+
+	bytSend[len++] = (real_year&0xFF00) >> 8;
+	bytSend[len++] = real_year&0x00FF;			// 年
+
+	bytSend[len++] = 0;
+	bytSend[len++] = (UINT8)(pTM->tm_mon+1);	// 月
+
+	bytSend[len++] = 0;
+	bytSend[len++] = (UINT8)pTM->tm_mday;		// 日
+
+	bytSend[len++] = 0;
+	bytSend[len++] = (UINT8)pTM->tm_hour;		// 时
+
+	bytSend[len++] = 0;
+	bytSend[len++] = (UINT8)pTM->tm_min;		// 分
+
+	bytSend[len++] = 0;							// 秒
+	bytSend[len++] = (UINT8)pTM->tm_sec;
+
+	// CRC calculation
+	unsigned short int CRC = CRC16(bytSend,len);
+	bytSend[len++] = (CRC&0xFF00) >> 8; 	//CRC high
+	bytSend[len++] =  CRC&0x00FF;			//CRC low
+
+	printf("psd TimeSetdata:");
+	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+	write(socket_addr,bytSend,len);
+
+	pthread_mutex_unlock(&SPDdataHandleMutex);
+	usleep(5000);	//delay 5ms
+	return 0 ;
+}
+
 
 #if 0
 void spd_send_process(UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_COUNT)
@@ -586,6 +646,11 @@ int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
 			{
 				SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
 			}
+			break;
+
+		case SPD_TIME_SET:
+			// 对时写
+			SPD_Time_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,TIME_SET_LEN);
 			break;
 		default:
 			break;
@@ -1208,12 +1273,16 @@ int DealNetSPD(int seq,unsigned char *buf,unsigned short int len)
 	return 0;
 }
 
+/*雷迅的接收线程*/
 void *NetWork_DataGet_thread_SPD_L(void *param)
 {
 	param = NULL;
 	int buffPos=0;
 	int len,temp = 0;
 	unsigned char buf[256];
+	static UINT8 first_entry = 0;
+	static FDATA dummy;
+	static UINT16 dummy_u;
 	//gsocket = 0;
 	while(1)
 	{
@@ -1237,10 +1306,17 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 			int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 		  	DealNetSPD(0,buf, buffPos);
 		  	buffPos=0;
+			// 第一次连接对时一次
+			if (first_entry == 0)
+			{
+				first_entry = 1;
+				Ex_SPD_Set_Process(SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
+			}
 		}
 		// 断线了
 		else
 		{
+			first_entry = 0;		// 断线重连再次对时
 			net_Conneted = 0;
 			while(net_Conneted==0)
 			{
@@ -1253,6 +1329,7 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 	}
 }
 
+/*华咨的防雷器1接收线程*/
 void *NetWork_DataGet_thread_SPD_HZ1(void *param)
 {
 	param = NULL;
@@ -1480,9 +1557,10 @@ void* NetWork_server_thread_SPD(void*arg)
 	//int bFlag=0;
 	static UINT16 op_counter = 0;
 	static UINT16 poll_cnt = 0;
-	// 线程开始测试一次电阻，不然要等10分钟
-	static UINT16 ctrl_counter = (SPD_TEST_RES_INTERVAL-3);
+	// 线程开始测试一次电阻，不然要等10分钟, 延时20s,先对时
+	static UINT32 ctrl_counter = (SPD_TEST_RES_INTERVAL-10);
 	FDATA dummy;
+	UINT16 dummy_u;
 	static UINT16 try_connect[SPD_NUM+RES_NUM] = {0,};
 	static UINT16 anyone_connect = 0;	// 如果任何一个设备已经连接
 
@@ -1514,44 +1592,6 @@ void* NetWork_server_thread_SPD(void*arg)
 			}
 		}
 	}
-	#if 0
-	else if (SPD_Type == TYPE_HUAZI)
-	{
-		for (i = 0;i<(SPD_NUM+RES_NUM);i++)
-		{
-			HZ_Conneted[i] = 0;	// 开始连接前置0
-		}
-
-		// 如果每台设备都连了3次都没连上就继续尝试连接，直到任意一台连上
-		while (anyone_connect == 0)
-		{
-			for (i = 0;i<(SPD_NUM+RES_NUM);i++)
-			{
-				while(HZ_Conneted[i]==0)
-				{
-					HZ_Conneted[i]=obtain_net_HZ_psd(i);
-					sprintf(str,"HZ_Conneted%d=%d\n",i,HZ_Conneted[i]);
-					WriteLog(str);
-					if(HZ_Conneted[i]==0)
-					{
-						try_connect[i]++;
-						printf("connect _psd error\n");
-						WriteLog("IN NETWORK_Server_thread connect _psd error!\n");
-						if (try_connect[i] >= 3)	// 开头尝试连接3次都不成功,就不连了,继续下一个连接
-						{
-							break;
-						}
-						sleep(2);
-					}
-					else
-					{
-						anyone_connect = 1;
-					}
-				}
-			}
-		}
-	}
-	#endif
 	// 连接成功后再创建接收的线程
 	DataGet_Thread_Create(SPD_Type);
 
@@ -1608,31 +1648,37 @@ void* NetWork_server_thread_SPD(void*arg)
 			#endif
 
 
-			// 350*3 = 1.05s，即1.05s轮询一个项目
+			// 400*3 = 1.2s，即1.2s轮询一个项目
 			if (poll_cnt >= SPD_POLLING_INTERVAL)
 			{
 				poll_cnt = 0;
 				op_counter++;						// 轮询间隔标志
-				if (SPD_num == TYPE_LEIXUN)
+				if (SPD_Type == TYPE_LEIXUN)
 				{
 					if (op_counter == SPD_HZ_DATA_1)
 					{
 						op_counter = SPD_RES_DATA;	// 跳过第二个防雷器
 					}
-					if(ctrl_counter >= SPD_TEST_RES_INTERVAL)
-					{
-						//spd_ctl_flag |= SPD_RES_SET;
-						ctrl_counter = 0;
-						// 接地电阻10分钟测试一次
-						Ex_SPD_Set_Process(SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
-					}
 					if (op_counter >= SPD_DATA_NUM)
 					{
 						op_counter = 0;
 					}
+					if ((ctrl_counter % SPD_TEST_RES_INTERVAL) ==0)
+					{
+						//ctrl_counter = 0;
+						// 接地电阻10分钟测试一次
+						Ex_SPD_Set_Process(SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
+					}
+					if (ctrl_counter >= SPD_TIME_SYN_INTERVAL)
+					{
+						ctrl_counter = 0;
+						// 对时一次,不关心值
+						Ex_SPD_Set_Process(SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
+					}
 					ctrl_counter++;		// 每隔一段时间进行一次接地电阻测试
+					//printf("ctrl_counter = 0x%08x \r\n",ctrl_counter);
 				}
-				else if (SPD_num == TYPE_HUAZI)
+				else if (SPD_Type == TYPE_HUAZI)
 				{
 					// 这里的逻辑要再想想
 					if (op_counter <= SPD_HZ_DATA_1)
@@ -1648,7 +1694,8 @@ void* NetWork_server_thread_SPD(void*arg)
 				spd_net_flag |= BIT(op_counter);
 			}
 		}
-		// 统一处理的设置函数，这种结构注定上位机只能一次设置一个，且要有个间隔时间,350ms
+
+		// 统一处理的设置函数，这种结构注定上位机只能一次设置一个，且要有个间隔时间,400ms
 		if (spd_ctl_flag&BIT(SPD_AI_SET))
 		{
 			spd_ctrl_process(&spd_ctl_flag,SPD_AI_SET);
@@ -1656,6 +1703,10 @@ void* NetWork_server_thread_SPD(void*arg)
 		else if (spd_ctl_flag&BIT(SPD_DO_SET))
 		{
 			spd_ctrl_process(&spd_ctl_flag,SPD_DO_SET);
+		}
+		else if (spd_ctl_flag&BIT(SPD_TIME_SET))
+		{
+			spd_ctrl_process(&spd_ctl_flag,SPD_TIME_SET);
 		}
 		else if (spd_ctl_flag&BIT(SPD_RES_SET))
 		{

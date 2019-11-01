@@ -21,6 +21,9 @@
 #define RES_ALARM_ADDR		0x13		// 更改报警值的地址
 #define RES_TEST_EN			0x1			// 接地电阻测试开始
 
+#define TIME_SET_ADDR		22	// 时间设置22~27
+#define TIME_SET_LEN		6	// 寄存器长度6
+
 
 //读命令码
 #define SPD_DO_CMD		0x01
@@ -37,7 +40,7 @@
 #define SPD_RES_ADDR		0x09	// 接地电阻设备地址
 
 #define SPD_AI_ADDR			0
-#define SPD_AI_NUM			58
+#define SPD_AI_NUM			58		// 读58,后面多了一个不用的
 
 // 全部读出来
 #define SPD_DI_ADDR			0
@@ -65,9 +68,11 @@
 
 
 
-#define SPD_INTERVAL_TIME	350000		// 350ms,让控制命令更快下发
-#define SPD_POLLING_INTERVAL 3			// 1.05s轮询一次参数
-#define SPD_TEST_RES_INTERVAL	600		// 1.05*600 = 630s,10.5min
+#define SPD_INTERVAL_TIME		400000		// 400ms,让控制命令更快下发
+#define SPD_POLLING_INTERVAL 	3			// 1.05s轮询一次参数
+#define SPD_TEST_RES_INTERVAL	602		// 1.2*500 = 600s,10min,错开一点点, 所以最后一次24小时时会错失一次
+#define SPD_TIME_SYN_INTERVAL	72000		// 时间同步间隔,24小时 = 72000*1.2 s
+
 
 // 4字节表示一个float型
 typedef union {
@@ -321,10 +326,11 @@ typedef enum
 {
 	SPD_AI_SET = 0,		// 模拟量设置
 	SPD_DO_SET,			// DO控制
+	SPD_TIME_SET,		// 时间同步
 
 	SPD_RES_SET,		// 接地电阻设置
 
-	SPD_CTRL_NUM		//3
+	SPD_CTRL_NUM		//	4
 }SPD_CTRL_LIST;
 
 
