@@ -654,6 +654,54 @@ void *Locker_DataPollingthread(void *param)
 }
 
 
+// 获取电子锁的开关状态信息
+UINT16 LockerStatusGet(unsigned char seq)
+{
+	return (lockerHw_Param[seq]->status?LOCKER_OPEN:LOCKER_CLOSED);
+}
+
+
+// 从电子锁判断开门状态,关:LOCKER_CLOSED, 开:LOCKER_OPEN
+UINT16 DoorStatusFromLocker(void)
+{
+	UINT16 reval = LOCKER_CLOSED;
+	UINT16 i = 0;
+	// 如果只配置了1或者2把电子锁,那么任何一把锁开门就认为柜子打开
+	if (actual_locker_num <= 2)
+	{
+		for(i=LOCKER_1; i<=LOCKER_2;i++)
+		{
+			if (Rs485_table_enable_get(i))
+			{
+				if (LockerStatusGet(i-LOCKER_1) == LOCKER_OPEN)
+				{
+					reval = LOCKER_OPEN;
+					break;
+				}
+			}
+		}
+
+	}
+	// 如果是3,4把锁，触摸屏是装在设备柜,地址为95，96
+	else
+	{
+		for(i=LOCKER_3; i<=LOCKER_4;i++)
+		{
+			if (Rs485_table_enable_get(i))
+			{
+				if (LockerStatusGet(i-LOCKER_1) == LOCKER_OPEN)
+				{
+					reval = LOCKER_OPEN;
+					break;
+				}
+			}
+		}
+	}
+	return reval;
+}
+
+
+
 /*处理电子锁的轮询信息*/
 int DealLockerMsg(unsigned char seq,unsigned char *buf,unsigned short int len)
 {

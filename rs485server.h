@@ -62,6 +62,10 @@
 #define ENABLE					1
 #define DISABLE					0
 
+#define LOCKER_CLOSED			0
+#define LOCKER_OPEN				1
+
+
 /*The name of the RS485 coms*/
 typedef enum
 {
@@ -301,6 +305,7 @@ int Dev_polling_process(UINT32 *pcomm_flag);
 int Power_readback_process(UINT32 *pread_flag, UINT32 *pcomm_flag, RS485_DEV_LIST dev_name);
 void *Locker_DataPollingthread(void *param);
 void lockerDataMalloc(void);
+UINT16 DoorStatusFromLocker(void);
 
 #endif
 

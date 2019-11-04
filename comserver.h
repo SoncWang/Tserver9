@@ -16,6 +16,13 @@
 #define TIME_REG_ADD		0x0010
 
 
+#define MSG_SEND_INTERVAL	400000		//400ms
+#define WAIT_SECOND_2		(2000000/MSG_SEND_INTERVAL)
+#define WAIT_SECOND_5		(5000000/MSG_SEND_INTERVAL)		// 不用错开,同时置位下一个周期会处理
+#define WAIT_SECOND_6		(6000000/MSG_SEND_INTERVAL)
+
+
+
 /*写数据的回复buf的顺序定义*/
 // 5A A5 03 82 4F 4B
 #define BUF_HEAD1			0
@@ -30,6 +37,48 @@
 #define WRITE_VAR_MSG		0x01		// 写命令
 #define WRITE_TIME_MSG		0x02		// 写时间命令
 #define READ_MSG			0x03		// 读命令
+#define BACKLIGHT_EN_MSG		0x04	// 背光使能
+#define BACKLIGHT_CFG_MSG		0x05	// 背光配置
+#define BACKLIGHT_ON_MSG		0x06	// 背光打开
+#define BACKLIGHT_OFF_MSG		0x07	// 背光关闭
+
+#define SYS_CFG_ADDR			0x80
+#define LED_CFG_ADDR			0x82
+
+#define LIGHT_100_ON			100		// 背光亮度100%
+#define LIGHT_0_OFF				0		// 背光亮度0%
+#define SLEEP_ENTER_TIM			3000	// 进入背光时间,1000*10ms=10s
+
+
+// 232轮询设置枚举,可扩展
+typedef enum
+{
+	SCREEN_TIME_SET = 0,
+	VAR_SET,
+	BACKLIGHT_EN_SET,	// 使能背光休眠
+	BACKLIGHT_CFG_SET,	// 设置背光休眠时间
+	BACKLIGHT_ON_SET,	// 打开背光
+	BACKLIGHT_OFF_SET,	// 关闭背光
+	ERR_CHECK,
+
+	SCREEN_SET_NUM
+}SREEN_SET_LIST;
+
+
+
+//消息等待枚举
+typedef enum
+{
+	WAIT_COM_NONE = 0,
+	WAIT_TIME_MSG,
+	WAIT_VAR_MSG,
+	WAIT_BACKLIGHT_EN_MSG,
+	WAIT_BACKLIGHT_CFG_MSG,
+	WAIT_BACKLIGHT_ON_MSG,
+	WAIT_BACKLIGHT_OFF_MSG,
+
+	WAIT_MSG_COM_NUM
+}WAIT_MSG_COM_LIST;
 
 
 

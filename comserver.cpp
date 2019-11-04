@@ -26,7 +26,7 @@
 #include "arpa/inet.h"
 #include <sys/time.h>
 #include "snmp.h"
-
+#include "err_com.h"
 
 using namespace std;
 CComPort *mComPort1 = NULL ;	// 未用
@@ -40,6 +40,15 @@ CMyCritical Com2SendCri;
 
 char LastSendBuf[256];
 int LastSendLen=0;
+
+
+UINT16	screen_poll_flag = 0;
+
+
+// 等待RS232的回应
+UINT8  WAIT_response_com_flag = WAIT_COM_NONE;
+UINT8  WAIT_response_com_last = WAIT_COM_NONE;	// 保存上一次
+
 
 /*因为大小端的原因，IPaddr的整型值和IP地址刚好是反的*/
 /*比如128.8.130.8转后变成0x08820880*/
@@ -212,6 +221,23 @@ int VAGetAndSaved(UINT8 *pbuf, VA_METER_PARAMS *pVA_Meter)
 }
 
 
+int DealComm(unsigned char *buf,unsigned short int len)
+{
+	// 功能暂时保留
+	switch(WAIT_response_com_flag)
+	{
+		case WAIT_TIME_MSG:
+		break;
+
+		default:
+		break;
+	}
+
+	WAIT_response_com_flag = WAIT_COM_NONE;
+	return 0;
+}
+
+
 
 //To touchScreen
 void *ComPort2Thread(void *param)
@@ -222,7 +248,7 @@ void *ComPort2Thread(void *param)
 	unsigned char buf[256] ;
 	while(1)
 	{
-		len = read(mComPort2->fd, buf+buffPos, 256) ;
+		len = read(mComPort2->fd, buf+buffPos, 256);
 		buffPos = buffPos+len;
 		if(buffPos<5) continue;
 
@@ -231,26 +257,19 @@ void *ComPort2Thread(void *param)
 			printf("FRAM error\r\n");
 			if(buffPos>=256) buffPos=0;
 			continue ;
-	  	}
+		  }
 
-//		printf("com2 len=%d\r\n",buffPos) ;
-//		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+		printf("com2 len=%d\r\n",buffPos) ;
+		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
-		if (buf[BUF_CMD] == CMD_WRITE)
+		if ((buf[BUF_CMD] == CMD_WRITE) || (buf[BUF_CMD] == CMD_READ))
 		{
-			;
+			DealComm(buf, buffPos);;
 		}
-		else if (buf[BUF_CMD] == CMD_READ)
-		{
-			;
-		}
-		//DealComm(buf , buffPos);
 		buffPos=0;
 		usleep(5000);//delay 5ms
-   }
-
-   return NULL ;
-
+	}
+	return NULL ;
 }
 
 
@@ -429,6 +448,62 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 		pbuf[BUF_LENTH] = len-3;
 		break;
 
+	case BACKLIGHT_EN_MSG:
+		pbuf[len++] = FRAME_HEAD_1;
+		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
+		pbuf[len++] = 0x07;				// 长度先临时写入7，后面再更新
+		pbuf[len++] = CMD_WRITE;
+		// 串口屏的地址是以16位为单位的
+		pbuf[len++] = ((address>>8)&0xFF);
+		pbuf[len++] = address&0xFF;
+		pbuf[len++] = 0x5A;		// 写的时候要是0x5A，配置生效后会清0
+		pbuf[len++] = 0x00;		// 不关心
+		pbuf[len++] = 0x00;		// 不关心
+		pbuf[len++] = 0x3C;		// 开启背光位是bit3,1:开启，0:关闭
+		pbuf[BUF_LENTH] = len-3;
+		break;
+
+	case BACKLIGHT_CFG_MSG:
+		pbuf[len++] = FRAME_HEAD_1;
+		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
+		pbuf[len++] = 0x07;				// 长度先临时写入7，后面再更新
+		pbuf[len++] = CMD_WRITE;
+		// 串口屏的地址是以16位为单位的
+		pbuf[len++] = ((address>>8)&0xFF);
+		pbuf[len++] = address&0xFF;
+		pbuf[len++] = LIGHT_100_ON;		// 背光打开时的亮度，100%
+		pbuf[len++] = LIGHT_0_OFF;		// 背光关闭时的亮度，0%
+		pbuf[len++] = ((SLEEP_ENTER_TIM>>8)&0xFF);
+		pbuf[len++] = SLEEP_ENTER_TIM&0xFF;	// 进入休眠的时间
+		pbuf[BUF_LENTH] = len-3;
+		break;
+
+	case BACKLIGHT_ON_MSG:
+		pbuf[len++] = FRAME_HEAD_1;
+		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
+		pbuf[len++] = 0x05;				// 长度先临时写入5，后面再更新
+		pbuf[len++] = CMD_WRITE;
+		// 串口屏的地址是以16位为单位的
+		pbuf[len++] = ((address>>8)&0xFF);
+		pbuf[len++] = address&0xFF;
+		pbuf[len++] = LIGHT_100_ON;		// 背光打开时的亮度，100%
+		pbuf[len++] = LIGHT_100_ON;		// 背光关闭时的亮度，0%
+		pbuf[BUF_LENTH] = len-3;
+		break;
+
+	case BACKLIGHT_OFF_MSG:
+		pbuf[len++] = FRAME_HEAD_1;
+		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
+		pbuf[len++] = 0x05;				// 长度先临时写入5，后面再更新
+		pbuf[len++] = CMD_WRITE;
+		// 串口屏的地址是以16位为单位的
+		pbuf[len++] = ((address>>8)&0xFF);
+		pbuf[len++] = address&0xFF;
+		pbuf[len++] = LIGHT_100_ON;		// 背光打开时的亮度，100%
+		pbuf[len++] = LIGHT_0_OFF;		// 背光关闭时的亮度，0%
+		pbuf[BUF_LENTH] = len-3;
+		break;
+
 	case NOT_USED_MSG:
 		break;
 	default:
@@ -441,29 +516,182 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 void *ComPort2HandleDataThread(void *param)
 {
 	param = param;
-	//static UINT8 cnt = 0;
-	//static bool entry = false;	//第一次进来2个命令都要发
+	static bool entry = false;	// 刚连上屏幕要发背光休眠设置命令
+	static UINT8 entry_cnt = 0;
+	UINT8 i = 0;
+	static UINT16 screen_poll_cnt = 0;
+	// 默认是关的
+	static UINT16 door_status_last = LOCKER_CLOSED;
+	UINT16 door_status_now = LOCKER_CLOSED;		// 现在的门状态
+
 	while(1)
 	{
-		// 6s钟对时一次, 1s后发送显示命令
-		SendCom2WriteReg(TIME_REG_ADD,WRITE_TIME_MSG);
-		sleep(1);//delay 1seconds
-		SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
-		sleep(5);//delay 5seconds
-
-	#if 0
-		/*半分钟同步一次时间*/
-		if (cnt >= 6)
+		screen_poll_cnt++;
+		//printf("screen_poll_cnt = %d\r\n",screen_poll_cnt);
+		if ((screen_poll_cnt % WAIT_SECOND_2) == 0)	// 2s进行一次走时
 		{
-			cnt = 0;
-			SendCom2WriteReg(TIME_REG_ADD,WRITE_TIME_MSG);
+			screen_poll_flag |= BIT(SCREEN_TIME_SET);
 		}
-		else
+		if (screen_poll_cnt >= WAIT_SECOND_5)	// 50秒进行一次变量同步
 		{
+			screen_poll_cnt = 0;
+			// 断线了，先不发送，等恢复
+			if (Comm_Err_Flag_Get(ERR_COM1) == 0)
+			{
+				screen_poll_flag |= BIT(VAR_SET);
+			}
+		}
+
+		/************断线逻辑,这个是屏幕背光休眠需要的，不然换屏后失效********/
+		// 处理是否是换屏了,或者是屏幕坏了
+		if (Comm_Err_Flag_Get(ERR_COM1))
+		{
+			printf("com break!\r\n");
+			entry = false;
+			entry_cnt = 0;
+		}
+		else		// 否则发送
+		{
+			// 第一次进来,默认是一个新屏幕
+			if (entry == false)
+			{
+				printf("WAIT_SECOND_5 = %d\r\n",WAIT_SECOND_5);	// C测试下宏定义
+				// 多发一次，防止失败
+				entry_cnt++;
+				if (entry_cnt >= 2)
+				{
+					entry_cnt = 2;
+					entry = true;
+					printf("com recovery!\r\n");
+				}
+				screen_poll_flag |= BIT(BACKLIGHT_EN_SET);
+			}
+		}
+		/*******************断线逻辑,完*********************/
+		/*-----------------------------------------------------------------------------*/
+
+
+		/********************开关门逻辑************************/
+		// 400ms取一次状态，要够快
+		door_status_now = DoorStatusFromLocker();
+		printf("door_status = %d\r\n",door_status_now);
+		if (door_status_now != door_status_last)
+		{
+			// 开门
+			if ((door_status_now == LOCKER_OPEN))
+			{
+				screen_poll_flag |= BIT(BACKLIGHT_ON_SET);
+			}
+			else
+			{
+				// 关门
+				screen_poll_flag |= BIT(BACKLIGHT_OFF_SET);
+			}
+		}
+		door_status_last = door_status_now;
+		/********************开关门逻辑，完**********************/
+
+		printf("screen_poll_flag = 0x%02x\r\n",screen_poll_flag);	// C测试下宏定义
+
+		// 以上是置标志，现在是真正的发送数据
+		if (screen_poll_flag&BIT(ERR_CHECK))	// 错误检测不占用串口,可以随时检查,和其它标志不排斥
+		{
+			screen_poll_flag &= ~(BIT(ERR_CHECK));
+			Comm_Err_Process(ERR_COM1,&WAIT_response_com_flag,WAIT_TIME_MSG);
+		}
+
+		// 设置时序，优先走时
+		if (screen_poll_flag&BIT(BACKLIGHT_EN_SET))
+		{
+			screen_poll_flag &= ~(BIT(BACKLIGHT_EN_SET));
+			// 先使能背光, 再设置时间，直接一起, 不然发2次不好处理
+			WAIT_response_com_flag = WAIT_BACKLIGHT_EN_MSG;
+			SendCom2WriteReg(SYS_CFG_ADDR,BACKLIGHT_EN_MSG);
+			usleep(MSG_SEND_INTERVAL);
+			SendCom2WriteReg(LED_CFG_ADDR,BACKLIGHT_CFG_MSG);
+		}
+		else if (screen_poll_flag&BIT(BACKLIGHT_ON_SET))
+		{
+			screen_poll_flag &= ~(BIT(BACKLIGHT_ON_SET));
+			WAIT_response_com_flag = WAIT_BACKLIGHT_ON_MSG;
+			SendCom2WriteReg(LED_CFG_ADDR,BACKLIGHT_ON_MSG);
+		}
+		else if (screen_poll_flag&BIT(BACKLIGHT_OFF_SET))
+		{
+			screen_poll_flag &= ~(BIT(BACKLIGHT_OFF_SET));
+			WAIT_response_com_flag = WAIT_BACKLIGHT_OFF_MSG;
+			SendCom2WriteReg(LED_CFG_ADDR,BACKLIGHT_OFF_MSG);
+		}
+		else if (screen_poll_flag&BIT(SCREEN_TIME_SET))
+		{
+			screen_poll_flag &= ~(BIT(SCREEN_TIME_SET));
+			WAIT_response_com_flag = WAIT_TIME_MSG;
+			SendCom2WriteReg(TIME_REG_ADD,WRITE_TIME_MSG);
+			// 每次发送一次时间设置都进行一次错误检测
+			screen_poll_flag |= BIT(ERR_CHECK);
+		}
+		else if (screen_poll_flag&BIT(VAR_SET))
+		{
+			screen_poll_flag &= ~(BIT(VAR_SET));
+			WAIT_response_com_flag = WAIT_VAR_MSG;
 			SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
 		}
-		cnt++;
-	  	sleep(5);//delay 10seconds
+		usleep(MSG_SEND_INTERVAL);	// 周期400ms
+
+	#if 0
+		// 6s钟对时一次, 1s后发送显示命令
+		// 先置标志
+		WAIT_response_com_flag = WAIT_TIME_MSG;
+		SendCom2WriteReg(TIME_REG_ADD,WRITE_TIME_MSG);
+		for (i = 0; i< WAIT_SECOND_1; i++)
+		{
+			usleep(MSG_SEND_INTERVAL);	//delay 1seconds
+		}
+		// 监控写时间是否有回应，没有就相当于失败一次
+		Comm_Err_Process(ERR_COM1,&WAIT_response_com_flag,WAIT_TIME_MSG);
+		//printf("com status %d\r\n",err_ind.err_flag[ERR_COM1]);
+
+		// 如果通信失败,则不发送变量的更新
+		if (Comm_Err_Flag_Get(ERR_COM1))
+		{
+			entry = false;
+			entry_cnt = 0;
+		}
+		else		// 否则发送
+		{
+			// 第一次进来,默认是一个新屏幕
+			if (entry == false)
+			{
+				printf("WAIT_SECOND_1 = %d\r\n",WAIT_SECOND_1);
+				// 多发一次，防止失败
+				entry_cnt++;
+				if (entry_cnt >= 2)
+				{
+					entry_cnt = 2;
+					entry = true;
+				}
+				// 先使能背光
+				WAIT_response_com_flag = WAIT_BACKLIGHT_EN_MSG;
+				SendCom2WriteReg(SYS_CFG_ADDR,BACKLIGHT_EN_MSG);
+				usleep(MSG_SEND_INTERVAL*2);
+
+				// 再设置背光时间
+				WAIT_response_com_flag = WAIT_BACKLIGHT_CFG_MSG;
+				SendCom2WriteReg(LED_CFG_ADDR,BACKLIGHT_EN_MSG);
+				usleep(MSG_SEND_INTERVAL*2);
+			}
+			WAIT_response_com_flag = WAIT_VAR_MSG;
+			SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
+			for (i = 0; i< WAIT_SECOND_5; i++)
+			{
+				usleep(MSG_SEND_INTERVAL);	//delay 5seconds
+				// 开门, 跳出延时
+				if (DoorStatusFromLocker()==LOCKER_OPEN)
+				{
+					break;
+				}
+			}
+		}
 	#endif
 	}
 	return 0 ;
@@ -499,7 +727,7 @@ int SendCom2WriteReg(UINT16 Addr, UINT8 Func)
 	datalen = message_pack(Addr,Func,bytSend);
 
 	// debug测试打印
-//	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
+	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	mComPort2->SendBuf(bytSend,datalen);
     Com2SendCri.UnLock();
