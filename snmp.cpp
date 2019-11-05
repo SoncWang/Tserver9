@@ -659,10 +659,24 @@ void initHUAWEIGantry()
     HUAWEIDevValue.strhwEntityCpuUsage="2147483647";                //CPU 
     HUAWEIDevValue.strhwEntityMemUsage ="2147483647";              //内存使用率
     HUAWEIDevValue.strhwEntityTemperature="2147483647";            //温度
+    HUAWEIDevValue.strhwEntityFactory="";                //生产商 
+    HUAWEIDevValue.strhwEntityDevModel="";                //设备型号 
+    HUAWEIDevValue.strhwEntityCpuUsage1="2147483647";                //CPU 
+    HUAWEIDevValue.strhwEntityMemUsage1 ="2147483647";              //内存使用率
+    HUAWEIDevValue.strhwEntityTemperature1="2147483647";            //温度
+    HUAWEIDevValue.strhwEntityFactory1="";                //生产商 
+    HUAWEIDevValue.strhwEntityDevModel1="";                //设备型号 
     //交换机
     HUAWEIDevValue.strhwswitchEntityCpuUsage="2147483647";          //CPU 
     HUAWEIDevValue.strhwswitchEntityMemUsage="2147483647";          //内存使用率
     HUAWEIDevValue.strhwswitchEntityTemperature="2147483647";       //温度
+    HUAWEIDevValue.strhwswitchEntityFactory="";                //生产商 
+    HUAWEIDevValue.strhwswitchEntityDevModel="";                //设备型号 
+    HUAWEIDevValue.strhwswitchEntityCpuUsage1="2147483647";          //CPU 
+    HUAWEIDevValue.strhwswitchEntityMemUsage1="2147483647";          //内存使用率
+    HUAWEIDevValue.strhwswitchEntityTemperature1="2147483647";       //温度
+    HUAWEIDevValue.strhwswitchEntityFactory1="";                //生产商 
+    HUAWEIDevValue.strhwswitchEntityDevModel1="";                //设备型号 
 //printf("initHUAWEIGantry lll\n");
 }
 

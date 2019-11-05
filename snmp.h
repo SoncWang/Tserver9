@@ -106,6 +106,7 @@ typedef enum
     hwEntityInErrors = 10007,               //出错数
     hwEntityOutOctets = 10008,               //总字节数
     hwEntityOutErrors = 10009,               //出错数
+    hwEntityDevModel = 10010,                //型号
 
 
     //交换机
@@ -118,7 +119,8 @@ typedef enum
     hwswitchEntityInOctets = 11006,               //总字节数
     hwswitchEntityInErrors = 11007,               //出错数
     hwswitchEntityOutOctets = 11008,               //总字节数
-    hwswitchEntityOutErrors = 11009               //出错数
+    hwswitchEntityOutErrors = 11009,               //出错数
+    hwswitchEntityDevModel = 11010               //型号
 
 
 
@@ -207,6 +209,17 @@ typedef struct
     string strhwswitchEntityCpuUsage1;          //CPU
     string strhwswitchEntityMemUsage1;          //内存使用率
     string strhwswitchEntityTemperature1;       //温度
+
+    string strhwEntityFactory;                	//生产商
+    string strhwEntityDevModel;                //设备型号
+    string strhwEntityFactory1;                	//生产商
+    string strhwEntityDevModel1;                //设备型号
+
+    string strhwswitchEntityFactory;            //生产商
+    string strhwswitchEntityDevModel;           //设备型号
+    string strhwswitchEntityFactory1;            //生产商
+    string strhwswitchEntityDevModel1;           //设备型号
+
 
 }THUAWEIGantry;
 

@@ -82,8 +82,10 @@ char gsSPDIP[SPD_NUM+RES_NUM][20];	//PSD-IP地址
 char gsSPDPort[SPD_NUM+RES_NUM][10];	//PSD端口
 
 string StrdeviceType="XY-TMC-001";	//设备型号
-string StrVersionNo="V1.01.06" ;	//正式版本号
-string StrSoftDate="2019-10-10" ;	//正式版本日期
+string StrVersionNo="V1.01.09" ;	//正式版本号
+string StrSoftDate="2019-11-01" ;	//正式版本日期
+//string StrVersionNo="V1.01.06" ;	//正式版本号
+//string StrSoftDate="2019-10-10" ;	//正式版本日期
 //string StrVersionNo="V99.14.07" ;	//测试版本号
 //string StrSoftDate="2019-09-23" ;	//测试版本日期
 

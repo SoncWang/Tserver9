@@ -82,10 +82,7 @@ extern string StrSPDType;	//PSD厂家类型,1:雷迅,2:华咨,3...
 extern string StrSPDCount;	//PSD数量
 extern string StrSPDIP[SPD_NUM+RES_NUM];	//SPD控制器IP地址
 extern string StrSPDPort[SPD_NUM+RES_NUM];	//SPD控制器端口
-extern string StrSPDAddr[SPD_NUM];			//SPD控制器硬件地址
-extern string StrSPDResIP;				//SPD接地IP地址
-extern string StrSPDResPort;				//SPD接地端口
-extern string StrSPDResAddr;			//SPD接地硬件地址
+extern string StrSPDAddr[SPD_NUM+RES_NUM];			//SPD控制器硬件地址
 
 extern string StrAdrrVAMeter[VA_METER_BD_MAX_NUM];	//电压电流传感器1的地址
 extern string StrAdrrPower[POWER_BD_MAX_NUM];	//电源板1的地址
@@ -97,9 +94,11 @@ extern UINT16 DoSeq[SWITCH_COUNT];	// 另外定义一个专门用来存储映射
 //交换机网络数据
 extern TFIRESWITCH mTFIRESWITCH[32];
 extern string strswitchjson;	//交换机网络数据
+extern string strswitchjson1;	//交换机网络数据
 //防火墙网络数据
 extern TFIRESWITCH mTFIREWALL[32];
 extern string strfirewalljson;	//防火墙网络数据
+extern string strfirewalljson1;	//防火墙网络数据
 //Atlas数据
 extern string stratlasdata;	
 extern string stratlasdata1;	
@@ -267,7 +266,6 @@ bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout)
 			if(opt==SFLAG_READ)
 			{
 				GetConfig(&vmctrl_param);
-//				jsonStrVMCtlParamWriter(messagetype,(char*)&vmctrl_param,jsonstrout,lenout);
 				jsonStrVMCtlParamWriterXY(messagetype,(char*)&vmctrl_param,mstrdata);
 				*lenout = mstrdata.size();
 				memcpy(jsonstrout,mstrdata.c_str(),mstrdata.size());
@@ -674,11 +672,15 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 	//printf("%s \t\n",jsonstr);
 	
 	std::string json = jsonstr;
+	printf("jsonstrRCtrlReader %s \t\n",json.c_str());
+	
 	std::map<std::string, std::string> out;
 	jsonReader(json, out);
 	
 	REMOTE_CONTROL *pRCtrl=(REMOTE_CONTROL *)pstuRCtrl;
 	THUAWEIGantry *hwDev=&HUAWEIDevValue;	//华为机柜状态
+	SPD_PARAMS *spdDev=stuSpd_Param;		//防雷器结构体
+	
 	char key[50],keytmp[50];
 	int i,value;
 	int cabineid=0,operate=0;
@@ -779,6 +781,9 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 //		if(it->first=="hwdcairctrlmode2" && hwDev->!=it->second) pRCtrl->hwdcairctrlmode[1]=value;			//空调控制模式 0：保持；1：自动；2：手动
 		if(it->first=="hwctrlsmokereset") pRCtrl->hwctrlsmokereset[0]=value;			//控制烟感复位 0：保持；1：不需复位；2：复位
 		if(it->first=="hwctrlsmokereset2") pRCtrl->hwctrlsmokereset[1]=value;			//控制烟感复位 0：保持；1：不需复位；2：复位
+
+		if(it->first=="alarm_value" && spdDev->rSPD_res.alarm_value!=value) pRCtrl->spdres_alarm_value=value;		//报警值修改
+		if(it->first=="id" && spdDev->rSPD_res.id!=value) pRCtrl->spdres_id=value;			//修改设备id
 
 		if(it->first=="cabineid")	cabineid=value;			//电子门锁id
 		if(it->first=="operate")	operate=value;			//电子门锁操作
@@ -1204,6 +1209,12 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 				Setconfig(key,value);
 			}
 		}
+		if(it->first=="spdresaddr" && StrSPDAddr[SPD_NUM]!=value)	//防雷器接地电阻地址
+		{
+			StrSPDAddr[SPD_NUM]=value;	
+			sprintf(pRCtrl->SPDAddr[SPD_NUM],"%s",value);	
+			Setconfig("SPDResAddr=",value);
+		}
 		for(i=0;i<LOCK_MAX_NUM;i++)
 		{
 			sprintf(keytmp,"adrrlock%d",i+1);//门锁地址
@@ -1256,13 +1267,21 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -1272,13 +1291,21 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -1288,13 +1315,22 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					printf("olddev:%s,newdev:%s\n",StrDeviceNameSeq[j].c_str(),devicename);
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -1304,13 +1340,21 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -1320,13 +1364,21 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -1336,13 +1388,21 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -1352,13 +1412,21 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -1368,13 +1436,21 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			if(it->first==devicename)	
 			{
 				j=atoi(value)-1;
-				if(StrDeviceNameSeq[j]!=devicename)
+				if(j>=0 && j<SWITCH_COUNT)
 				{
-					StrDeviceNameSeq[j]=devicename;
-					string stmp=StrDeviceNameSeq[j];
-					transform(stmp.begin(), stmp.end(), stmp.begin(), ::toupper);
-					stmp=stmp+"=";
-					Setconfig(stmp.c_str(),value);//DO映射
+					if(StrDeviceNameSeq[j]!=devicename)
+					{
+						string strold=StrDeviceNameSeq[j];
+						StrDeviceNameSeq[j]=devicename;
+						string strnew=StrDeviceNameSeq[j];
+						transform(strnew.begin(), strnew.end(), strnew.begin(), ::toupper);
+						strnew=strnew+"=";
+						Setconfig(strnew.c_str(),value);//DO映射
+						
+						transform(strold.begin(), strold.end(), strold.begin(), ::toupper);
+						strold=strold+"=";
+						Setconfig(strold.c_str(),"");//清除原来DO映射
+					}
 				}
 			}
 		}
@@ -3730,8 +3806,22 @@ void SetjsonIPSwitchStatusStr(int messagetype,string &mstrjson)
 		strJson +=	"{\n";
 		sprintf(str,"\"name\":\"ipswitch%d\",\n",i+1); strJson = strJson + str;//名称
 		sprintf(str,"\"factoryname\":\"华为\",\n"); strJson = strJson + str;//生产商
-		sprintf(str,"\"devicemodel\":\"\",\n"); strJson = strJson + str;//设备型号
-		strJson = strJson + strswitchjson;								//交换机网络数据
+		if(i==0)
+		{
+			sprintf(str,"\"devicemodel\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityDevModel.c_str()); strJson = strJson + str;//设备型号
+			sprintf(str,"\"cpuusage\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityCpuUsage.c_str()); strJson = strJson + str;//CPU使用率
+			sprintf(str,"\"cpuumemusagesage\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityMemUsage.c_str()); strJson = strJson + str;//内存使用率
+			sprintf(str,"\"temperature\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityTemperature.c_str()); strJson = strJson + str;//温度
+			strJson = strJson + strswitchjson;								//交换机网络数据
+		}
+		else if(i==1)
+		{
+			sprintf(str,"\"devicemodel\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityDevModel1.c_str()); strJson = strJson + str;//设备型号
+			sprintf(str,"\"cpuusage\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityCpuUsage1.c_str()); strJson = strJson + str;//CPU使用率
+			sprintf(str,"\"cpuumemusagesage\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityMemUsage1.c_str()); strJson = strJson + str;//内存使用率
+			sprintf(str,"\"temperature\":\"%s\",\n",HUAWEIDevValue.strhwswitchEntityTemperature1.c_str()); strJson = strJson + str;//温度
+			strJson = strJson + strswitchjson1;								//交换机网络数据
+		}
 		strJson +=	"}\n";
 		if(i!=ipswitchcnt-1)
 			strJson = strJson + ",";								
@@ -3780,8 +3870,22 @@ void SetjsonFireWallStatusStr(int messagetype,string &mstrjson)
 		strJson +=	"{\n";
 		sprintf(str,"\"name\":\"fireware%d\",\n",i+1); strJson = strJson + str;//名称
 		sprintf(str,"\"factoryname\":\"华为\",\n"); strJson = strJson + str;//生产商
-		sprintf(str,"\"devicemodel\":\"\",\n"); strJson = strJson + str;//设备型号
-		strJson = strJson + strfirewalljson;								//交换机网络数据
+		if(i==0)
+		{
+			sprintf(str,"\"devicemodel\":\"%s\",\n",HUAWEIDevValue.strhwEntityDevModel.c_str()); strJson = strJson + str;//设备型号
+			sprintf(str,"\"cpuusage\":\"%s\",\n",HUAWEIDevValue.strhwEntityCpuUsage.c_str()); strJson = strJson + str;//CPU使用率
+			sprintf(str,"\"cpuumemusagesage\":\"%s\",\n",HUAWEIDevValue.strhwEntityMemUsage.c_str()); strJson = strJson + str;//内存使用率
+			sprintf(str,"\"temperature\":\"%s\",\n",HUAWEIDevValue.strhwEntityTemperature.c_str()); strJson = strJson + str;//温度
+			strJson = strJson + strfirewalljson;								//网络数据
+		}
+		else if(i==1)
+		{
+			sprintf(str,"\"devicemodel\":\"%s\",\n",HUAWEIDevValue.strhwEntityDevModel1.c_str()); strJson = strJson + str;//设备型号
+			sprintf(str,"\"cpuusage\":\"%s\",\n",HUAWEIDevValue.strhwEntityCpuUsage1.c_str()); strJson = strJson + str;//CPU使用率
+			sprintf(str,"\"cpuumemusagesage\":\"%s\",\n",HUAWEIDevValue.strhwEntityMemUsage1.c_str()); strJson = strJson + str;//内存使用率
+			sprintf(str,"\"temperature\":\"%s\",\n",HUAWEIDevValue.strhwEntityTemperature1.c_str()); strJson = strJson + str;//温度
+			strJson = strJson + strfirewalljson1;								//网络数据
+		}
 		strJson +=	"}\n";
 		if(i!=firewarecnt-1)
 			strJson = strJson + ",";								
@@ -3953,7 +4057,7 @@ void SetjsonSpdAIStatusStr(int messagetype,string &mstrjson)
 	for(int i=0;i<spdcnt;i++)
 	{
 		strJson +=	"{\n";
-		sprintf(str,"\"spdid\":\"%d\",\n",i); strJson = strJson + str;//编号
+		sprintf(str,"\"spdid\":\"%d\",\n",i+1); strJson = strJson + str;//编号
 		sprintf(str,"\"name\":\"spd%d\",\n",i+1); strJson = strJson + str;//名称
 		sprintf(str,"\"ip\":\"%s\",\n",StrSPDIP[i].c_str()); strJson = strJson + str;//ip地址
 		if(StrSPDType=="1")
@@ -3971,25 +4075,32 @@ void SetjsonSpdAIStatusStr(int messagetype,string &mstrjson)
 		sprintf(str,"\"a_volt\": \"%.3f\",\n", stuSpd_Param->rSPD_data[i].volt_A);strJson += str;//A相电压
 		sprintf(str,"\"b_volt\": \"%.3f\",\n", stuSpd_Param->rSPD_data[i].volt_B);strJson += str;//B相电压
 		sprintf(str,"\"c_volt\": \"%.3f\",\n", stuSpd_Param->rSPD_data[i].volt_C);strJson += str;//C相电压
-		sprintf(str,"\"spd_temp\": \"%.3f\",\n", stuSpd_Param->rSPD_data[i].spd_temp);strJson += str;		// 防雷器温度
-		sprintf(str,"\"envi_temp\": \"%.3f\",\n", stuSpd_Param->rSPD_data[i].envi_temp);strJson += str;		//环境温度
+		sprintf(str,"\"spd_temp\": \"%.1f\",\n", stuSpd_Param->rSPD_data[i].spd_temp);strJson += str;		// 防雷器温度
+		sprintf(str,"\"envi_temp\": \"%.1f\",\n", stuSpd_Param->rSPD_data[i].envi_temp);strJson += str;		//环境温度
 		sprintf(str,"\"addr\": \"%d\",\n", stuSpd_Param->rSPD_data[i].id);strJson += str;		//设备地址
-		sprintf(str,"\"struck_cnt\": \"%d\",\n", stuSpd_Param->rSPD_data[i].struck_cnt);strJson += str;		//雷击计数
-		sprintf(str,"\"struck_total\": \"%d\",\n", stuSpd_Param->rSPD_data[i].struck_total);strJson += str;		//合计雷击计数
+		sprintf(str,"\"struck_cnt\": \"%.0f\",\n", stuSpd_Param->rSPD_data[i].struck_cnt);strJson += str;		//雷击计数
+		sprintf(str,"\"struck_total\": \"%.0f\",\n", stuSpd_Param->rSPD_data[i].struck_total);strJson += str;		//合计雷击计数
 		sprintf(str,"\"soft_version\": \"%.3f\",\n", stuSpd_Param->rSPD_data[i].soft_version);strJson += str;		// 软件版本号
 		sprintf(str,"\"leak_alarm_threshold\": \"%.3f\",\n", stuSpd_Param->rSPD_data[i].leak_alarm_threshold);strJson += str;		// 报警阈值
-		sprintf(str,"\"day_time\": \"%d\",\n", stuSpd_Param->rSPD_data[i].day_time);strJson += str;		//在线天数
+		sprintf(str,"\"day_time\": \"%.0f\",\n", stuSpd_Param->rSPD_data[i].day_time);strJson += str;		//在线天数
 		sprintf(str,"\"systime\": \"%d-%d-%d %d:%d:%d\",\n", stuSpd_Param->rSPD_data[i].systime_year,stuSpd_Param->rSPD_data[i].systime_month,
 			 stuSpd_Param->rSPD_data[i].systime_day,stuSpd_Param->rSPD_data[i].systime_hour,stuSpd_Param->rSPD_data[i].systime_min,
 			 stuSpd_Param->rSPD_data[i].systime_sec);
 		strJson += str;		//系统时间
+		
+		sprintf(str,"\"life_time\": \"%.2f\",\n", stuSpd_Param->rSPD_data[i].life_time);strJson += str;		// 防雷器寿命值
+		sprintf(str,"\"remotestatusalarm\": \"%d\",\n", stuSpd_Param->rSPD_data[i].DI_C1_status);strJson += str;		//防雷器脱扣状态报警
+		sprintf(str,"\"linegroundstatusalarm\": \"%d\",\n", stuSpd_Param->rSPD_data[i].DI_grd_alarm);strJson += str;	//线路&接地状态告警
+		sprintf(str,"\"eakcuralarm\": \"%d\",\n", stuSpd_Param->rSPD_data[i].DI_leak_alarm);strJson += str;		//漏电流告警
+		sprintf(str,"\"voltalarm\": \"%d\",\n", stuSpd_Param->rSPD_data[i].DI_volt_alarm);strJson += str;		//市电电压告警
+		
 		int struckcount=5;
 		sprintf(str,"\"struckcount\": \"%d\",\n",5);strJson += str; 	//雷击列表个数
 		strJson = strJson + "\"strucklist\": [\n"; //雷击列表
 		for(int j=0;j<struckcount;j++)
 		{
 			strJson +=	"{\n";
-			sprintf(str,"\"struckid\":\"%d\",\n",j); strJson = strJson + str;//编号
+			sprintf(str,"\"struckid\":\"%d\",\n",j+1); strJson = strJson + str;//编号
 			sprintf(str,"\"name\":\"last_%d\",\n",j+1); strJson = strJson + str;//雷击发生最近第j+1次
 			if(j==0)
 				sprintf(str,"\"strucktime\": \"%d-%d-%d %d:%d\"\n", stuSpd_Param->rSPD_data[i].last_1_struck_year,stuSpd_Param->rSPD_data[i].last_1_struck_month,
@@ -5116,6 +5227,105 @@ void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &m
 
     mstrjson = strJson;
 }
+
+bool jsonstrSPDReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
+{
+//	printf("%s \t\n",jsonstr);
+	char key[50],value[128],keytmp[50];
+	int valueint,arraysize;
+
+	cJSON *json=0, *jsonkey=0, *jsonvalue=0, *jsonlist=0, *jsonitem=0;
+	int i;
+	//解析数据包
+	json = cJSON_Parse(jsonstr);
+	if(json==0) return false;
+
+	REMOTE_CONTROL *pRCtrl=(REMOTE_CONTROL *)pstuRCtrl;
+	THUAWEIGantry *hwDev=&HUAWEIDevValue;	//华为机柜状态
+	SPD_PARAMS *spdDev=stuSpd_Param;		//防雷器结构体
+	
+	memset(pRCtrl,ACT_HOLD,sizeof(REMOTE_CONTROL));
+	pRCtrl->hwsetenvtemplowerlimit[0]=ACT_HOLD_FF;	//环境温度告警下限255:保持；-20-20（有效）；-20（缺省值）
+	pRCtrl->hwsetenvtemplowerlimit[1]=ACT_HOLD_FF;	//环境温度告警下限255:保持；-20-20（有效）；-20（缺省值）
+	pRCtrl->hwsetenvhumidityupperlimit[0]=ACT_HOLD_FF;	//环境湿度告警上限 255:保持；0-100（有效）；95（缺省值）
+	pRCtrl->hwsetenvhumidityupperlimit[1]=ACT_HOLD_FF;	//环境湿度告警上限 255:保持；0-100（有效）；95（缺省值）
+	pRCtrl->hwsetenvhumiditylowerlimit[0]=ACT_HOLD_FF;	//环境湿度告警下限 255:保持；0-100（有效）；5（缺省值）
+	pRCtrl->hwsetenvhumiditylowerlimit[1]=ACT_HOLD_FF;	//环境湿度告警下限 255:保持；0-100（有效）；5（缺省值）
+	pRCtrl->hwdcairpowerontemppoint[0]=ACT_HOLD_FF;		//空调开机温度点 255:保持； -20-80（有效）；45(缺省值)
+	pRCtrl->hwdcairpowerontemppoint[1]=ACT_HOLD_FF;		//空调开机温度点 255:保持； -20-80（有效）；45(缺省值)
+	pRCtrl->hwdcairpowerofftemppoint[0]=ACT_HOLD_FF;		//空调关机温度点  		  255:保持； -20-80（有效）；37(缺省值)
+	pRCtrl->hwdcairpowerofftemppoint[1]=ACT_HOLD_FF;		//空调关机温度点  		  255:保持； -20-80（有效）；37(缺省值)
+	sprintf(pRCtrl->systemtime,"");						//设置控制器时间
+	
+	//SPD 列表
+    jsonlist = cJSON_GetObjectItem(json, "spdlist");
+    if(jsonlist!=0)
+    {
+        arraysize=cJSON_GetArraySize(jsonlist);
+        for(i=0;i<arraysize;i++)
+        {
+            jsonitem=cJSON_GetArrayItem(jsonlist,i);
+            if(jsonitem != NULL)
+            {
+            	//雷击计数清零
+				sprintf(key,"clearcounter");
+                jsonkey=cJSON_GetObjectItem(jsonitem,key);
+                if(jsonkey != NULL)
+                {
+					sprintf(value,"%s",jsonkey->valuestring);
+					printf("%s %s\n",key,value);
+					pRCtrl->DO_spdcnt_clear[i]=atoi(value); 
+                }
+            	//总雷击计数清0
+				sprintf(key,"cleartotalcounter");
+                jsonkey=cJSON_GetObjectItem(jsonitem,key);
+                if(jsonkey != NULL)
+                {
+					sprintf(value,"%s",jsonkey->valuestring);
+					printf("%s %s\n",key,value);
+					pRCtrl->DO_totalspdcnt_clear[i]=atoi(value); 
+                }
+            	//雷击时间清0
+				sprintf(key,"strucktimerecclear");
+                jsonkey=cJSON_GetObjectItem(jsonitem,key);
+                if(jsonkey != NULL)
+                {
+					sprintf(value,"%s",jsonkey->valuestring);
+					printf("%s %s\n",key,value);
+					pRCtrl->DO_psdtime_clear[i]=atoi(value); 
+                }
+            	//在线时间清0
+				sprintf(key,"onlinetimeclear");
+                jsonkey=cJSON_GetObjectItem(jsonitem,key);
+                if(jsonkey != NULL)
+                {
+					sprintf(value,"%s",jsonkey->valuestring);
+					printf("%s %s\n",key,value);
+					pRCtrl->DO_daytime_clear[i]=atoi(value); 
+                }
+            	//漏电流报警阈值
+				sprintf(key,"leak_alarm_threshold");
+                jsonkey=cJSON_GetObjectItem(jsonitem,key);
+                if(jsonkey != NULL)
+                {
+					sprintf(value,"%s",jsonkey->valuestring);
+					printf("%s %s\n",key,value);
+					pRCtrl->spdleak_alarm_threshold[i]=atof(value); 
+                }
+            	//外接漏电流控制
+				sprintf(key,"extleakcurrctrl");
+                jsonkey=cJSON_GetObjectItem(jsonitem,key);
+                if(jsonkey != NULL)
+                {
+					sprintf(value,"%s",jsonkey->valuestring);
+					printf("%s %s\n",key,value);
+					pRCtrl->DO_leak_type[i]=atoi(value); 
+                }
+            }
+        }
+    }
+}
+	
 
 /*int main(int argc, char *argv[])
 {

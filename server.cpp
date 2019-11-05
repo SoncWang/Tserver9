@@ -718,7 +718,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	if(pCMD->cmd!=NETCMD_PING)
 	{
 		//printf("Client_CmdProcess cmd =%d \r\n",pCMD->cmd);
-		sprintf(tmpStringData,"Client_CmdProcess cmd =%d \r\n",pCMD->cmd);
+		sprintf(tmpStringData,"Client_CmdProcess cmd =%d size =%d\r\n",pCMD->cmd,pCMD->datalen);
 		myprintf(tmpStringData);
 //		WriteLog(tmpStringData);
 	}	
@@ -971,16 +971,16 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		case NETCMD_HWCABINET_PARMSET: 			//21 华为机柜参数设置
 			if(pCMD->status==SFLAG_WRITE)
 			{
-/*				memset(pRecvBuf,0,JSON_LEN);
-				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
-				jsonstrRCtrlReader(pRecvBuf,pCMD->datalen,(UINT8 *)pRCtrl);//将json字符串转换成结构体*/
-				mstrdata = pCMD->data;
+				char *strtmp=(char*)malloc(pCMD->datalen+1);
+				memcpy(strtmp,pCMD->data,pCMD->datalen);
+				strtmp[pCMD->datalen]='\0';
 				REMOTE_CONTROL *pRCtrl=stuRemote_Ctrl;
 				memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
-				jsonstrRCtrlReader((char*)(mstrdata.c_str()),mstrdata.size(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+				jsonstrRCtrlReader(strtmp,pCMD->datalen+1,(UINT8 *)pRCtrl);//将json字符串转换成结构体
 				RemoteControl((UINT8*)pRCtrl);
 				sprintf(pCMD->data,"执行命令->执行成功!\n");
 				pCMD->datalen = strlen(pCMD->data);
+				free(strtmp);
 			}
 			break;
 		case NETCMD_SWITCH_STATUS: 			//19 回路开关状态
@@ -1007,16 +1007,18 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		case NETCMD_DEAL_LOCKER:			//22  门禁开关锁请求
 			if(pCMD->status==SFLAG_WRITE)
 			{
-//				memset(pRecvBuf,0,JSON_LEN);
-//				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
-				mstrdata=pRecvBuf;
+				char *strtmp=(char*)malloc(pCMD->datalen+1);
+				memcpy(strtmp,pCMD->data,pCMD->datalen);
+				strtmp[pCMD->datalen]='\0';
+
 				REMOTE_CONTROL *pRCtrl=stuRemote_Ctrl;
 				memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
 //				jsonstrRCtrlReader(pRecvBuf,pCMD->datalen,(UINT8 *)pRCtrl);//将json字符串转换成结构体
-				jsonstrRCtrlReader((char*)mstrdata.c_str(),mstrdata.size(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+				jsonstrRCtrlReader(strtmp,pCMD->datalen+1,(UINT8 *)pRCtrl);//将json字符串转换成结构体
 				RemoteControl((UINT8*)pRCtrl);
 				sprintf(pCMD->data,"执行命令->执行成功!\n");
 				pCMD->datalen = strlen(pCMD->data);
+				free(strtmp);
 			}
 			break;
 		case NETCMD_SEND_FIREWALL_INFO:			//23 防火墙状态
@@ -1044,10 +1046,17 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			else if(pCMD->status==SFLAG_WRITE)
 			{
-//				mstrdata = pCMD->data;
-//				jsonstrSpdAIParamReader((char*)mstrdata.c_str(),mstrdata.size());//将json字符串转换成结构体*/
+				char *strtmp=(char*)malloc(pCMD->datalen+1);
+				memcpy(strtmp,pCMD->data,pCMD->datalen);
+				strtmp[pCMD->datalen]='\0';
+
+				REMOTE_CONTROL *pRCtrl=stuRemote_Ctrl;
+				memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+				jsonstrSPDReader(strtmp,pCMD->datalen+1,(UINT8 *)pRCtrl);//将json字符串转换成结构体
+				RemoteControl((UINT8*)pRCtrl);
 				sprintf(pCMD->data,"执行命令->执行成功!\n");
 				pCMD->datalen = strlen(pCMD->data);
+				free(strtmp);
 			}
 			break;
 		case NETCMD_SEND_SPD_RES_PARAM:		//28 接地电阻参数
@@ -1056,6 +1065,19 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				SetjsonSpdResStatusStr(pCMD->cmd,mstrdata);
 				memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
 				pCMD->datalen = mstrdata.size();
+			}
+			else if(pCMD->status==SFLAG_WRITE)
+			{
+				char *strtmp=(char*)malloc(pCMD->datalen+1);
+				memcpy(strtmp,pCMD->data,pCMD->datalen);
+				strtmp[pCMD->datalen]='\0';
+				REMOTE_CONTROL *pRCtrl=stuRemote_Ctrl;
+				memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+				jsonstrRCtrlReader(strtmp,pCMD->datalen+1,(UINT8 *)pRCtrl);//将json字符串转换成结构体
+				RemoteControl((UINT8*)pRCtrl);
+				sprintf(pCMD->data,"执行命令->执行成功!\n");
+				pCMD->datalen = strlen(pCMD->data);
+				free(strtmp);
 			}
 			break;
 /*		case NETCMD_TEST_NEST: 		//200 测试嵌套
@@ -1284,53 +1306,52 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	  }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_UNLOCK)					 //开锁
 	 {
-		 //printf("FrontDoorCtrl ACT_UNLOCK");	 
+		 printf("FrontDoorCtrl ACT_UNLOCK");	 
 		 locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_LOCK) 				 //关锁
 	 {
-		 //printf("FrontDoorCtrl ACT_LOCK");	 
+		 printf("FrontDoorCtrl ACT_LOCK");	 
 		 locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->BackDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
-		 //printf("BackDoorCtrl ACT_UNLOCK");  
+		 printf("BackDoorCtrl ACT_UNLOCK");  
 		 locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->BackDoorCtrl==ACT_LOCK)					 //关锁
 	 {
-		 //printf("BackDoorCtrl ACT_LOCK") ;
+		 printf("BackDoorCtrl ACT_LOCK") ;
 		 locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
-		 //printf("SideDoorCtrl ACT_UNLOCK");  
+		 printf("SideDoorCtrl ACT_UNLOCK");  
 		 locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_UNLOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_LOCK)					 //关锁
 	 {
- 		 //printf("SideDoorCtrl ACT_LOCK"); 
+ 		 printf("SideDoorCtrl ACT_LOCK"); 
 		 locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_LOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->RightSideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
-		 //printf("SideDoorCtrl ACT_UNLOCK");  
+		 printf("SideDoorCtrl ACT_UNLOCK");  
 		 locker_ctrl_flag |= LBIT(LOCKER_4_CTRL_UNLOCK);
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->RightSideDoorCtrl==ACT_LOCK)					 //关锁
 	 {
- 		 //printf("SideDoorCtrl ACT_LOCK"); 
+ 		 printf("SideDoorCtrl ACT_LOCK"); 
 		 locker_ctrl_flag |= LBIT(LOCKER_4_CTRL_LOCK);
 		 usleep(2000);
 	 }
-
 
  	 //控制单板复位 0：保持；1：热复位；
 	 if(pstuRCtrl->hwctrlmonequipreset!=ACT_HOLD)					 
@@ -1342,28 +1363,28 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
  	 //AC过压点设置 0:保持；50-600（有效）；280（缺省值）
 	 if(pstuRCtrl->hwsetacsuppervoltlimit!=ACT_HOLD)					 
 	 {
-		 sprintf(value,"%d",pstuRCtrl->hwsetacsuppervoltlimit);
+		 sprintf(value,"%d",pstuRCtrl->hwsetacsuppervoltlimit*10);
 		 printf("RemoteControl AC过压点设置=%s\n",value);
 		 SnmpSetOid(hwSetAcsUpperVoltLimit,value,1);
 	 }
 	 //AC欠压点设置 0:保持；50-600（有效）；180（缺省值）
 	 if(pstuRCtrl->hwsetacslowervoltlimit!=ACT_HOLD)					 
 	 {
-		 sprintf(value,"%d",pstuRCtrl->hwsetacslowervoltlimit);
+		 sprintf(value,"%d",pstuRCtrl->hwsetacslowervoltlimit*10);
 		 printf("RemoteControl AC欠压点设置=%s\n",value);
 		 SnmpSetOid(hwSetAcsLowerVoltLimit,value,1);
 	 }
 	 //设置DC过压点 0:保持；53-600（有效）；58（缺省值）
 	 if(pstuRCtrl->hwsetdcsuppervoltlimit!=ACT_HOLD)					 
 	 {
-		 sprintf(value,"%d",pstuRCtrl->hwsetdcsuppervoltlimit);
+		 sprintf(value,"%d",pstuRCtrl->hwsetdcsuppervoltlimit*10);
 		 printf("RemoteControl 设置DC过压点=%s\n",value);
 		 SnmpSetOid(hwSetDcsUpperVoltLimit,value,1);
 	 }
 	 //设置DC欠压点 0:保持；35 - 57（有效）；45（缺省值）
 	 if(pstuRCtrl->hwsetdcslowervoltlimit!=ACT_HOLD)					 
 	 {
-		 sprintf(value,"%d",pstuRCtrl->hwsetdcslowervoltlimit);
+		 sprintf(value,"%d",pstuRCtrl->hwsetdcslowervoltlimit*10);
 		 printf("RemoteControl 设置DC欠压点=%s\n",value);
 		 SnmpSetOid(hwSetDcsLowerVoltLimit,value,1);
 	 }
@@ -1420,7 +1441,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	     if(pstuRCtrl->hwdcairpowerontemppoint[i]!=ACT_HOLD_FF) 		 
 		 {
 	         sprintf(value,"%d",pstuRCtrl->hwdcairpowerontemppoint[i]);
-	         printf("RemoteControl 空调开机温度点%d=%s\n",value);
+	         printf("RemoteControl 空调开机温度点%d=%s\n",i,value);
 	         SnmpSetOid(hwDcAirPowerOnTempPoint,value,i+1);
 		 }
 	 }
@@ -1445,11 +1466,62 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 	 }
 	 //控制烟感复位 0：保持；1：不需复位；2：复位
-	 if(pstuRCtrl->hwctrlsmokereset[i]!=ACT_HOLD)					 
+	 for(i=0;i<2;i++)
 	 {
-		 sprintf(value,"%d",pstuRCtrl->hwctrlsmokereset[i]);
-		 printf("RemoteControl 控制烟感复位%d=%s\n",i,value);
-		 SnmpSetOid(hwCtrlSmokeReset,value,i+1);
+		 if(pstuRCtrl->hwctrlsmokereset[i]!=ACT_HOLD)					 
+		 {
+			 sprintf(value,"%d",pstuRCtrl->hwctrlsmokereset[i]);
+			 printf("RemoteControl 控制烟感复位%d=%s\n",i,value);
+			 SnmpSetOid(hwCtrlSmokeReset,value,i+1);
+		 }
+	 }
+	 //spdres更改设备id 0：保持 1~255：设置新id
+	 if(pstuRCtrl->spdres_id!=ACT_HOLD)					 
+	 {
+		 sprintf(value,"%d",pstuRCtrl->spdres_id);
+		 printf("RemoteControl spdres更改设备id=%s\n",value);
+		 //spdres更改设备id
+	 }
+	 //spdres报警值修改
+	 if(pstuRCtrl->spdres_alarm_value!=ACT_HOLD)					 
+	 {
+		 sprintf(value,"%f",pstuRCtrl->spdres_alarm_value); 
+		 printf("RemoteControl spdres报警值修改=%s\n",value);
+		 //spdres更改报警值
+	 }
+	 //SPD控制
+	 for(i=0;i<SPD_NUM;i++)
+	 {
+		 if(pstuRCtrl->DO_spdcnt_clear[i]!=ACT_HOLD)					 
+		 {
+			 sprintf(value,"%d",pstuRCtrl->DO_spdcnt_clear[i]);
+			 printf("RemoteControl SPD%d雷击计数清零=%s\n",i+1,value);
+			 //雷击计数清零
+		 }
+		 if(pstuRCtrl->DO_totalspdcnt_clear[i]!=ACT_HOLD)					 
+		 {
+			 sprintf(value,"%d",pstuRCtrl->DO_totalspdcnt_clear[i]);
+			 printf("RemoteControl SPD%d总雷击计数清零=%s\n",i+1,value);
+			 //总雷击计数清零
+		 }
+		 if(pstuRCtrl->DO_psdtime_clear[i]!=ACT_HOLD)					 
+		 {
+			 sprintf(value,"%d",pstuRCtrl->DO_psdtime_clear[i]);
+			 printf("RemoteControl SPD%d雷击时间清零=%s\n",i+1,value);
+			 //雷击时间清零
+		 }
+		 if(pstuRCtrl->DO_daytime_clear[i]!=ACT_HOLD)					 
+		 {
+			 sprintf(value,"%d",pstuRCtrl->DO_daytime_clear[i]);
+			 printf("RemoteControl SPD%d在线时间清零=%s\n",i+1,value);
+			 //在线时间清零
+		 }
+		 if(pstuRCtrl->DO_leak_type[i]!=ACT_HOLD)					 
+		 {
+			 sprintf(value,"%d",pstuRCtrl->DO_leak_type[i]);
+			 printf("RemoteControl SPD%d外接漏电流控制=%s\n",i+1,value);//0:保持，1:内置漏电流，2：外接漏电流
+			 //外接漏电流控制   	 注意:设置时 0:内置漏电流，1：外接漏电流
+		 }
 	 }
  }
  

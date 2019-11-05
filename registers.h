@@ -489,7 +489,6 @@ typedef struct vmctl_params_struct
 	char SPDCount[5];	//PSD数量
 	char SPDIP[SPD_NUM+RES_NUM][20];	//SPD控制器IP地址
 	char SPDPort[SPD_NUM+RES_NUM][10];	//SPD控制器端口
-//    char SPDPasswd[SPD_NUM+RES_NUM][20];     //SPD密码
 	char SPDAddr[SPD_NUM+RES_NUM][10];		//SPD控制器硬件地址
     
     char LockAddr[LOCK_NUM][4];         //门锁地址	最多4把锁
@@ -561,14 +560,16 @@ typedef struct Remote_Control_struct	//
 	INT16 hwctrlsmokereset[2];			//控制烟感复位 0：保持；1：不需复位；2：复位
 
 	UINT16 spdaddr[SPD_NUM];			//防雷器设备地址
-	UINT16 spdleak_alarm_threshold[SPD_NUM];			//漏电流报警阈值
+	float spdleak_alarm_threshold[SPD_NUM];			//漏电流报警阈值
 	// DO报警的值
 	UINT8 DO_spdcnt_clear[SPD_NUM];	// 雷击计数清0
 	UINT8 DO_totalspdcnt_clear[SPD_NUM];	// 总雷击计数清0
 	UINT8 DO_leak_type[SPD_NUM];		// 0:内置漏电流，1：外接漏电流
 	UINT8 DO_psdtime_clear[SPD_NUM];	// 雷击时间清0
 	UINT8 DO_daytime_clear[SPD_NUM];	// 在线时间清0
-	
+	//接地电阻
+	UINT16 spdres_id;				// 更改id地址	// 0x12
+	float spdres_alarm_value;		// 报警值修改	// 0x13
 }REMOTE_CONTROL;
 
 //空调参数结构体
