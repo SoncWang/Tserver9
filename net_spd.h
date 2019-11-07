@@ -13,6 +13,14 @@
 /**********************************************/
 // 雷迅检测器的定义
 #define SPD_ID_ADDR		10		// 改设备id的地址
+
+#define DO_ADDR_CNT_CLR				0	// 雷击计数清0地址
+#define DO_ADDR_TOTAL_CLR			1	// 雷击总数清0地址
+#define DO_ADDR_LEAK_SET			2	// 漏电流设置
+#define DO_ADDR_STRUCK_TIME_CLR		4	// 雷击时间清0
+#define DO_ADDR_WORK_TIME_CLR		5	// 在线时间清0
+
+
 #define DO_ON_CMD	0xFF00	// 清零
 #define DO_OFF_CMD	0x0
 

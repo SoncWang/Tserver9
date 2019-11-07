@@ -259,8 +259,8 @@ void *ComPort2Thread(void *param)
 			continue ;
 		  }
 
-		printf("com2 len=%d\r\n",buffPos) ;
-		int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+		//printf("com2 len=%d\r\n",buffPos) ;
+		//int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
 		if ((buf[BUF_CMD] == CMD_WRITE) || (buf[BUF_CMD] == CMD_READ))
 		{
@@ -555,7 +555,7 @@ void *ComPort2HandleDataThread(void *param)
 			// 第一次进来,默认是一个新屏幕
 			if (entry == false)
 			{
-				printf("WAIT_SECOND_5 = %d\r\n",WAIT_SECOND_5);	// C测试下宏定义
+				//printf("WAIT_SECOND_5 = %d\r\n",WAIT_SECOND_5);	// C测试下宏定义
 				// 多发一次，防止失败
 				entry_cnt++;
 				if (entry_cnt >= 2)
@@ -574,7 +574,7 @@ void *ComPort2HandleDataThread(void *param)
 		/********************开关门逻辑************************/
 		// 400ms取一次状态，要够快
 		door_status_now = DoorStatusFromLocker();
-		printf("door_status = %d\r\n",door_status_now);
+		//printf("door_status = %d\r\n",door_status_now);
 		if (door_status_now != door_status_last)
 		{
 			// 开门
@@ -591,7 +591,7 @@ void *ComPort2HandleDataThread(void *param)
 		door_status_last = door_status_now;
 		/********************开关门逻辑，完**********************/
 
-		printf("screen_poll_flag = 0x%02x\r\n",screen_poll_flag);	// C测试下宏定义
+		//printf("screen_poll_flag = 0x%02x\r\n",screen_poll_flag);	// C测试下宏定义
 
 		// 以上是置标志，现在是真正的发送数据
 		if (screen_poll_flag&BIT(ERR_CHECK))	// 错误检测不占用串口,可以随时检查,和其它标志不排斥
@@ -637,62 +637,6 @@ void *ComPort2HandleDataThread(void *param)
 			SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
 		}
 		usleep(MSG_SEND_INTERVAL);	// 周期400ms
-
-	#if 0
-		// 6s钟对时一次, 1s后发送显示命令
-		// 先置标志
-		WAIT_response_com_flag = WAIT_TIME_MSG;
-		SendCom2WriteReg(TIME_REG_ADD,WRITE_TIME_MSG);
-		for (i = 0; i< WAIT_SECOND_1; i++)
-		{
-			usleep(MSG_SEND_INTERVAL);	//delay 1seconds
-		}
-		// 监控写时间是否有回应，没有就相当于失败一次
-		Comm_Err_Process(ERR_COM1,&WAIT_response_com_flag,WAIT_TIME_MSG);
-		//printf("com status %d\r\n",err_ind.err_flag[ERR_COM1]);
-
-		// 如果通信失败,则不发送变量的更新
-		if (Comm_Err_Flag_Get(ERR_COM1))
-		{
-			entry = false;
-			entry_cnt = 0;
-		}
-		else		// 否则发送
-		{
-			// 第一次进来,默认是一个新屏幕
-			if (entry == false)
-			{
-				printf("WAIT_SECOND_1 = %d\r\n",WAIT_SECOND_1);
-				// 多发一次，防止失败
-				entry_cnt++;
-				if (entry_cnt >= 2)
-				{
-					entry_cnt = 2;
-					entry = true;
-				}
-				// 先使能背光
-				WAIT_response_com_flag = WAIT_BACKLIGHT_EN_MSG;
-				SendCom2WriteReg(SYS_CFG_ADDR,BACKLIGHT_EN_MSG);
-				usleep(MSG_SEND_INTERVAL*2);
-
-				// 再设置背光时间
-				WAIT_response_com_flag = WAIT_BACKLIGHT_CFG_MSG;
-				SendCom2WriteReg(LED_CFG_ADDR,BACKLIGHT_EN_MSG);
-				usleep(MSG_SEND_INTERVAL*2);
-			}
-			WAIT_response_com_flag = WAIT_VAR_MSG;
-			SendCom2WriteReg(VAR_REG_ADD,WRITE_VAR_MSG);
-			for (i = 0; i< WAIT_SECOND_5; i++)
-			{
-				usleep(MSG_SEND_INTERVAL);	//delay 5seconds
-				// 开门, 跳出延时
-				if (DoorStatusFromLocker()==LOCKER_OPEN)
-				{
-					break;
-				}
-			}
-		}
-	#endif
 	}
 	return 0 ;
 }
@@ -727,7 +671,7 @@ int SendCom2WriteReg(UINT16 Addr, UINT8 Func)
 	datalen = message_pack(Addr,Func,bytSend);
 
 	// debug测试打印
-	for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
+	//for(j=0;j<datalen;j++) printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	mComPort2->SendBuf(bytSend,datalen);
     Com2SendCri.UnLock();

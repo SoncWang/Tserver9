@@ -2,11 +2,11 @@
 #include <net-snmp/net-snmp-includes.h>
 #include <net-snmp/library/snmp_api.h>
 #include <net-snmp/agent/ds_agent.h>
-#include <string> 
+#include <string>
 #include "snmp.h"
 #include "registers.h"
 
-using namespace std; 
+using namespace std;
 
 int      netsnmp_running = 1;
 
@@ -28,8 +28,8 @@ extern unsigned int hwTemAddrbuf[2];
 extern unsigned int hwAcbAddrbuf[10] ;
 
 /************************************************************************
-** 
-** 
+**
+**
 ************************************************************************/
 
 int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, void *magic)
@@ -59,7 +59,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
     string StrAirDevAddr = ".1.3.6.1.4.1.2011.6.164.1.10.2.2.1.2" ;
     string StrTemDevAddr = ".1.3.6.1.4.1.2011.6.164.1.28.1.1.2" ;
     string StrAcbAddr = ".1.3.6.1.4.1.2011.6.164.1.18.1.1.2";//锂电池地址
-	for(vars = pdu->variables; vars; vars = vars->next_variable) 
+	for(vars = pdu->variables; vars; vars = vars->next_variable)
 	{
         getStroid = "";
         //printf("oididex: ");
@@ -144,7 +144,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 			}
 			printf("%s\r\n",Stroid.c_str()) ;
 
-		     
+
 		}
         /*else
 		{
@@ -156,7 +156,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 	}
     printf("Stroid=%s,getAlarmID=%d,getDevAddr=%d\r\n",Stroid.c_str(),getAlarmID,getDevAddr);
     DealAlarm(Stroid,getAlarmID,getDevAddr);
-	
+
 	string mstrjson;
 	string mstrkey = "";
 //	SetjsonTableStr("flagrunstatusalarm",mstrjson);
@@ -164,11 +164,11 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
     //printf("SetjsonLTAlarmTableStr \n%s\n",mstrjson.c_str());
 	if(StrServerURL1!="")
 		HttpPostParm(StrServerURL1,mstrjson,mstrkey,HTTPPOST);
-	
+
 	mstrkey = "";
 	SetjsonTableStr("flagrunstatusalarm",mstrjson);
 	NetSendParm(NETCMD_FLAGRUNSTATUS,(char *)(mstrjson.c_str()),mstrjson.size());
-	
+
     return 1;
 }
 
@@ -221,7 +221,7 @@ static void snmptrapd_main_loop(void)
 	printf("snmptrapd_main_loop\n");
 
 	while (netsnmp_running)
-	{		
+	{
 		numfds = 0;
 		FD_ZERO(&readfds);
 		FD_ZERO(&writefds);
@@ -254,7 +254,7 @@ static void snmptrapd_main_loop(void)
 				snmp_read(&readfds);
 			}
 		}
-		else 
+		else
 		{
 			switch (count)
 			{
@@ -278,8 +278,8 @@ static void snmptrapd_main_loop(void)
 
 
 /************************************************************************
-** 
-** 
+**
+**
  * Returns:
  *	2	Always succeeds.  (?)
  *
@@ -301,7 +301,7 @@ void *snmptrapthread(void *param)
 #if defined(USING_AGENTX_SUBAGENT_MODULE) && !defined(NETSNMP_SNMPTRAPD_DISABLE_AGENTX)
 	int             agentx_subagent = 1;
 #endif
-	
+
 	/*
 	  * Initialize the world.
 	  */
@@ -311,7 +311,7 @@ void *snmptrapthread(void *param)
 	{
 		/*
 		  * just starting up to process specific configuration and then
-		  * shutting down immediately. 
+		  * shutting down immediately.
 		  */
 		netsnmp_running = 0;
 	}
@@ -337,7 +337,7 @@ void *snmptrapthread(void *param)
 		cp =  "udp:162";	/* Default default port */;
 	}
 
-	while (cp != NULL) 
+	while (cp != NULL)
 	{
 		char *sep = strchr(cp, ',');
 		if (sep != NULL)
@@ -345,22 +345,22 @@ void *snmptrapthread(void *param)
 			*sep = 0;
 		}
 		transport = netsnmp_transport_open_server("snmptrap", cp);	//cp=udp:162
-		if (transport == NULL) 
+		if (transport == NULL)
 		{
 			//snmp_log(LOG_ERR, "couldn't open %s -- errno %d (\"%s\")\n", cp, errno, strerror(errno));
 			printf("ERR: couldn't open %s ", cp);
 			snmptrapd_close_sessions(sess_list);
 			SOCK_CLEANUP;
 			return 0;
-		} 
-		else 
+		}
+		else
 		{
 			ss = snmptrapd_add_session(transport);
-			if (ss == NULL) 
+			if (ss == NULL)
 			{
 			/*
 			  * Shouldn't happen?  We have already opened the transport
-			  * successfully, so what could have gone wrong?  
+			  * successfully, so what could have gone wrong?
 			  */
 				snmptrapd_close_sessions(sess_list);
 				netsnmp_transport_free(transport);
@@ -368,8 +368,8 @@ void *snmptrapthread(void *param)
 				printf("couldn't open snmp");
 				SOCK_CLEANUP;
 				return 0;
-			} 
-			else 
+			}
+			else
 			{
 				ss->next = sess_list;
 				sess_list = ss;
@@ -377,7 +377,7 @@ void *snmptrapthread(void *param)
 		}
 
 		/*
-		  * Process next listen address, if there is one.  
+		  * Process next listen address, if there is one.
 		  */
 
 		if (sep != NULL)
@@ -419,7 +419,7 @@ void *snmptrapthread(void *param)
                  tm->tm_min, tm->tm_sec, netsnmp_get_version());
 	}
 	snmp_log(LOG_INFO, "Stopping snmptrapd\n");
-    
+
 	snmptrapd_close_sessions(sess_list);
 	snmp_shutdown("snmptrapd");
 	snmp_disable_log();
@@ -1060,7 +1060,7 @@ void DealAlarm(string Stroid,int AlarmID,int mgetIndex)
 int GetAlarmID(char* sp)
 {
 	int AlarmID=0;
-	
+
 	if(strcmp(sp,"Door Open Alarm") == 0)	//门磁告警
 		AlarmID=6090;
 	if(strcmp(sp,"Water Alarm") == 0)	//水浸告警

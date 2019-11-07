@@ -47,7 +47,7 @@
 
 #define LIGHT_100_ON			100		// 背光亮度100%
 #define LIGHT_0_OFF				0		// 背光亮度0%
-#define SLEEP_ENTER_TIM			3000	// 进入背光时间,1000*10ms=10s
+#define SLEEP_ENTER_TIM			3000	// 进入背光时间,3000*10ms=30s
 
 
 // 232轮询设置枚举,可扩展

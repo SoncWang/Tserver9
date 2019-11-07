@@ -1,15 +1,15 @@
 /**************************Copyright (c)****************************************************
- * 								
- * 						
- * 	
+ *
+ *
+ *
  * ------------------------文件信息---------------------------------------------------
  * 文件名:
  * 版	本:
  * 描	述: modbus协议的寄存器处理宏定义，用户接口
- * 
- * --------------------------------------------------------------------------------------- 
- * 作	者: 
- * 日	期: 
+ *
+ * ---------------------------------------------------------------------------------------
+ * 作	者:
+ * 日	期:
  * 版	本:
  * 描	述:
  ****************************************************************************************/
@@ -25,11 +25,11 @@ typedef signed int      	INT32;
 typedef unsigned int      	UINT32;
 
 /*机柜类型定义*/
-#define HUAWEI						1		
+#define HUAWEI						1
 #define LTKJ						2
 
 /*http 请求类型*/
-#define HTTPGET						1		
+#define HTTPGET						1
 #define HTTPPOST					2
 
 /*寄存器属性定义*/
@@ -74,11 +74,11 @@ typedef unsigned int      	UINT32;
 
 /*装置参数寄存器*/
 #define PARAMS_START_ADDR		1200		/*设备参数寄存器开始地址*/
-#define PARAMS_REG_MAX			5			/*本版本所支持的最大寄存器数*/ 
+#define PARAMS_REG_MAX			5			/*本版本所支持的最大寄存器数*/
 
 /*空调参数寄存器*/
 #define AIRCOND_START_ADDR		1220		/*设备参数寄存器开始地址*/
-#define AIRCOND_REG_MAX			5			/*本版本所支持的最大寄存器数*/ 
+#define AIRCOND_REG_MAX			5			/*本版本所支持的最大寄存器数*/
 
 /*遥控寄存器*/
 #define DO_START_ADDR					1500
@@ -104,7 +104,7 @@ typedef unsigned int      	UINT32;
 //预留2路防雷器
 #define SPD_NUM 2
 // 预留1路网口接地电阻
-#define RES_NUM 1	
+#define RES_NUM 1
 
 // 最大支持6个伏安表, 每个伏安表为6组电流电压值
 #define VA_METER_BD_NUM		6
@@ -114,7 +114,7 @@ typedef unsigned int      	UINT32;
 //最大支持3层电源板
 #define POWER_BD_NUM			3
 //最大支持36路开关数量
-#define SWITCH_COUNT	36			
+#define SWITCH_COUNT	36
 
 /*功能码*/
 #define	READ_REGS				0x03           //读寄存器
@@ -142,10 +142,10 @@ typedef unsigned int      	UINT32;
 #define VPLATE12_REG			1511		//车牌识别12 0xFF00: 遥合; 0xFF01: 遥分
 
 #define AIRCONDSET_REG			1220		//空调开关机寄存器1220
-#define AIRCOLDSTARTPOINT_REG 	1221		//空调制冷点//1221 			
-#define AIRCOLDLOOP_REG			1222		//空调制冷回差//1222		
-#define AIRHOTSTARTPOINT_REG 	1223		//空调制热点//1223 
-#define AIRHOTLOOP_REG			1224		//空调制热回差//1224	
+#define AIRCOLDSTARTPOINT_REG 	1221		//空调制冷点//1221
+#define AIRCOLDLOOP_REG			1222		//空调制冷回差//1222
+#define AIRHOTSTARTPOINT_REG 	1223		//空调制热点//1223
+#define AIRHOTLOOP_REG			1224		//空调制热回差//1224
 
 #define SYSRESET		1		//系统重启
 
@@ -216,7 +216,7 @@ typedef struct envi_struct
 	UINT16 air_cond_temp_in;		//当前空调室内温度值317 ×10
 	UINT16 air_cond_amp;					//当前空调电流值318 ×1000
 	UINT16 air_cond_volt;					//当前空调电压值319 ×1
-	
+
 	UINT16 air_cond_hightemp_alarm;			//空调高温告警320
 	UINT16 air_cond_lowtemp_alarm;			//空调低温告警321
 	UINT16 air_cond_highmoist_alarm;		//空调高湿告警322
@@ -313,7 +313,7 @@ typedef struct ups_bat_struct
 // USP子结构体--状态
 typedef struct ups_status_struct
 {
-	// 功能码43	
+	// 功能码43
 	UINT16 supply_out_status;		// 输出供电状态 63
 	UINT16 supply_in_status;		// 输入供电状态 64
 	UINT16 battery_status;			// 电池状态 65
@@ -322,7 +322,7 @@ typedef struct ups_status_struct
 // USP子结构体--告警
 typedef struct ups_alarm_struct
 {
-	// 功能码44	
+	// 功能码44
 	UINT16 main_abnormal;			// 主路异常 66
 	UINT16 system_overtemp;			// 系统过温, 67
 	UINT16 sysbat_low_prealarm;		// 系统电池电量低预告警,68
@@ -385,7 +385,7 @@ typedef struct ups_struct
 	UINT16 load_Aout;		// 负载
 	UINT16 load_Bout;		// 负载
 	UINT16 load_Cout;		// 负载
-	
+
 	//电池参数
 	UINT16 running_day; 		// UPS运行时间 56 天
 	UINT16 battery_volt;		//UPS电池电压	57 ×10
@@ -457,7 +457,7 @@ typedef struct vmctl_params_struct
     char ServerURL3[128];      //服务器3推送地址
     char ServerURL4[128];      //门锁4推送地址
     char StationURL[128];      //控制器接收地址
-    
+
     char RSUCount[5];            //RSU数量
     char RSUIP[RSUCTL_NUM][20];            //RSU控制器IP地址
     char RSUPort[RSUCTL_NUM][6];          //RSU控制器端口
@@ -481,7 +481,7 @@ typedef struct vmctl_params_struct
     char SwitchCount[5];            //交换机数量
     char SwitchIP[IPSWITCH_NUM][20];         //交换机地址(预留2台)
     char SwitchGetPasswd[IPSWITCH_NUM][20];     //交换机get密码
-    char SwitchSetPasswd[IPSWITCH_NUM][20];     //交换机set密码 
+    char SwitchSetPasswd[IPSWITCH_NUM][20];     //交换机set密码
     char AtlasCount[5];            //Atlas数量
     char AtlasIP[ATLAS_NUM][20];         //Atlas地址(预留2台)
     char AtlasPasswd[ATLAS_NUM][20];     //Atlas密码
@@ -490,7 +490,7 @@ typedef struct vmctl_params_struct
 	char SPDIP[SPD_NUM+RES_NUM][20];	//SPD控制器IP地址
 	char SPDPort[SPD_NUM+RES_NUM][10];	//SPD控制器端口
 	char SPDAddr[SPD_NUM+RES_NUM][10];		//SPD控制器硬件地址
-    
+
     char LockAddr[LOCK_NUM][4];         //门锁地址	最多4把锁
     char VameterAddr[VA_METER_BD_NUM][4];     //电能表地址 最多6个表 每层2个
     char PowerAddr[POWER_BD_NUM][4];       //电源板地址 最多3层
@@ -520,13 +520,13 @@ typedef struct Remote_Control_struct	//
 	UINT16 rsu1;				//1500 RSU天线1 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 door_do;				//1501 电子门锁 0xFF00: 关锁;0xFF01: 开锁
 	UINT16 autoreclosure;		//1502 自动重合闸0xFF00: 遥合;0xFF01: 遥分
-	
+
 	UINT16 vehplate[VEHPLATE_NUM];			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 rsucontrlor[RSUCTL_NUM];			//rsu 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 antenna[ANTENNA_NUM];			//天线 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 fireware[FIREWARE_NUM];			//防火墙 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 ipswitch[IPSWITCH_NUM];			//交换机 0xFF00: 遥合;0xFF01: 遥分
-	
+
 	UINT16 doseq[SWITCH_COUNT];			//备用do 0xFF00: 遥合;0xFF01: 遥分
 
 	UINT16 SysReset;			//系统重启 1548
@@ -537,7 +537,7 @@ typedef struct Remote_Control_struct	//
 	UINT16 AutoReclosure_Close;		//自动重合闸-合闸
 	UINT16 AutoReclosure_Open;		//自动重合闸-分闸
 	char systemtime[50];		//设置控制器时间
-	
+
 	UINT16 aircondset;		//空调关机//1220					1
 	UINT16 aircoldstartpoint;		//空调制冷点//1221				50
 	UINT16 aircoldloop; 	//空调制冷回差//1222					10
@@ -569,7 +569,7 @@ typedef struct Remote_Control_struct	//
 	UINT8 DO_daytime_clear[SPD_NUM];	// 在线时间清0
 	//接地电阻
 	UINT16 spdres_id;				// 更改id地址	// 0x12
-	float spdres_alarm_value;		// 报警值修改	// 0x13
+	UINT16 spdres_alarm_value;		// 报警值修改	// 0x13
 }REMOTE_CONTROL;
 
 //空调参数结构体
@@ -604,7 +604,7 @@ typedef struct FlagRunStatus_struct
 	INT8 WireLessState;	//17 无线网络状态
 	INT8 SoftWare;			//18 ETC 门架软件状态
 	char SoftVersion[30];	//19 软件版本
-	
+
 	INT16 CamerCount;		//20 车牌识别设备数量
 	INT8 Vehplate1; 		//21 车牌设别1
 	INT8 Vehplate2; 		//22 车牌设别2
@@ -622,15 +622,15 @@ typedef struct FlagRunStatus_struct
 	INT8 Vehplate14; 		//34 车牌设别14
 	INT8 Vehplate15; 		//35 车牌设别15
 	INT8 Vehplate16;  		//36 车牌设别16
-	
-	INT16 RSUCount;		//37 RSU数量 
-	
-	INT8 RSU1; 			//38 天线1 
+
+	INT16 RSUCount;		//37 RSU数量
+
+	INT8 RSU1; 			//38 天线1
 	INT16 RSU1_Power; 		//39 天线1功率
 	INT8 RSU1_Channel; 	//40 天线1信道号
 	INT8 RSU1_Switch; 		//41 天线1开关状态
 	INT32 RSU1_ErrInfo; 	//42 天线1异常信息
-	INT8 RSU2; 			//43 天线2 
+	INT8 RSU2; 			//43 天线2
 	INT16 RSU2_Power; 		//44 天线2功率
 	INT8 RSU2_Channel; 	//45 天线2信道号
 	INT8 RSU2_Switch; 		//46 天线2开关状态
@@ -647,65 +647,65 @@ typedef struct FlagRunStatus_struct
 	INT32 RSU4_ErrInfo; 	//57 天线4异常信息
 	INT8 RSU5; 			//58 天线5
 	INT16 RSU5_Power; 		//59
-	INT8 RSU5_Channel; 	//60 
-	INT8 RSU5_Switch; 		//61 
-	INT32 RSU5_ErrInfo; 	//62 
+	INT8 RSU5_Channel; 	//60
+	INT8 RSU5_Switch; 		//61
+	INT32 RSU5_ErrInfo; 	//62
 	INT8 RSU6; 			//63 天线6
-	INT16 RSU6_Power; 		//64 
-	INT8 RSU6_Channel; 	//65 
+	INT16 RSU6_Power; 		//64
+	INT8 RSU6_Channel; 	//65
 	INT8 RSU6_Switch; 		//66
 	INT32 RSU6_ErrInfo; 	//67
 	INT8 RSU7; 			//68 天线7
-	INT16 RSU7_Power; 		//69 
-	INT8 RSU7_Channel; 	//70 
+	INT16 RSU7_Power; 		//69
+	INT8 RSU7_Channel; 	//70
 	INT8 RSU7_Switch; 		//71
-	INT32 RSU7_ErrInfo; 	//72 
+	INT32 RSU7_ErrInfo; 	//72
 	INT8 RSU8; 			//73 天线8
-	INT16 RSU8_Power; 		//74 
-	INT8 RSU8_Channel; 	//75 
-	INT8 RSU8_Switch; 		//76 
-	INT32 RSU8_ErrInfo; 	//77 
+	INT16 RSU8_Power; 		//74
+	INT8 RSU8_Channel; 	//75
+	INT8 RSU8_Switch; 		//76
+	INT32 RSU8_ErrInfo; 	//77
 	INT8 RSU9; 			//78 天线9
-	INT16 RSU9_Power; 		//79 
-	INT8 RSU9_Channel; 	//80 
+	INT16 RSU9_Power; 		//79
+	INT8 RSU9_Channel; 	//80
 	INT8 RSU9_Switch; 		//81
-	INT32 RSU9_ErrInfo; 	//82 
+	INT32 RSU9_ErrInfo; 	//82
 	INT8 RSU10; 			//83 天线10
-	INT16 RSU10_Power; 	//84 
-	INT8 RSU10_Channel; 	//85 
-	INT8 RSU10_Switch; 	//86 
-	INT32 RSU10_ErrInfo; 	//87 
+	INT16 RSU10_Power; 	//84
+	INT8 RSU10_Channel; 	//85
+	INT8 RSU10_Switch; 	//86
+	INT32 RSU10_ErrInfo; 	//87
 	INT8 RSU11; 			//88 天线11
-	INT16 RSU11_Power; 	//89 
-	INT8 RSU11_Channel; 	//90 
-	INT8 RSU11_Switch; 	//91 
-	INT32 RSU11_ErrInfo; 	//92 
+	INT16 RSU11_Power; 	//89
+	INT8 RSU11_Channel; 	//90
+	INT8 RSU11_Switch; 	//91
+	INT32 RSU11_ErrInfo; 	//92
 	INT8 RSU12; 			//93 天线12
-	INT16 RSU12_Power; 	//94 
-	INT8 RSU12_Channel; 	//95 
-	INT8 RSU12_Switch; 	//96 
-	INT32 RSU12_ErrInfo;	//97 
+	INT16 RSU12_Power; 	//94
+	INT8 RSU12_Channel; 	//95
+	INT8 RSU12_Switch; 	//96
+	INT32 RSU12_ErrInfo;	//97
 	INT8 RSU13; 			//98 天线13
-	INT16 RSU13_Power; 	//99 
-	INT8 RSU13_Channel; 	//100 
-	INT8 RSU13_Switch; 	//101 
-	INT32 RSU13_ErrInfo; 	//102 
+	INT16 RSU13_Power; 	//99
+	INT8 RSU13_Channel; 	//100
+	INT8 RSU13_Switch; 	//101
+	INT32 RSU13_ErrInfo; 	//102
 	INT8 RSU14; 			//103 天线14
-	INT16 RSU14_Power; 	//104 
-	INT8 RSU14_Channel; 	//105 
-	INT8 RSU14_Switch; 	//106 
-	INT32 RSU14_ErrInfo;	//107 
+	INT16 RSU14_Power; 	//104
+	INT8 RSU14_Channel; 	//105
+	INT8 RSU14_Switch; 	//106
+	INT32 RSU14_ErrInfo;	//107
 	INT8 RSU15; 			//108 天线15
-	INT16 RSU15_Power ;	//109 
+	INT16 RSU15_Power ;	//109
 	INT8 RSU15_Channel; 	//110
 	INT8 RSU15_Switch; 	//111
-	INT32 RSU15_ErrInfo; 	//112 
+	INT32 RSU15_ErrInfo; 	//112
 	INT8 RSU16; 			//113 天线16
-	INT16 RSU16_Power; 	//114 
-	INT8 RSU16_Channel; 	//115 
-	INT8 RSU16_Switch; 	//116 
-	INT32 RSU16_ErrInfo; 	//117 
-	
+	INT16 RSU16_Power; 	//114
+	INT8 RSU16_Channel; 	//115
+	INT8 RSU16_Switch; 	//116
+	INT32 RSU16_ErrInfo; 	//117
+
 	char BackUp1[50]; 		//118 备用1
 	char BackUp2[50]; 		//119 备用2
 	char BackUp3[50]; 		//120 备用3
