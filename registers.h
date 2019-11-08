@@ -559,7 +559,7 @@ typedef struct Remote_Control_struct	//
 	INT16 hwdcairctrlmode[2];			//空调控制模式 0：保持；1：自动；2：手动
 	INT16 hwctrlsmokereset[2];			//控制烟感复位 0：保持；1：不需复位；2：复位
 
-	UINT16 spdaddr[SPD_NUM];			//防雷器设备地址
+	float spd_modbus_addr[SPD_NUM];			//防雷器设备地址
 	float spdleak_alarm_threshold[SPD_NUM];			//漏电流报警阈值
 	// DO报警的值
 	UINT8 DO_spdcnt_clear[SPD_NUM];	// 雷击计数清0

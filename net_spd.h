@@ -12,7 +12,8 @@
 #define NULL_VALUE		0		// 定义没有这个参数时的默认值
 /**********************************************/
 // 雷迅检测器的定义
-#define SPD_ID_ADDR		10		// 改设备id的地址
+#define AI_SPD_ID_ADDR					10		// 改设备id的地址，浮点型
+#define AI_LEAK_THRESHOLD_ADDR			18		// 浮点型
 
 #define DO_ADDR_CNT_CLR				0	// 雷击计数清0地址
 #define DO_ADDR_TOTAL_CLR			1	// 雷击总数清0地址
@@ -211,6 +212,8 @@ typedef struct spd_real_struct
 	float leak_alarm_threshold;		// 报警阈值
 
 	float day_time;				// 在线天数
+
+	//float leak_id;			// 漏电流设备的id, 广东飞达的雷迅单独有漏电流检测器
 
 	// DI报警的值
 	UINT8 DI_bit_0;			// 对DI位的解析

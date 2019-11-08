@@ -504,7 +504,7 @@ int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
 			//设置防雷器的AI数据
 			SPD_AI_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,AI_SET_MIN,&SPD_ctrl_value.f_ai_set);
 			// 改了id后要更新地址
-			if (SPD_ctrl_value.ref_addr == SPD_ID_ADDR)
+			if (SPD_ctrl_value.ref_addr == AI_SPD_ID_ADDR)
 			{
 				SPD_Address[0] = (UINT8)SPD_ctrl_value.f_ai_set.f;
 			}

@@ -720,7 +720,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	{
 		//printf("Client_CmdProcess cmd =%d \r\n",pCMD->cmd);
 		sprintf(tmpStringData,"Client_CmdProcess cmd =%d size =%d\r\n",pCMD->cmd,pCMD->datalen);
-		myprintf(tmpStringData);
+		//myprintf(tmpStringData);
 //		WriteLog(tmpStringData);
 	}
 	switch (pCMD->cmd)
@@ -1566,6 +1566,36 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 		// 把1,2转换成0,1
 			 		temp = ((pstuRCtrl->DO_leak_type[i]-1) == 0)?0:1;
 			 		Ex_SPD_Set_Process(SPD_DO_SET,DO_ADDR_LEAK_SET,dummy,temp);
+			 	}
+			 }
+		 }
+		 if(pstuRCtrl->spdleak_alarm_threshold[i]!=0.000 && pstuRCtrl->spdleak_alarm_threshold[i]!=stuSpd_Param->rSPD_data[i].leak_alarm_threshold)	//漏电流报警阈值改变
+		 {
+			 sprintf(value,"%0.3f",pstuRCtrl->spdleak_alarm_threshold[i]);
+			 printf("RemoteControl SPD%d漏电流报警阈值=%s\n",i+1,value);//漏电流报警阈值
+			 //漏电流报警阈值
+			 if (SPD_Type == TYPE_LEIXUN)
+			 {
+			 	// 只有雷迅有这个功能, 且只有1个防雷器
+			 	if (i == 0)
+			 	{
+			 		dummy.f = pstuRCtrl->spdleak_alarm_threshold[i];
+			 		Ex_SPD_Set_Process(SPD_AI_SET,AI_LEAK_THRESHOLD_ADDR,dummy,0);
+			 	}
+			 }
+		 }
+		 if(pstuRCtrl->spd_modbus_addr[i]!=ACT_HOLD && pstuRCtrl->spd_modbus_addr[i]!=stuSpd_Param->rSPD_data[i].id)	//防雷器设备地址改变
+		 {
+			 sprintf(value,"%0.3f",pstuRCtrl->spd_modbus_addr[i]);
+			 printf("RemoteControl SPD%d设备地址=%s\n",i+1,value);//防雷器设备地址
+			 //防雷器设备地址
+			 if (SPD_Type == TYPE_LEIXUN)
+			 {
+			 	// 只有雷迅有这个功能, 且只有1个防雷器
+			 	if (i == 0)
+			 	{
+			 		dummy.f = pstuRCtrl->spd_modbus_addr[i];
+			 		Ex_SPD_Set_Process(SPD_AI_SET,AI_SPD_ID_ADDR,dummy,0);
 			 	}
 			 }
 		 }
