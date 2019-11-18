@@ -233,7 +233,13 @@ int DealComm(unsigned char *buf,unsigned short int len)
 		break;
 	}
 
-	WAIT_response_com_flag = WAIT_COM_NONE;
+	// 写数据的正常回应 0x5a 0xa5 0x03 0x82 0x4f 0x4b
+	// 测试发现，如果只拔掉触摸屏而不是断开com1端，则数据又会原原本本返回
+	if ((len == 6) && (buf[4] == 0x4F) && (buf[5] == 0x4B))
+	{
+		WAIT_response_com_flag = WAIT_COM_NONE;
+		//printf("WAIT_response_com_flag=NONE");
+	}
 	return 0;
 }
 
@@ -252,6 +258,8 @@ void *ComPort2Thread(void *param)
 		buffPos = buffPos+len;
 		if(buffPos<5) continue;
 
+		// 这里有个小bug,当屏幕热插拔后，有回复，当时数据帧可能会不完整，会出现
+		// FRAM error, 可能半分钟后才会恢复, 导致的结果就是屏幕进入休眠很慢
 		if((buf[BUF_HEAD1] != FRAME_HEAD_1) || (buf[BUF_HEAD2] != FRAME_HEAD_2))
 		{
 			printf("FRAM error\r\n");
@@ -259,8 +267,8 @@ void *ComPort2Thread(void *param)
 			continue ;
 		  }
 
-		//printf("com2 len=%d\r\n",buffPos) ;
-		//int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+		// printf("com2 len=%d\r\n",buffPos) ;
+		// int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 
 		if ((buf[BUF_CMD] == CMD_WRITE) || (buf[BUF_CMD] == CMD_READ))
 		{
@@ -536,7 +544,7 @@ void *ComPort2HandleDataThread(void *param)
 		{
 			screen_poll_cnt = 0;
 			// 断线了，先不发送，等恢复
-			if (Comm_Err_Flag_Get(ERR_COM1) == 0)
+			//if (Comm_Err_Flag_Get(ERR_COM1) == 0)
 			{
 				screen_poll_flag |= BIT(VAR_SET);
 			}

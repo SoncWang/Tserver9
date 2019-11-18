@@ -1288,58 +1288,6 @@ void *NetWork_DataGet_thread_SPD_HZ1(void *param)
 	param = NULL;
 
 	SPD_HZ_Data_Get_Func(0);	// 0,1,2 即SPD1，SPD2, 接地电阻
-
-#if 0
-	int Pos=0;
-	int len,temp;
-	const char *IPaddress;
-	const char * IPport;
-	int port;
-	int addr_len =sizeof(struct sockaddr_in);
-
-    if((udpfd_spd[Pos] = socket(AF_INET,SOCK_DGRAM,0))<0){
-        perror("socket_1");
-        exit(1);
-    }
-
-    int nRecvBufLen = 512;
-    setsockopt(udpfd_spd[Pos], SOL_SOCKET, SO_RCVBUF, ( const char* )&nRecvBufLen, sizeof( int ));
-	int nSendBufLen = 512;
-    setsockopt(udpfd_spd[Pos], SOL_SOCKET, SO_SNDBUF, ( const char* )&nSendBufLen, sizeof( int ) );
-    struct timeval timeout={8,0};//3s
-    setsockopt(udpfd_spd[Pos],SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
-
-	IPaddress = gsSPDIP[Pos];	//获取配置文件中的IP地址
-	IPport=gsSPDPort[Pos];
-	port=atoi(IPport);
-    bzero(&HZSPDAddr[Pos],sizeof(HZSPDAddr[Pos]));
-
-    HZSPDAddr[Pos].sin_family = AF_INET;
-    HZSPDAddr[Pos].sin_addr.s_addr = inet_addr(IPaddress);
-    HZSPDAddr[Pos].sin_port = htons(port);	// Port number
-	printf("Pos=%d,hzSPD-IPaddress=%s,hzSPD-IPport=%s\n",Pos,IPaddress,IPport);
-
-	struct sockaddr_in Recvaddr = HZSPDAddr[Pos];
-    int DataLen  ;
-    char *recvBuf = new char[512];
-    while(1)
-    {
-        memset(recvBuf,0,512);
-        DataLen = recvfrom(sockfd_spd[Pos],recvBuf,512,0,(struct sockaddr *)&Recvaddr,(socklen_t*)&addr_len);
-        if(DataLen > 0)
-        {
-			// 打印出来
-			pthread_mutex_lock(&HZSPDMutex1);
-			strHZSPDdata[0] = recvBuf;
-			printf("spd_HZ_len=%d\r\n",DataLen);
-			//int j ;for(j=0;j<DataLen;j++) printf("0x%02x ",recvBuf[j]);printf("\r\n");
-			DealNetSPD(0,(unsigned char *)recvBuf,DataLen);
-			pthread_mutex_unlock(&HZSPDMutex1);
-        }
-
-    }
-    close(sockfd_spd[Pos]);
-#endif
 }
 
 
@@ -1348,56 +1296,6 @@ void *NetWork_DataGet_thread_SPD_HZ2(void *param)
 	param = NULL;
 
 	SPD_HZ_Data_Get_Func(1);
-#if 0
-	int Pos=1;
-	int len,temp;
-	const char *IPaddress;
-	const char * IPport;
-	int port;
-	int addr_len =sizeof(struct sockaddr_in);
-
-	if((sockfd_spd[Pos] = socket(AF_INET,SOCK_DGRAM,0))<0){
-		perror("socket_1");
-		exit(1);
-	}
-
-	int nRecvBufLen = 512;
-	setsockopt(sockfd_spd[Pos], SOL_SOCKET, SO_RCVBUF, ( const char* )&nRecvBufLen, sizeof( int ));
-	int nSendBufLen = 512;
-	setsockopt(sockfd_spd[Pos], SOL_SOCKET, SO_SNDBUF, ( const char* )&nSendBufLen, sizeof( int ) );
-	struct timeval timeout={8,0};//3s
-	setsockopt(sockfd_spd[Pos],SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
-
-	IPaddress = gsSPDIP[Pos];	//获取配置文件中的IP地址
-	IPport=gsSPDPort[Pos];
-	port=atoi(IPport);
-	bzero(&HZSPDAddr[Pos],sizeof(HZSPDAddr[Pos]));
-
-	HZSPDAddr[Pos].sin_family = AF_INET;
-	HZSPDAddr[Pos].sin_addr.s_addr = inet_addr(IPaddress);
-	HZSPDAddr[Pos].sin_port = htons(port);	// Port number
-	printf("Pos=%d,hzSPD-IPaddress=%s,hzSPD-IPport=%s\n",Pos,IPaddress,IPport);
-
-	struct sockaddr_in Recvaddr = HZSPDAddr[Pos];
-	int DataLen  ;
-	char *recvBuf = new char[512];
-	while(1)
-	{
-		memset(recvBuf,0,512);
-		DataLen = recvfrom(sockfd_spd[Pos],recvBuf,512,0,(struct sockaddr *)&Recvaddr,(socklen_t*)&addr_len);
-		if(DataLen > 0)
-		{
-			// 打印出来
-			pthread_mutex_lock(&HZSPDMutex1);
-			strHZSPDdata[1] = recvBuf;
-			printf("spd_HZ_len=%d\r\n",DataLen);
-			//int j ;for(j=0;j<DataLen;j++) printf("0x%02x ",recvBuf[j]);printf("\r\n");
-			DealNetSPD(1,(unsigned char *)recvBuf,DataLen);
-			pthread_mutex_unlock(&HZSPDMutex1);
-		}
-	}
-	close(sockfd_spd[Pos]);
-#endif
 }
 
 
@@ -1407,56 +1305,6 @@ void *NetWork_DataGet_thread_SPD_HZRes(void *param)
 	param = NULL;
 
 	SPD_HZ_Data_Get_Func(SPD_NUM);
-#if 0
-	int Pos=2;
-	int len,temp;
-	const char *IPaddress;
-	const char * IPport;
-	int port;
-	int addr_len =sizeof(struct sockaddr_in);
-
-	if((sockfd_spd[Pos] = socket(AF_INET,SOCK_DGRAM,0))<0){
-		perror("socket_1");
-		exit(1);
-	}
-
-	int nRecvBufLen = 512;
-	setsockopt(sockfd_spd[Pos], SOL_SOCKET, SO_RCVBUF, ( const char* )&nRecvBufLen, sizeof( int ));
-	int nSendBufLen = 512;
-	setsockopt(sockfd_spd[Pos], SOL_SOCKET, SO_SNDBUF, ( const char* )&nSendBufLen, sizeof( int ) );
-	struct timeval timeout={8,0};//3s
-	setsockopt(sockfd_spd[Pos],SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
-
-	IPaddress = gsSPDIP[Pos];	//获取配置文件中的IP地址
-	IPport=gsSPDPort[Pos];
-	port=atoi(IPport);
-	bzero(&HZSPDAddr[Pos],sizeof(HZSPDAddr[Pos]));
-
-	HZSPDAddr[Pos].sin_family = AF_INET;
-	HZSPDAddr[Pos].sin_addr.s_addr = inet_addr(IPaddress);
-	HZSPDAddr[Pos].sin_port = htons(port);	// Port number
-	printf("Pos=%d,hzSPD-IPaddress=%s,hzSPD-IPport=%s\n",Pos,IPaddress,IPport);
-
-	struct sockaddr_in Recvaddr = HZSPDAddr[Pos];
-	int DataLen  ;
-	char *recvBuf = new char[512];
-	while(1)
-	{
-		memset(recvBuf,0,512);
-		DataLen = recvfrom(sockfd_spd[Pos],recvBuf,512,0,(struct sockaddr *)&Recvaddr,(socklen_t*)&addr_len);
-		if(DataLen > 0)
-		{
-			// 打印出来
-			pthread_mutex_lock(&HZSPDMutex1);
-			strHZSPDdata[2] = recvBuf;
-			printf("spd_HZ_len=%d\r\n",DataLen);
-			//int j ;for(j=0;j<DataLen;j++) printf("0x%02x ",recvBuf[j]);printf("\r\n");
-			DealNetSPD(0,(unsigned char *)recvBuf,DataLen);
-			pthread_mutex_unlock(&HZSPDMutex1);
-		}
-	}
-	close(sockfd_spd[Pos]);
-#endif
 }
 
 
@@ -1549,7 +1397,7 @@ void* NetWork_server_thread_SPD(void*arg)
 			{
 				printf("connect _psd error\n");
 				WriteLog("IN NETWORK_Server_thread connect _psd error!\n");
-				sleep(2);
+				sleep(1);
 			}
 		}
 	}
