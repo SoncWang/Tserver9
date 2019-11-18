@@ -683,9 +683,10 @@ UINT16 DoorStatusFromLocker(void)
 
 	}
 	// 如果是3,4把锁，触摸屏是装在设备柜,地址为95，96
+	// 为了防止现场乱改地址导致错乱，这里4个柜子任意一个打开都设为开
 	else
 	{
-		for(i=LOCKER_3; i<=LOCKER_4;i++)
+		for(i=LOCKER_1; i<=LOCKER_4;i++)
 		{
 			if (Rs485_table_enable_get(i))
 			{
