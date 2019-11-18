@@ -1483,14 +1483,16 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 {
 		 sprintf(value,"%d",pstuRCtrl->spdres_id);
 		 printf("RemoteControl spdres更改设备id=%s\n",value);
+		 Setconfig("SPDResAddr=",value);
 		 //spdres更改设备id
 		 Ex_SPD_Set_Process(SPD_RES_SET,RES_ID_ADDR,dummy,pstuRCtrl->spdres_id);
+		 Writeconfig();
 	 }
 	 //spdres报警值修改
 	 if(pstuRCtrl->spdres_alarm_value!=ACT_HOLD)
 	 {
 		 sprintf(value,"%f",pstuRCtrl->spdres_alarm_value);
-		 printf("RemoteControl spdres报警值修改=%s\n",value);
+		 printf("RemoteControl spdres报警值修改=%d\n",value);
 		 //spdres更改报警值
 		 Ex_SPD_Set_Process(SPD_RES_SET,RES_ALARM_ADDR,dummy,pstuRCtrl->spdres_alarm_value);
 	 }

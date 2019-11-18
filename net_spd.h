@@ -379,6 +379,8 @@ extern UINT8 SPD_Address[SPD_NUM+RES_NUM];
 //extern UINT8 SPD_Res_Address;
 extern UINT8 SPD_Type;
 extern UINT8 SPD_num;
+extern UINT8 HZ_reset_flag[SPD_NUM+RES_NUM];
+extern UINT8 HZ_reset_pre[SPD_NUM+RES_NUM];
 
 
 void init_net_spd();

@@ -20,6 +20,8 @@
 
 /*************************数据定义*****************************/
 static int sockfd_spd[SPD_NUM+RES_NUM];	// 还有1个接地电阻
+static int udpfd_spd[SPD_NUM+RES_NUM];	// 华咨的是udp协议
+
 
 UINT16  spd_net_flag = 0;	// SPD轮询标志
 UINT16  spd_ctl_flag = 0;	// SPD控制标志
@@ -49,12 +51,12 @@ extern SPD_PARAMS *stuSpd_Param;		//防雷器结构体
 
 // 华咨的网络有关变量定义
 struct sockaddr_in HZSPDAddr[SPD_NUM+RES_NUM];
-string strHZSPDdata[SPD_NUM+RES_NUM] = {"",};
+//string strHZSPDdata[SPD_NUM+RES_NUM] = {"",};
 
-pthread_mutex_t HZSPDMutex1;
-pthread_mutex_t HZSPDMutex2;
-pthread_mutex_t HZSPDMutexRes;
+pthread_mutex_t HZSPDMutex[SPD_NUM+RES_NUM];
 
+UINT8 HZ_reset_flag[SPD_NUM+RES_NUM] = {false,};
+UINT8 HZ_reset_pre[SPD_NUM+RES_NUM] = {false,};	// 对HZ_reset_flag预先处理
 
 
 int obtain_net();
@@ -233,7 +235,7 @@ int SPD_HZ_Read_Reg(int seq,UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REF
 	//for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	//write(socket_addr,bytSend,len);
-	sendto(sockfd_spd[seq], bytSend, REFS_COUNT, 0, (struct sockaddr *)&HZSPDAddr[seq], sizeof(struct sockaddr_in));
+	sendto(udpfd_spd[seq], bytSend, REFS_COUNT, 0, (struct sockaddr *)&HZSPDAddr[seq], sizeof(struct sockaddr_in));
 	pthread_mutex_unlock(&SPDdataHandleMutex);
 
 	usleep(5000);	//delay 5ms
@@ -493,44 +495,44 @@ int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
 		{
 			addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
 		}
-	}
 
-	if (*pctrl_flag & (BIT(SPD_ctrl_event)))
-	{
-		*pctrl_flag &= ~(BIT(SPD_ctrl_event));
-		switch(SPD_ctrl_event)
+		if (*pctrl_flag & (BIT(SPD_ctrl_event)))
 		{
-		case SPD_AI_SET:
-			//设置防雷器的AI数据
-			SPD_AI_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,AI_SET_MIN,&SPD_ctrl_value.f_ai_set);
-			// 改了id后要更新地址
-			if (SPD_ctrl_value.ref_addr == AI_SPD_ID_ADDR)
+			*pctrl_flag &= ~(BIT(SPD_ctrl_event));
+			switch(SPD_ctrl_event)
 			{
-				SPD_Address[0] = (UINT8)SPD_ctrl_value.f_ai_set.f;
+			case SPD_AI_SET:
+				//设置防雷器的AI数据
+				SPD_AI_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,AI_SET_MIN,&SPD_ctrl_value.f_ai_set);
+				// 改了id后要更新地址
+				if (SPD_ctrl_value.ref_addr == AI_SPD_ID_ADDR)
+				{
+					SPD_Address[0] = (UINT8)SPD_ctrl_value.f_ai_set.f;
+				}
+				break;
+
+			case SPD_DO_SET:
+				// DO每次只写1个寄存器
+				SPD_DO_Ctrl_Reg(socketq,addr_temp,SPD_DO_CTRL_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.do_set);
+				break;
+
+			case SPD_RES_SET:
+				// RES接地电阻部分设置
+				SPD_Res_Set_Reg(socketq,addr_temp,SPD_RES_SET_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.res_set);
+				// 改了id后要更新地址
+				if (SPD_ctrl_value.ref_addr == RES_ID_ADDR)
+				{
+					SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
+				}
+				break;
+
+			case SPD_TIME_SET:
+				// 对时写
+				SPD_Time_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,TIME_SET_LEN);
+				break;
+			default:
+				break;
 			}
-			break;
-
-		case SPD_DO_SET:
-			// DO每次只写1个寄存器
-			SPD_DO_Ctrl_Reg(socketq,addr_temp,SPD_DO_CTRL_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.do_set);
-			break;
-
-		case SPD_RES_SET:
-			// RES接地电阻部分设置
-			SPD_Res_Set_Reg(socketq,addr_temp,SPD_RES_SET_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.res_set);
-			// 改了id后要更新地址
-			if (SPD_ctrl_value.ref_addr == RES_ID_ADDR)
-			{
-				SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
-			}
-			break;
-
-		case SPD_TIME_SET:
-			// 对时写
-			SPD_Time_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,TIME_SET_LEN);
-			break;
-		default:
-			break;
 		}
 	}
 	return 1;
@@ -724,7 +726,6 @@ void DealSPDResStatusMsg(unsigned char *buf,unsigned short int len)
 		{
 			stuSpd_Param->rSPD_res.grd_res_real = res_temp;
 		}
-		/*
 		printf("res_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_res.alarm);
 		printf("grd_res_value = 0x%02x \r\n",stuSpd_Param->rSPD_res.grd_res_value);
 		printf("grd_res_dot_num = 0x%02x \r\n",stuSpd_Param->rSPD_res.grd_res_dot_num);
@@ -735,7 +736,6 @@ void DealSPDResStatusMsg(unsigned char *buf,unsigned short int len)
 		printf("alarm_value = 0x%02x \r\n",stuSpd_Param->rSPD_res.alarm_value);
 
 		printf("grd_res_real = %7.3f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
-		*/
 	}
 }
 
@@ -1084,7 +1084,7 @@ void DealHZResMsg(int seq,unsigned char *buf,unsigned short int len)
 		// 前面2个字节保留
 		HZ_char_to_int(buf + HZ_HEAD_NUM +2*2, pointer);
 		stuSpd_Param->rSPD_res.grd_res_real = (float)stuSpd_Param->rSPD_res.grd_res_value/100;
-		//printf("HZ_grd_res_real = %7.3f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
+		printf("HZ_grd_res_real = %7.3f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
 	}
 }
 
@@ -1166,53 +1166,130 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 	//gsocket = 0;
 	while(1)
 	{
-      	len = read(sockfd_spd[0], buf, sizeof(buf)-1);
-		if (len >= 0)
+		if (SPD_Type == TYPE_LEIXUN)
 		{
-		  	buffPos = buffPos+len;
-		  	if(buffPos<5) continue;
-
-		  	//CRC
-		  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
-		  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
+	      	len = read(sockfd_spd[0], buf, sizeof(buf)-1);
+			if (len >= 0)
 			{
-			  printf("psdCRC error\r\n");
-	 		  if(buffPos>=256) buffPos=0;
-			  continue ;
-		  	}
+			  	buffPos = buffPos+len;
+			  	if(buffPos<5) continue;
 
-	      	//printf("spd len=%d\r\n",buffPos) ;
-		  	/*debug the information*/
-			//int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
-		  	DealNetSPD(0,buf, buffPos);
-		  	buffPos=0;
-			// 第一次连接对时一次
-			if (first_entry == 0)
-			{
-				first_entry = 1;
-				Ex_SPD_Set_Process(SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
+			  	//CRC
+			  	unsigned short int CRC = CRC16(buf,buffPos-2) ;
+			  	if((((CRC&0xFF00) >> 8)!= buf[buffPos-2]) || ((CRC&0x00FF) != buf[buffPos-1]))
+				{
+				  printf("psdCRC error\r\n");
+		 		  if(buffPos>=256) buffPos=0;
+				  continue ;
+			  	}
+
+		      	//printf("spd len=%d\r\n",buffPos) ;
+			  	/*debug the information*/
+				//int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+			  	DealNetSPD(0,buf, buffPos);
+			  	buffPos=0;
+				// 第一次连接对时一次
+				if (first_entry == 0)
+				{
+					first_entry = 1;
+					Ex_SPD_Set_Process(SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
+				}
 			}
-		}
-		// 断线了
-		else
-		{
-			first_entry = 0;		// 断线重连再次对时
-			net_Conneted = 0;
-			while(net_Conneted==0)
+			// 断线了
+			else
 			{
-				// SPD断线了
-				printf("spd-break%d\n\r",net_Conneted);
-				net_Conneted=obtain_net_psd(0);
+				first_entry = 0;		// 断线重连再次对时
+				net_Conneted = 0;
+				while(net_Conneted==0)
+				{
+					// SPD断线了
+					printf("spd-break%d\n\r",net_Conneted);
+					net_Conneted=obtain_net_psd(0);
+				}
 			}
 		}
       	usleep(5000); //delay 5ms
 	}
 }
 
+
+void udp_param_reset(int Pos)
+{
+	const char *IPaddress;
+	const char * IPport;
+	int port;
+
+	IPaddress = gsSPDIP[Pos];	//获取配置文件中的IP地址
+	IPport=gsSPDPort[Pos];
+	port=atoi(IPport);
+    bzero(&HZSPDAddr[Pos],sizeof(HZSPDAddr[Pos]));
+
+    HZSPDAddr[Pos].sin_family = AF_INET;
+    HZSPDAddr[Pos].sin_addr.s_addr = inet_addr(IPaddress);
+    HZSPDAddr[Pos].sin_port = htons(port);	// Port number
+	printf("Pos=%d,hzSPD-IPaddress=%s,hzSPD-IPport=%s\n",Pos,IPaddress,IPport);
+}
+
+
+void SPD_HZ_Data_Get_Func(int seq)
+{
+	int Pos=seq;
+	int len,temp;
+	int addr_len =sizeof(struct sockaddr_in);
+
+    if((udpfd_spd[Pos] = socket(AF_INET,SOCK_DGRAM,0))<0){
+        perror("socket_1");
+        exit(1);
+    }
+
+    int nRecvBufLen = 512;
+    setsockopt(udpfd_spd[Pos], SOL_SOCKET, SO_RCVBUF, ( const char* )&nRecvBufLen, sizeof( int ));
+	int nSendBufLen = 512;
+    setsockopt(udpfd_spd[Pos], SOL_SOCKET, SO_SNDBUF, ( const char* )&nSendBufLen, sizeof( int ) );
+    struct timeval timeout={8,0};//3s
+    setsockopt(udpfd_spd[Pos],SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
+
+	// 获取配置文件中的IP地址
+	udp_param_reset(Pos);
+
+	struct sockaddr_in *Recvaddr = &HZSPDAddr[Pos];
+    int DataLen  ;
+    char *recvBuf = new char[512];
+    while(1)
+    {
+    	if (SPD_Type == TYPE_HUAZI)
+    	{
+	    	if (HZ_reset_flag[Pos] == true)
+	    	{
+	    		HZ_reset_flag[Pos] = false;
+				udp_param_reset(Pos);
+	    	}
+	        memset(recvBuf,0,512);
+	        DataLen = recvfrom(udpfd_spd[Pos],recvBuf,512,0,(struct sockaddr *)Recvaddr,(socklen_t*)&addr_len);
+	        if(DataLen > 0)
+	        {
+				// 打印出来
+				pthread_mutex_lock(&HZSPDMutex[Pos]);
+				printf("spd_HZ_len=%d\r\n",DataLen);
+				//int j ;for(j=0;j<DataLen;j++) printf("0x%02x ",recvBuf[j]);printf("\r\n");
+				DealNetSPD(Pos,(unsigned char *)recvBuf,DataLen);
+				pthread_mutex_unlock(&HZSPDMutex[Pos]);
+	        }
+    	}
+		usleep(5000); //delay 5ms
+    }
+    close(udpfd_spd[Pos]);
+}
+
+
 /*华咨的防雷器1接收线程*/
 void *NetWork_DataGet_thread_SPD_HZ1(void *param)
 {
 	param = NULL;
+
+	SPD_HZ_Data_Get_Func(0);	// 0,1,2 即SPD1，SPD2, 接地电阻
+
+#if 0
 	int Pos=0;
 	int len,temp;
 	const char *IPaddress;
@@ -1220,17 +1297,17 @@ void *NetWork_DataGet_thread_SPD_HZ1(void *param)
 	int port;
 	int addr_len =sizeof(struct sockaddr_in);
 
-    if((sockfd_spd[Pos] = socket(AF_INET,SOCK_DGRAM,0))<0){
+    if((udpfd_spd[Pos] = socket(AF_INET,SOCK_DGRAM,0))<0){
         perror("socket_1");
         exit(1);
     }
 
     int nRecvBufLen = 512;
-    setsockopt(sockfd_spd[Pos], SOL_SOCKET, SO_RCVBUF, ( const char* )&nRecvBufLen, sizeof( int ));
+    setsockopt(udpfd_spd[Pos], SOL_SOCKET, SO_RCVBUF, ( const char* )&nRecvBufLen, sizeof( int ));
 	int nSendBufLen = 512;
-    setsockopt(sockfd_spd[Pos], SOL_SOCKET, SO_SNDBUF, ( const char* )&nSendBufLen, sizeof( int ) );
+    setsockopt(udpfd_spd[Pos], SOL_SOCKET, SO_SNDBUF, ( const char* )&nSendBufLen, sizeof( int ) );
     struct timeval timeout={8,0};//3s
-    setsockopt(sockfd_spd[Pos],SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
+    setsockopt(udpfd_spd[Pos],SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
 
 	IPaddress = gsSPDIP[Pos];	//获取配置文件中的IP地址
 	IPport=gsSPDPort[Pos];
@@ -1262,12 +1339,16 @@ void *NetWork_DataGet_thread_SPD_HZ1(void *param)
 
     }
     close(sockfd_spd[Pos]);
+#endif
 }
 
 
 void *NetWork_DataGet_thread_SPD_HZ2(void *param)
 {
 	param = NULL;
+
+	SPD_HZ_Data_Get_Func(1);
+#if 0
 	int Pos=1;
 	int len,temp;
 	const char *IPaddress;
@@ -1316,6 +1397,7 @@ void *NetWork_DataGet_thread_SPD_HZ2(void *param)
 		}
 	}
 	close(sockfd_spd[Pos]);
+#endif
 }
 
 
@@ -1323,6 +1405,9 @@ void *NetWork_DataGet_thread_SPD_HZ2(void *param)
 void *NetWork_DataGet_thread_SPD_HZRes(void *param)
 {
 	param = NULL;
+
+	SPD_HZ_Data_Get_Func(SPD_NUM);
+#if 0
 	int Pos=2;
 	int len,temp;
 	const char *IPaddress;
@@ -1371,15 +1456,14 @@ void *NetWork_DataGet_thread_SPD_HZRes(void *param)
 		}
 	}
 	close(sockfd_spd[Pos]);
+#endif
 }
-
-
 
 
 // 统一创建接收线程
 void DataGet_Thread_Create(UINT16 SPD_t)
 {
-	if (SPD_t == TYPE_LEIXUN)
+	//if (SPD_t == TYPE_LEIXUN)
 	{
 		pthread_t tNetwork_dataget_SPD_L;
 		if (pthread_create(&tNetwork_dataget_SPD_L, NULL, NetWork_DataGet_thread_SPD_L,NULL))
@@ -1390,11 +1474,11 @@ void DataGet_Thread_Create(UINT16 SPD_t)
 		pthread_detach(tNetwork_dataget_SPD_L);
 	}
 
-	else if (SPD_t == TYPE_HUAZI)
+	//else if (SPD_t == TYPE_HUAZI)
 	{
-		pthread_mutex_init(&HZSPDMutex1,NULL);
-		pthread_mutex_init(&HZSPDMutex2,NULL);
-		pthread_mutex_init(&HZSPDMutexRes,NULL);
+		pthread_mutex_init(&HZSPDMutex[0],NULL);
+		pthread_mutex_init(&HZSPDMutex[1],NULL);
+		pthread_mutex_init(&HZSPDMutex[2],NULL);
 
 		pthread_t tNetwork_dataget_SPD_HZ1;
 		if (pthread_create(&tNetwork_dataget_SPD_HZ1, NULL, NetWork_DataGet_thread_SPD_HZ1,NULL))
@@ -1468,6 +1552,11 @@ void* NetWork_server_thread_SPD(void*arg)
 				sleep(2);
 			}
 		}
+	}
+	else
+	{
+		// 连一次，给sockfd_spd一个值，不然切换的时候会出现异常
+		obtain_net_psd(0);
 	}
 	// 连接成功后再创建接收的线程
 	DataGet_Thread_Create(SPD_Type);

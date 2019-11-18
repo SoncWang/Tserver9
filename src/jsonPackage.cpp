@@ -787,7 +787,7 @@ bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 		if(it->first=="hwctrlsmokereset2") pRCtrl->hwctrlsmokereset[1]=value;			//控制烟感复位 0：保持；1：不需复位；2：复位
 
 		if(it->first=="alarm_value" && spdDev->rSPD_res.alarm_value!=value) pRCtrl->spdres_alarm_value=value;		//报警值修改
-		if(it->first=="id" && spdDev->rSPD_res.id!=value) pRCtrl->spdres_id=value;			//修改设备id
+		if(it->first=="id" && spdDev->rSPD_res.id!=value) {pRCtrl->spdres_id=value; printf("res.id=%d\n",spdDev->rSPD_res.id);}		//修改设备id
 
 		if(it->first=="cabineid")	cabineid=value;			//电子门锁id
 		if(it->first=="operate")	operate=value;			//电子门锁操作
@@ -1177,14 +1177,39 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 		if(it->first=="spdcount" && StrSPDCount!=value && atoi(value)>=0 && atoi(value)<=SPD_NUM)	//防雷器数量
 		{
 			StrSPDCount=value;
+			SPD_num =atoi(StrSPDCount.c_str());
+			printf("spdcount = %d\r\n",SPD_num);
+			if(SPD_num>SPD_NUM)
+			{
+				sprintf(value,"%d", SPD_NUM) ;
+				StrSPDCount=value;
+				SPD_num=SPD_NUM;
+			}
+			else if(SPD_num<0)
+			{
+				StrSPDCount="0";
+				SPD_num=0;
+			}
 			sprintf(pRCtrl->SPDCount,"%s",value);
 			Setconfig("SPDCount=",value);
+			// 数量改变，全部初始化
+			for(i=0;i<SPD_NUM+RES_NUM;i++)
+			{
+				HZ_reset_pre[i] = true;
+			}
 		}
 		if(it->first=="spdtype" && StrSPDType!=value)	//防雷器类型
 		{
 			StrSPDType=value;
+			SPD_Type = atoi(StrSPDType.c_str());
+			printf("spdtype = %d\r\n",SPD_Type);
 			sprintf(pRCtrl->SPDType,"%s",value);
 			Setconfig("SPDType=",value);
+			// 类型改变，全部初始化
+			for(i=0;i<SPD_NUM+RES_NUM;i++)
+			{
+				HZ_reset_pre[i] = true;
+			}
 		}
 		for(i=0;i<SPD_NUM+RES_NUM;i++)
 		{
@@ -1193,35 +1218,99 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			{
 				StrSPDIP[i]=value;
 				sprintf(gsSPDIP[i],StrSPDIP[i].c_str());
+				printf("spd%dip = %s\r\n",i+1,gsSPDIP[i]);
 				sprintf(pRCtrl->SPDIP[i],"%s",value);
 				sprintf(key,"SPD%dIP=",i+1);
 				Setconfig(key,value);
+				HZ_reset_pre[i] = true;
 			}
 			sprintf(keytmp,"spd%dport",i+1);//SPD端口
 			if(it->first==keytmp && StrSPDPort[i]!=value)
 			{
 				StrSPDPort[i]=value;
 				sprintf(gsSPDPort[i],StrSPDPort[i].c_str());
+				printf("spd%dport = %s\r\n",i+1,gsSPDPort[i]);
 				sprintf(pRCtrl->SPDPort[i],"%s",value);
 				sprintf(key,"SPD%dPort=",i+1);
 				Setconfig(key,value);
+				HZ_reset_pre[i] = true;
 			}
 			sprintf(keytmp,"spd%daddr",i+1);//SPD硬件地址
 			if(it->first==keytmp && StrSPDAddr[i]!=value)
 			{
 				StrSPDAddr[i]=value;
 				SPD_Address[i] = atoi(StrSPDAddr[i].c_str());
+				printf("spd%daddr = %d\r\n",i+1,SPD_Address[i]);
 				sprintf(pRCtrl->SPDAddr[i],"%s",value);
 				sprintf(key,"SPD%dAddr=",i+1);
 				Setconfig(key,value);
+				HZ_reset_pre[i] = true;
 			}
+		}
+
+		if(it->first=="spdresip" && StrSPDIP[SPD_NUM]!=value)	//防雷器接地电阻IP
+		{
+			StrSPDIP[SPD_NUM]=value;
+			sprintf(gsSPDIP[SPD_NUM],StrSPDIP[SPD_NUM].c_str());
+			printf("spdresip = %s\r\n",gsSPDIP[SPD_NUM]);
+			sprintf(pRCtrl->SPDIP[SPD_NUM],"%s",value);
+			sprintf(key,"SPDResIP=");
+			Setconfig(key,value);
+			HZ_reset_pre[SPD_NUM] = true;
+		}
+		if(it->first=="spdresport" && StrSPDPort[SPD_NUM]!=value)	//防雷器接地电阻端口
+		{
+			StrSPDPort[SPD_NUM]=value;
+			sprintf(gsSPDPort[SPD_NUM],StrSPDPort[SPD_NUM].c_str());
+			printf("spdresport = %s\r\n",gsSPDPort[SPD_NUM]);
+			sprintf(pRCtrl->SPDPort[SPD_NUM],"%s",value);
+			sprintf(key,"SPDResPort=");
+			Setconfig(key,value);
+			HZ_reset_pre[SPD_NUM] = true;
 		}
 		if(it->first=="spdresaddr" && StrSPDAddr[SPD_NUM]!=value)	//防雷器接地电阻地址
 		{
 			StrSPDAddr[SPD_NUM]=value;
+			SPD_Address[i] = atoi(StrSPDAddr[i].c_str());
+			printf("spdresaddr = %d\r\n",SPD_Address[SPD_NUM]);
 			sprintf(pRCtrl->SPDAddr[SPD_NUM],"%s",value);
-			Setconfig("SPDResAddr=",value);
+			sprintf(key,"SPDResAddr=");
+			Setconfig(key,value);
+			HZ_reset_pre[SPD_NUM] = true;
 		}
+		// 统一处理初始化标志
+		for(i=0;i<SPD_NUM+RES_NUM;i++)
+		{
+			if (SPD_Type == TYPE_HUAZI)
+			{
+				if (HZ_reset_pre[i] == true)
+				{
+					HZ_reset_pre[i] = false;
+					HZ_reset_flag[i] = true;
+				}
+			}
+		}
+		#if 0
+		// 没有配置的都置空
+		if ((SPD_Type == TYPE_LEIXUN) && (SPD_num == 1))
+		{
+			for (i=1;i<SPD_NUM;i++)
+			{
+				StrSPDIP[i] =""; ;//防雷器IP
+				sprintf(key,"SPD%dIP=",i+1);
+				Setconfig(key,StrSPDIP[i]);
+				StrSPDPort[i] ="";//防雷器端口
+				sprintf(key,"SPD%dPort=",i+1);
+				Setconfig(key,StrSPDPort[i]);
+				StrSPDAddr[i] ="";//防雷器硬件端口
+				sprintf(key,"SPD%dAddr=",i+1);
+				Setconfig(key,StrSPDAddr[i]);
+			}
+			Setconfig("SPDResIP=","");
+			Setconfig("SPDResPort=","");
+		}
+		#endif
+
 		for(i=0;i<LOCK_MAX_NUM;i++)
 		{
 			sprintf(keytmp,"adrrlock%d",i+1);//门锁地址
