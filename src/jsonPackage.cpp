@@ -1211,7 +1211,7 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 				HZ_reset_pre[i] = true;
 			}
 		}
-		for(i=0;i<SPD_NUM+RES_NUM;i++)
+		for(i=0;i<SPD_NUM;i++)
 		{
 			sprintf(keytmp,"spd%dip",i+1);//SPDIP地址
 			if(it->first==keytmp && StrSPDIP[i]!=value)
@@ -1290,26 +1290,6 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 				}
 			}
 		}
-		#if 0
-		// 没有配置的都置空
-		if ((SPD_Type == TYPE_LEIXUN) && (SPD_num == 1))
-		{
-			for (i=1;i<SPD_NUM;i++)
-			{
-				StrSPDIP[i] =""; ;//防雷器IP
-				sprintf(key,"SPD%dIP=",i+1);
-				Setconfig(key,StrSPDIP[i]);
-				StrSPDPort[i] ="";//防雷器端口
-				sprintf(key,"SPD%dPort=",i+1);
-				Setconfig(key,StrSPDPort[i]);
-				StrSPDAddr[i] ="";//防雷器硬件端口
-				sprintf(key,"SPD%dAddr=",i+1);
-				Setconfig(key,StrSPDAddr[i]);
-			}
-			Setconfig("SPDResIP=","");
-			Setconfig("SPDResPort=","");
-		}
-		#endif
 
 		for(i=0;i<LOCK_MAX_NUM;i++)
 		{
@@ -1582,6 +1562,25 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			Setconfig(stmp.c_str(),value);//DO映射
 		}*/
 		it++;
+	}
+
+	// 没有配置的都置空
+	if ((SPD_Type == TYPE_LEIXUN) && (SPD_num == 1))
+	{
+		for (i=1;i<SPD_NUM;i++)
+		{
+			StrSPDIP[i] =""; ;//防雷器IP
+			sprintf(key,"SPD%dIP=",i+1);
+			Setconfig(key,StrSPDIP[i]);
+			StrSPDPort[i] ="";//防雷器端口
+			sprintf(key,"SPD%dPort=",i+1);
+			Setconfig(key,StrSPDPort[i]);
+			StrSPDAddr[i] ="";//防雷器硬件端口
+			sprintf(key,"SPD%dAddr=",i+1);
+			Setconfig(key,StrSPDAddr[i]);
+		}
+		Setconfig("SPDResIP=","");
+		Setconfig("SPDResPort=","");
 	}
 
 	printf("\n");

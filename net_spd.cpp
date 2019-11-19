@@ -569,6 +569,8 @@ int obtain_net_psd(UINT16 seq)
 	sprintf(str,"SPD-IPaddress=%s,SPD-IPport=%s\n",IPaddress,IPport);
 	WriteLog(str);
 
+	// 经测试，这个函数在连接不同网段的ip时，返回时间长达30s
+	// 修改IP后要等下一次connect才能成功连接
 	if (connect(sockfd_spd[seq], (struct sockaddr*)&net_psd_addr, sizeof(net_psd_addr)) == -1)
    	 {
 		printf("connect to SPD%d server refused!\n",seq);
@@ -891,12 +893,12 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 		stuSpd_Param->rSPD_data[0].DI_grd_alarm = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(4))?1:0;
 		stuSpd_Param->rSPD_data[0].DI_volt_alarm  = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(7))?1:0;
 
-		/*
+
 		printf("C1_status = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_C1_status);
 		printf("grd_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_grd_alarm);
 		printf("leak_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_leak_alarm);
 		printf("volt_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_volt_alarm);
-		*/
+
 		break;
 
 	case (SPD_DO_DATA):
@@ -1205,6 +1207,7 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 					// SPD断线了
 					printf("spd-break%d\n\r",net_Conneted);
 					net_Conneted=obtain_net_psd(0);
+					usleep(50000); //delay 50ms
 				}
 			}
 		}
