@@ -14,6 +14,7 @@
 // 温度1 ->0xDFE8,2->0xDFE9,湿度1->0xDFEA,湿度2->0xDFEB
 #define VAR_REG_ADD			0xDFE8
 #define TIME_REG_ADD		0x0010
+#define LETTER_REG_ADD		0xB1C0
 
 
 #define MSG_SEND_INTERVAL	400000		//400ms
@@ -41,6 +42,8 @@
 #define BACKLIGHT_CFG_MSG		0x05	// 背光配置
 #define BACKLIGHT_ON_MSG		0x06	// 背光打开
 #define BACKLIGHT_OFF_MSG		0x07	// 背光关闭
+#define WRITE_LETTER_MSG		0x08		// 修改前面的G/S
+
 
 #define SYS_CFG_ADDR			0x80
 #define LED_CFG_ADDR			0x82
@@ -60,6 +63,7 @@ typedef enum
 	BACKLIGHT_ON_SET,	// 打开背光
 	BACKLIGHT_OFF_SET,	// 关闭背光
 	ERR_CHECK,
+	LETTER_SET,
 
 	SCREEN_SET_NUM
 }SREEN_SET_LIST;
@@ -76,6 +80,7 @@ typedef enum
 	WAIT_BACKLIGHT_CFG_MSG,
 	WAIT_BACKLIGHT_ON_MSG,
 	WAIT_BACKLIGHT_OFF_MSG,
+	WAIT_LETTER_MSG,
 
 	WAIT_MSG_COM_NUM
 }WAIT_MSG_COM_LIST;
@@ -87,5 +92,7 @@ void cominit(void) ;
 //向串口屏发送数据
 int SendCom2WriteReg(UINT16 Addr, UINT8 Func);
 UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf);
+void ScreenFlagSet(SREEN_SET_LIST sFlag);
+
 
 #endif

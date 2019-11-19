@@ -170,19 +170,40 @@ unsigned long long IDgetFromConfig(void)
 	unsigned long long IDDataSaved;	// 64位长度存ID
 
 	/*不能用atoi和atol，它们最大只能转换长整型,超出的会返回0x7FFFFFFF*/
-	IDDataSaved = (unsigned long long)strtod(StrID.c_str(),NULL);
+	IDDataSaved = (unsigned long long)strtoll(StrID.c_str(),NULL,10);
 	return IDDataSaved;
 }
 
-// 读取门架号
-unsigned long long GetFlagID(void)
+// 读取门架号,连同前面的字母,字母放在pbuf的第一个字符中
+unsigned long long GetFlagID(char *pbuf)
 {
 	const char *pid = NULL;
 	unsigned long long flagIDSaved;	// 64位长度存ID
+	UINT8 len = 0;
+	char realstr[50]={0,};	// 实际的截断后的字符串
 
 	pid = StrFlagID.c_str();
-	/*不能用atoi和atol，它们最大只能转换长整型,超出的会返回0x7FFFFFFF*/
-	flagIDSaved = (unsigned long long)strtod(pid+1,NULL);
+	*pbuf = *pid;			// 返回第一个字母地址
+	len = strlen(pid);
+	//printf("len = 0x%02x \r\n",len);
+	// 触摸屏上只能显示17位字符加上前面的G/S一共18位
+	if (len >18)
+	{
+		memcpy(realstr,pid+len-17,17);
+		//realstr = pid+len-17;	// 取后17位
+		printf("realstr = %s\r\n",realstr);
+		// 这里就舍弃掉前面的字母了, 不用加1
+		flagIDSaved = (unsigned long long)strtoll(realstr,NULL,10);
+		printf("flagIDSaved = %lld\r\n",flagIDSaved);
+	}
+	// 刚好18位，就按照原来的来
+	else
+	{
+		/*不能用atoi和atol，它们最大只能转换长整型,超出的会返回0x7FFFFFFF*/
+		flagIDSaved = (unsigned long long)strtoll(pid+1,NULL,10);
+		printf("pid = %s\r\n",pid);
+	}
+
 	return flagIDSaved;
 }
 
@@ -305,6 +326,7 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 	unsigned long long flagIDInfo = 0;
 	UINT16 temp_v[2];
 	UINT16 moist_v[2];
+	char letter = 0;
 
 	time_t nSeconds;
 	struct tm * pTM;
@@ -316,7 +338,7 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 		IP1getFromConfig();
 		IP2getFromConfig();
 		VergetFromConfig();
-		flagIDInfo = GetFlagID();
+		flagIDInfo = GetFlagID(&letter);
 		temp_v[0] = tmpGetFromConfig(&HUAWEIDevValue.strhwEnvTemperature[0]);
 		//printf("temp1=%s ",HUAWEIDevValue.strhwEnvTemperature[0].c_str());
 		temp_v[1] = tmpGetFromConfig(&HUAWEIDevValue.strhwEnvTemperature[1]);
@@ -512,12 +534,37 @@ UINT8 message_pack(UINT16 address,UINT8 msg_type,UINT8 *buf)
 		pbuf[BUF_LENTH] = len-3;
 		break;
 
+	case WRITE_LETTER_MSG:
+		GetFlagID(&letter);
+		//printf("letter = %c \r\n",letter);
+		//printf("test = %d \r\n",'G');
+		//printf("test1 = %d \r\n",'高');
+		pbuf[len++] = FRAME_HEAD_1;
+		pbuf[len++] = FRAME_HEAD_2;		// 帧头为0x5AA5
+		pbuf[len++] = 0x05;				// 长度先临时写入5，后面再更新
+		pbuf[len++] = CMD_WRITE;
+		// 串口屏的地址是以16位为单位的
+		pbuf[len++] = ((address>>8)&0xFF);
+		pbuf[len++] = address&0xFF;
+
+		// 温度
+		pbuf[len++] = letter&0xFF;	// 英文字符GB2312编码只占1个字节
+		pbuf[BUF_LENTH] = len-3;
+		break;
+
 	case NOT_USED_MSG:
 		break;
 	default:
 		break;
 	}
 	return len;
+}
+
+
+// 设置标志位的处理函数，外部调用
+void ScreenFlagSet(SREEN_SET_LIST sFlag)
+{
+	screen_poll_flag |= BIT(sFlag);
 }
 
 
@@ -608,8 +655,14 @@ void *ComPort2HandleDataThread(void *param)
 			Comm_Err_Process(ERR_COM1,&WAIT_response_com_flag,WAIT_TIME_MSG);
 		}
 
-		// 设置时序，优先走时
-		if (screen_poll_flag&BIT(BACKLIGHT_EN_SET))
+		// 设置时序，门架号前面的字母只设置一次，最高有限级
+		if (screen_poll_flag&BIT(LETTER_SET))
+		{
+			screen_poll_flag &= ~(BIT(LETTER_SET));
+			WAIT_response_com_flag = WAIT_LETTER_MSG;
+			SendCom2WriteReg(LETTER_REG_ADD,WRITE_LETTER_MSG);
+		}
+		else if (screen_poll_flag&BIT(BACKLIGHT_EN_SET))
 		{
 			screen_poll_flag &= ~(BIT(BACKLIGHT_EN_SET));
 			// 先使能背光, 再设置时间，直接一起, 不然发2次不好处理

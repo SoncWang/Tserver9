@@ -1,5 +1,7 @@
 #include "jsonPackage.h"
 #include "../IpcamServer.h"
+#include "../comserver.h"
+
 
 extern ENVI_PARAMS *stuEnvi_Param;		// 环境数据结构体
 extern UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
@@ -886,6 +888,8 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 		if(it->first=="flagid" && StrFlagID!=value)	//ETC 门架编号
 		{
 			StrFlagID=value;
+			// 更新屏幕上的字母
+			ScreenFlagSet(LETTER_SET);
 			sprintf(pRCtrl->FlagID,"%s",value);
 			Setconfig("FlagID=",value);
 		}
@@ -1658,6 +1662,8 @@ bool jsonstrVmCtlParamReaderXY(char* jsonstr, int len, UINT8 *pstPam)
 		if(value!=StrFlagID)
 		{
 			StrFlagID=value;
+			// 更新屏幕上的字母
+			ScreenFlagSet(LETTER_SET);
 			sprintf(pRCtrl->FlagID,"%s",value);
 			Setconfig("FlagID=",value);
 		}
