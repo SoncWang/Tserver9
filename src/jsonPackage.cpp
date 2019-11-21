@@ -1,6 +1,7 @@
 #include "jsonPackage.h"
 #include "../IpcamServer.h"
 #include "../comserver.h"
+#include "../rs485server.h"
 
 
 extern ENVI_PARAMS *stuEnvi_Param;		// 环境数据结构体
@@ -849,6 +850,7 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 {
 	//printf("%s \t\n",jsonstr);
 	int i,j;
+	bool locker_changed = false;
 
 	std::string json = jsonstr;
 	std::map<std::string, std::string> out;
@@ -1304,8 +1306,10 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 				sprintf(pRCtrl->LockAddr[i],"%s",value);
 				sprintf(key,"LOCKADD%d=",i+1);
 				Setconfig(key,value);
+				locker_changed = true;	// 锁的配置发生变化
 			}
 		}
+
 		for(i=0;i<POWER_BD_NUM;i++)
 		{
 			sprintf(keytmp,"poweraddr%d",i+1);//门锁地址
@@ -1585,6 +1589,30 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 		}
 		Setconfig("SPDResIP=","");
 		Setconfig("SPDResPort=","");
+	}
+	if (locker_changed)
+	{
+		locker_changed = false;
+		// 锁的参数重新初始化
+		lockerDataInit(false);
+	/*
+	printf("LOCKER_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_1].status, Var_Table[LOCKER_1].enable,Var_Table[LOCKER_1].position,Var_Table[LOCKER_1].addr);
+	printf("LOCKER_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_2].status, Var_Table[LOCKER_2].enable,Var_Table[LOCKER_2].position,Var_Table[LOCKER_2].addr);
+	printf("LOCKER_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_3].status, Var_Table[LOCKER_3].enable,Var_Table[LOCKER_3].position,Var_Table[LOCKER_3].addr);
+	printf("LOCKER_4=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_4].status, Var_Table[LOCKER_4].enable,Var_Table[LOCKER_4].position,Var_Table[LOCKER_4].addr);
+	printf("VA_METER_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_1].status, Var_Table[VA_METER_1].enable,Var_Table[VA_METER_1].position,Var_Table[VA_METER_1].addr);
+	printf("VA_METER_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_2].status, Var_Table[VA_METER_2].enable,Var_Table[VA_METER_2].position,Var_Table[VA_METER_2].addr);
+	printf("VA_METER_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_3].status, Var_Table[VA_METER_3].enable,Var_Table[VA_METER_3].position,Var_Table[VA_METER_3].addr);
+	printf("VA_METER_4=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_4].status, Var_Table[VA_METER_4].enable,Var_Table[VA_METER_4].position,Var_Table[VA_METER_4].addr);
+	printf("VA_METER_5=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_5].status, Var_Table[VA_METER_5].enable,Var_Table[VA_METER_5].position,Var_Table[VA_METER_5].addr);
+	printf("VA_METER_6=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[VA_METER_6].status, Var_Table[VA_METER_6].enable,Var_Table[VA_METER_6].position,Var_Table[VA_METER_6].addr);
+	printf("POWER_BD_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[POWER_BD_1].status, Var_Table[POWER_BD_1].enable,Var_Table[POWER_BD_1].position,Var_Table[POWER_BD_1].addr);
+	printf("POWER_BD_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[POWER_BD_2].status, Var_Table[POWER_BD_2].enable,Var_Table[POWER_BD_2].position,Var_Table[POWER_BD_2].addr);
+	printf("POWER_BD_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[POWER_BD_3].status, Var_Table[POWER_BD_3].enable,Var_Table[POWER_BD_3].position,Var_Table[POWER_BD_3].addr);
+	printf("IO_BD_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[IO_BD_1].status, Var_Table[IO_BD_1].enable,Var_Table[IO_BD_1].position,Var_Table[IO_BD_1].addr);
+	printf("IO_BD_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[IO_BD_2].status, Var_Table[IO_BD_2].enable,Var_Table[IO_BD_2].position,Var_Table[IO_BD_2].addr);
+	printf("IO_BD_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[IO_BD_3].status, Var_Table[IO_BD_3].enable,Var_Table[IO_BD_3].position,Var_Table[IO_BD_3].addr);
+	*/
 	}
 
 	printf("\n");

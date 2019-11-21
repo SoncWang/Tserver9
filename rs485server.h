@@ -306,6 +306,8 @@ int Power_readback_process(UINT32 *pread_flag, UINT32 *pcomm_flag, RS485_DEV_LIS
 void *Locker_DataPollingthread(void *param);
 void lockerDataMalloc(void);
 UINT16 DoorStatusFromLocker(void);
+void lockerDataInit(bool first_entry);
+
 
 #endif
 

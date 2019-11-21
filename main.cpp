@@ -124,21 +124,25 @@ int main(void)
 	stuSpd_Param = (SPD_PARAMS*)malloc(sizeof(SPD_PARAMS));
 	memset(stuSpd_Param,0,sizeof(SPD_PARAMS));
 
+	lockerDataInit(true);
+
+#if 0
 	//电子锁参数配置
 	for (i = 0; i < LOCK_MAX_NUM; i++)
 	{
+		// 不管配置没有都开辟内存
+		lockerHw_Param[i] = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
+		memset(lockerHw_Param[i],0,sizeof(LOCKER_HW_PARAMS));
 		/*配置文件中是否有配置*/
 		if (StrAdrrLock[i].length() != 0)
 		{
-			lockerHw_Param[i] = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
-			memset(lockerHw_Param[i],0,sizeof(LOCKER_HW_PARAMS));
 			lockerHw_Param[i]->address = atoi(StrAdrrLock[i].c_str());
 			//更新配置表
 			Rs485_table_set(LOCKER_1+i, ENABLE,pos_cnt++, lockerHw_Param[i]->address);
 		}
 		else
 		{
-			lockerHw_Param[i] = NULL;		// 防止为野指针
+			//lockerHw_Param[i] = NULL;		// 防止为野指针
 			Rs485_table_set(LOCKER_1+i, DISABLE,NULL_VAR, NULL_VAR);
 		}
 	}
@@ -157,6 +161,7 @@ int main(void)
 			j++;
 		}
 	}
+	#endif
 
 	/////////////////  电压电流传感器配置开始  /////////////////////////////////////////////
 	for (i = 0; i < VA_METER_BD_MAX_NUM; i++)
@@ -252,7 +257,7 @@ int main(void)
 	/////////////////  电源控制板配置结束	/////////////////////////////////////////////
 
 
-	/*打印485配置表的调试信息
+	/* 打印485配置表的调试信息
 	printf("LOCKER_1=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_1].status, Var_Table[LOCKER_1].enable,Var_Table[LOCKER_1].position,Var_Table[LOCKER_1].addr);
 	printf("LOCKER_2=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_2].status, Var_Table[LOCKER_2].enable,Var_Table[LOCKER_2].position,Var_Table[LOCKER_2].addr);
 	printf("LOCKER_3=0x%02x=0x%02x=0x%02x=0x%02x\r\n",Var_Table[LOCKER_3].status, Var_Table[LOCKER_3].enable,Var_Table[LOCKER_3].position,Var_Table[LOCKER_3].addr);

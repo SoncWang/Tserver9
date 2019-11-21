@@ -66,7 +66,7 @@ UINT16 DoSeq[SWITCH_COUNT]={0,};	// 另外定义一个专门用来存储映射�
 
 extern void RemoteControl(UINT8* pRCtrl);
 
-int *polling_arr;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
+int *polling_arr = NULL;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
 int *polling_subarr;
 
 const UINT32 locker_id[CARD_NUM] =
@@ -184,10 +184,59 @@ UINT16 Rs485_table_enable_get(UINT16 name)
 void lockerDataMalloc(void)
 {
 	/*与电子锁有关的变量进行动态分配*/
-	locker_opened = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
-	memset(locker_opened,0,sizeof(UINT16)*actual_locker_num);
-	last_cnt = (UINT16*)malloc(sizeof(UINT16)*actual_locker_num);
-	memset(last_cnt,0,sizeof(UINT16)*actual_locker_num);
+	/*都以最大变量存储*/
+	locker_opened = (UINT16*)malloc(sizeof(UINT16)*LOCK_MAX_NUM);
+	memset(locker_opened,0,sizeof(UINT16)*LOCK_MAX_NUM);
+	last_cnt = (UINT16*)malloc(sizeof(UINT16)*LOCK_MAX_NUM);
+	memset(last_cnt,0,sizeof(UINT16)*LOCK_MAX_NUM);
+}
+
+
+// 首次进来要分配内存
+void lockerDataInit(bool first_entry)
+{
+	UINT8 i,j;
+	unsigned int pos_cnt = 0;
+	//电子锁参数配置
+	for (i = 0; i < LOCK_MAX_NUM; i++)
+	{
+		if (first_entry)
+		{
+			// 不管配置没有都开辟内存
+			lockerHw_Param[i] = (LOCKER_HW_PARAMS*)malloc(sizeof(LOCKER_HW_PARAMS));
+			memset(lockerHw_Param[i],0,sizeof(LOCKER_HW_PARAMS));
+		}
+		/*配置文件中是否有配置*/
+		if (StrAdrrLock[i].length() != 0)
+		{
+			lockerHw_Param[i]->address = atoi(StrAdrrLock[i].c_str());
+			//更新配置表
+			Rs485_table_set(LOCKER_1+i, ENABLE,pos_cnt++, lockerHw_Param[i]->address);
+		}
+		else
+		{
+			//lockerHw_Param[i] = NULL;		// 防止为野指针
+			Rs485_table_set(LOCKER_1+i, DISABLE,NULL_VAR, NULL_VAR);
+		}
+	}
+	actual_locker_num = pos_cnt;
+	pos_cnt = 0;
+	//printf("actual_locker_num 0x%02x ",actual_locker_num);printf("\r\n");
+
+	/*动态开辟一个数组，并存储有效电子锁轮询配置*/
+	if (first_entry)
+	{
+		polling_arr = (int*)malloc(sizeof(int)*actual_locker_num);
+	}
+	for (i = 0,j=0; i <= LOCKER_4; i++)
+	{
+		if ((Var_Table[i].enable)&&(j<actual_locker_num))
+		{
+			polling_arr[j] = Var_Table[i].status;
+			//printf("pollingcnt 0x%02x ",polling_arr[j]);printf("\r\n");
+			j++;
+		}
+	}
 }
 
 /**********依赖的通用运算函数************************************************/
