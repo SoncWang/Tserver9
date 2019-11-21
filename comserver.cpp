@@ -178,30 +178,44 @@ unsigned long long IDgetFromConfig(void)
 unsigned long long GetFlagID(char *pbuf)
 {
 	const char *pid = NULL;
+	const char *pstr = NULL;
 	unsigned long long flagIDSaved;	// 64位长度存ID
 	UINT8 len = 0;
 	char realstr[50]={0,};	// 实际的截断后的字符串
+	int i,j=0;
 
 	pid = StrFlagID.c_str();
 	*pbuf = *pid;			// 返回第一个字母地址
 	len = strlen(pid);
 	//printf("len = 0x%02x \r\n",len);
 	// 触摸屏上只能显示17位字符加上前面的G/S一共18位
-	if (len >18)
+	for(i =0, j=0;i< len; i++)
+    {
+		if(isdigit(*(pid+i)))
+		{
+			realstr[j] = pid[i];
+			j++;			// 把数值赋给新的字符串
+		}
+	}
+	realstr[j] = '\0';			// 字符串的长度
+	len = j;
+	printf("len = 0x%02x \r\n",len);
+	if (len >17)		// 已经排除了前面的字母
 	{
-		memcpy(realstr,pid+len-17,17);
+		pstr = realstr+len-17;
+		//memcpy(realstr,pid+len-17,17);
 		//realstr = pid+len-17;	// 取后17位
-		printf("realstr = %s\r\n",realstr);
+		printf("pstr = %s\r\n",pstr);
 		// 这里就舍弃掉前面的字母了, 不用加1
-		flagIDSaved = (unsigned long long)strtoll(realstr,NULL,10);
+		flagIDSaved = (unsigned long long)strtoll(pstr,NULL,10);
 		printf("flagIDSaved = %lld\r\n",flagIDSaved);
 	}
 	// 刚好18位，就按照原来的来
 	else
 	{
 		/*不能用atoi和atol，它们最大只能转换长整型,超出的会返回0x7FFFFFFF*/
-		flagIDSaved = (unsigned long long)strtoll(pid+1,NULL,10);
-		printf("pid = %s\r\n",pid);
+		flagIDSaved = (unsigned long long)strtoll(realstr,NULL,10);
+		printf("realstr = %s\r\n",realstr);
 	}
 
 	return flagIDSaved;
