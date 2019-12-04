@@ -28,8 +28,8 @@ typedef struct control_S{
 	char ControlStatus_3;	//控制器之间的网络连接状态
 	char Psam_num1;		//路侧单元控制器1PSAM数量,记为 n
 	char Psam_num2;		//路侧单元控制器2PSAM数量,记为 m
-	 PSAM1_S Psam1[12];	//控制器1,PSAM卡状态
-	 PSAM2_S Psam2[12];	//控制器2,PSAM卡状态
+	PSAM1_S Psam1[12];	//控制器1,PSAM卡状态
+	PSAM2_S Psam2[12];	//控制器2,PSAM卡状态
 	char AntennaCount;	//天线数量
 	AntennaInfoN_n  AntennaInfoN[8];	//天线数量
 }RSUCONTROLER;

@@ -78,6 +78,7 @@ CAM4IP=
 CAM4Port=
 CAM4Key=
 
+FireWareType=1
 FireWareCount=1
 FireWare1IP=192.168.130.1
 FireWare1GetPasswd=Huawei123
@@ -86,6 +87,7 @@ FireWare2IP=
 FireWare2GetPasswd=
 FireWare2SetPasswd=
 
+IPSwitchType=1
 SwitchCount=1
 Switch1IP=192.168.130.2
 Switch1GetPasswd=Huawei123

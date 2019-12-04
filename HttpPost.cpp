@@ -134,6 +134,7 @@ int HttpPostjpeng(unsigned char *pjpengbuf,int jpenglen)
     curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, strJsonData.c_str());
     curl_easy_setopt(pCurl, CURLOPT_POSTFIELDSIZE, strJsonData.size());
 
+	curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, 20);
 
     res = curl_easy_perform(pCurl);
 

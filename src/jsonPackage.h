@@ -30,10 +30,9 @@ bool jsonstrAirCondReader(char* jsonstr, int len, UINT8 *pstPam);//13 JSON字符
 bool jsonStrRsuWriterXY(int messagetype, string &mstrjson);//14 RSU天线参数
 void SetjsonIPSwitchStatusStr(int messagetype,string &mstrjson);//16交换机状态参数
 bool jsonStrVehPlateWriter(int messagetype, string &mstrjson);//15 车牌识别仪参数
-void SetjsonFlagRunStatusStr(int messagetype,string &mstrjson);//17 门架运行状态
-void SetjsonTableStr(char* table, string &mstrjson);//17 门架运行状态
 void SetjsongantryRunStatus(char* table, string &mstrjson);//17 门架运行状态-新部标准
 bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl);//18 json解析到结构体
+void SetjsonTableStr(char* table, string &mstrjson);
 //bool jsonstrRCtrlReader(string jsonstr, UINT8 *pstuRCtrl);//18 json解析到结构体
 bool jsonStrSwitchStatusWriter(int messagetype, string &mstrjson);	//19回路电压电流开关状态
 bool jsonStrSwitchStatusWriterXY(int messagetype, string &mstrjson);	//19回路电压电流开关状态

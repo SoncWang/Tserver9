@@ -16,6 +16,8 @@ int snmptrapInit(void);
 void initHUAWEIGantry();
 int mywalkappinit(void);
 int SendWalkSnmpOid(string mSnmpOid);
+int ClearvecWalkSnmp(void);
+
 
 #pragma pack(push, 1)
 typedef enum
@@ -120,7 +122,22 @@ typedef enum
     hwswitchEntityInErrors = 11007,               //出错数
     hwswitchEntityOutOctets = 11008,               //总字节数
     hwswitchEntityOutErrors = 11009,               //出错数
-    hwswitchEntityDevModel = 11010               //型号
+    hwswitchEntityDevModel = 11010,               //型号
+
+
+    //迪普防火墙
+    dpEntityCpuUCheck = 12000,             //查询
+    dpEntityCpuUsage = 12001,              //CPU
+    dpEntityMemUsage = 12002,                 //内存使用率
+    dpEntityTemperature = 12003,               //温度
+    dpEntityDescr = 12004,                  //接口查询
+    dpEntityOperStatus = 12005,             //接口状态查询
+    dpEntityInOctets = 12006,               //总字节数
+    dpEntityInErrors = 12007,               //出错数
+    dpEntityOutOctets = 12008,               //总字节数
+    dpEntityOutErrors = 12009,               //出错数
+    dpEntityDevModel = 12010                //型号
+
 
 
 

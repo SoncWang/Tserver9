@@ -69,6 +69,7 @@ void *HTTP_IPCamDataGet(void *param)
     //RebootIpCam(0);
    // string mStrdata ;
     string mStrdata;
+	sleep(10);
 	while(1)
     {
         for(n=0;n<IntIpcamCount;n++)
@@ -82,7 +83,7 @@ printf("HTTP_IPCamDataGet ret %s\r\n",mStrdata.c_str());
             pthread_mutex_unlock(&IpCamStateMutex);
             sleep(3);
         }
-        sleep(300);
+        sleep(60);
 	}
 	return 0 ;
 }
