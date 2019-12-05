@@ -502,12 +502,12 @@ int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
 			switch(SPD_ctrl_event)
 			{
 			case SPD_AI_SET:
-				//设置防雷器的AI数据
-				SPD_AI_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,AI_SET_MIN,&SPD_ctrl_value.f_ai_set);
-				// 改了id后要更新地址
-				if (SPD_ctrl_value.ref_addr == AI_SPD_ID_ADDR)
+				// 不要改id,防止误操作
+				if (SPD_ctrl_value.ref_addr != AI_SPD_ID_ADDR)
 				{
-					SPD_Address[0] = (UINT8)SPD_ctrl_value.f_ai_set.f;
+					//SPD_Address[0] = (UINT8)SPD_ctrl_value.f_ai_set.f;
+					//设置防雷器的AI数据
+					SPD_AI_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,AI_SET_MIN,&SPD_ctrl_value.f_ai_set);
 				}
 				break;
 
@@ -517,12 +517,12 @@ int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
 				break;
 
 			case SPD_RES_SET:
-				// RES接地电阻部分设置
-				SPD_Res_Set_Reg(socketq,addr_temp,SPD_RES_SET_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.res_set);
-				// 改了id后要更新地址
-				if (SPD_ctrl_value.ref_addr == RES_ID_ADDR)
+				// 不要改id,防止误操作
+				if (SPD_ctrl_value.ref_addr != RES_ID_ADDR)
 				{
-					SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
+					//SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
+					// RES接地电阻部分设置
+					SPD_Res_Set_Reg(socketq,addr_temp,SPD_RES_SET_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.res_set);
 				}
 				break;
 
