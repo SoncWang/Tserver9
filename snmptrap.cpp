@@ -15,8 +15,7 @@ extern THUAWEIALARM HUAWEIDevAlarm;		//华为机柜告警
 //extern void SetjsonTableStr(char* table, char *json, int *lenr);
 extern void SetjsonTableStr(char* table, string &mstrjson);//17 门架运行状态
 void SetjsonLTAlarmTableStr(char* table, string &mstrjson);
-//extern int HttpPostParm(string url,char *pParmbuf,int *parmlen,int flag);
-extern int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag);
+extern int HttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,string strDigestUser,string strDigestKey,int Inttimeout);
 extern void myprintf(char* str);
 extern void WriteLog(char* str);
 
@@ -163,7 +162,7 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 	SetjsonLTAlarmTableStr("cabinetAlarmUpload",mstrjson);
     //printf("SetjsonLTAlarmTableStr \n%s\n",mstrjson.c_str());
 	if(StrServerURL1!="")
-		HttpPostParm(StrServerURL1,mstrjson,mstrkey,HTTPPOST);
+		HttpPostParm(StrServerURL1,mstrjson,mstrkey,HTTPPOST,"","",15);
 	
 	mstrkey = "";
 	SetjsonTableStr("flagrunstatusalarm",mstrjson);

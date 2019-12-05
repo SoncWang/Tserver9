@@ -41,7 +41,7 @@ int RebootIpCam(int Ipcamindex)
 
     printf("%s,%s\r\n",mstrurlctl[Ipcamindex].c_str(),mstrkey[Ipcamindex].c_str());
 
-    HttpPostParm(mstrurlctl[Ipcamindex],mStrdata,mstrkey[Ipcamindex],HTTPPOST);
+    HttpPostParm(mstrurlctl[Ipcamindex],mStrdata,mstrkey[Ipcamindex],HTTPPOST,"","",15);
   //  jsonIPCamReader((char *)(mStrdata.c_str()),mStrdata.size());
     return 0 ;
 
@@ -76,7 +76,7 @@ void *HTTP_IPCamDataGet(void *param)
         {   //printf("%s,%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
 printf("HTTP_IPCamDataGet %s:%s\r\n",mstrurlget[n].c_str(),mstrkey[n].c_str());
 			mStrdata="";
-            HttpPostParm(mstrurlget[n],mStrdata,mstrkey[n],HTTPGET);
+            HttpPostParm(mstrurlget[n],mStrdata,mstrkey[n],HTTPGET,"","",15);
             pthread_mutex_lock(&IpCamStateMutex);
 printf("HTTP_IPCamDataGet ret %s\r\n",mStrdata.c_str());
             jsonIPCamReader((char *)(mStrdata.c_str()),mStrdata.size(),n);

@@ -828,7 +828,7 @@ int DealLockerMsg(unsigned char seq,unsigned char *buf,unsigned short int len)
 		NetSendParm(NETCMD_DEAL_LOCKER, (char*)jsonstr.c_str(), jsonstr.length());
 		if(StrServerURL4.length()>0)			//上报利通后台
 		{
-		   ret=HttpPostParm(StrServerURL4,jsonstr,mstrkey,HTTPPOST);
+		   ret=HttpPostParm(StrServerURL4,jsonstr,mstrkey,HTTPPOST,"","",15);
 		   if(ret)
 		   {
 			   pRCtrl=stuRemote_Ctrl;
@@ -841,7 +841,7 @@ int DealLockerMsg(unsigned char seq,unsigned char *buf,unsigned short int len)
 		}
 		if(StrServerURL2.length()>0)			//上报新粤后台
 		{
-		   ret=HttpPostParm(StrServerURL2,jsonstr,mstrkey,HTTPPOST);
+		   ret=HttpPostParm(StrServerURL2,jsonstr,mstrkey,HTTPPOST,"","",15);
 		   if(ret)
 		   {
 			   pRCtrl=stuRemote_Ctrl;

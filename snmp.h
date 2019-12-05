@@ -237,7 +237,10 @@ typedef struct
     string strhwswitchEntityFactory1;            //生产商
     string strhwswitchEntityDevModel1;           //设备型号
 
-
+    //中兴机柜增加
+    string RectifierModuleVol;  //整流器输出电压
+    string RectifierModuleCurr; //整流器输出电流
+    string RectifierModuleTemp;//整流器机内温度
 }THUAWEIGantry;
 
 typedef struct
@@ -292,6 +295,9 @@ typedef struct
     string hwAcbBoard_Hardware_Fault_alarm[4];	//单板故障
     string hwAcbLow_Temp_Protection_alarm[4];		//低温保护
 
+    //中兴机柜增加开关电源报警
+    string SwitchPowerCom_alarm;  //开关电源断线告警
+    string RectifierModuleCom_alarm; //整流模块通讯故障
 
 }THUAWEIALARM;
 
