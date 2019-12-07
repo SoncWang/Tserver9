@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> 
+#include <unistd.h>
 #include <string>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -20,6 +20,8 @@
 #include "tea.h"
 #include "rs485server.h"
 #include "ydn23.h"
+#include "server.h"
+#include "config.h"
 
 
 using namespace std;
@@ -38,6 +40,8 @@ string zteAirDevID[2] ;
 string zteBatDevID[4] ;
 string zteUPSDevID[2] ;
 string zteSwitchPowerDevID;//开关电源
+LOCKER_ZTE_ID_PORT zteLockDevParam[4];// 用来对ID号排序，根据PortID排序
+
 
 //LOCKER_ZTE_PARAMS ZTE_Locker_Param[4];
 extern LOCKER_HW_PARAMS *lockerHw_Param[LOCK_MAX_NUM];	//门锁状态结构体
@@ -47,10 +51,18 @@ extern pthread_mutex_t snmpoidMutex ;
 extern THUAWEIGantry HUAWEIDevValue;
 extern THUAWEIALARM HUAWEIDevAlarm;		//华为机柜告警
 
+extern REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
+extern VMCONTROL_PARAM *stuVMCtl_Param;	//采集器设备信息结构体
+
+extern string StrServerURL1;	//服务端URL1
+extern string StrServerURL2;	//服务端URL2
+extern string StrServerURL4;	//服务端URL4
+
 
 extern bool jsonzteDevReader(char* jsonstr, int len);//读取中兴机柜信息
 extern bool jsonzteTempReader(char* jsonstr, int len,int Index);//读取中兴温湿度
-void char_to_long(UINT8* buffer,UINT32* value);
+//void char_to_long(UINT8* buffer,UINT32* value);
+extern void RemoteControl(UINT8* pRCtrl);
 
 
 string strzteAcbBatVolt[4];				//电池电压
@@ -59,15 +71,40 @@ string strzteAcbTotalRemainCapacity[4];		//电池剩余容量
 string strzteAcbTemperature[4];             //电池温度
 
 
+/******************************************************************************
+*  函数名: void char_to_long_reverse(INT8U* buffer,LONG32U* value)
+*
+*  描述: 字符转化为长整型,逆序
+*
+*
+*
+*  输入:
+*
+*  输出:
+*
+*  返回值:
+*
+*  其它:
+*******************************************************************************/
+void char_to_long_reverse(UINT8* buffer,UINT32* value)
+{
+	LONG_UNION long_value;
+	UINT8 i;
+
+	for(i=0;i<4;i++)
+	{
+		long_value.b[i] = *(buffer + i);
+	}
+	*value = long_value.i;
+}
+
+
 
 //中兴机柜获取
 
 //设备列表获取
 bool jsonzteDevReader(char* jsonstr, int len)
 {
-    //printf("%s \r\n",jsonstr);
-
-
   Json::Reader reader;
 
   Json::Value json_object;
@@ -98,8 +135,11 @@ bool jsonzteDevReader(char* jsonstr, int len)
           int SmokeTick = 0 ;
          //printf("Objs:%s\r\n",strObjs.c_str()) ;
          Json::Value::Members mem = json_object_Objs.getMemberNames();
+		 // 这里取成员是result下面有几个大括号成员，这里只有1个
          for (Json::Value::Members::iterator iter = mem.begin(); iter != mem.end(); iter++)
          {
+         	 //printf("===========:%d\r\n",i++);
+         	 // 这里取成员是Objs下面有几个中括号，这里只有n个
              for(int n=0;n<json_object_Objs[*iter].size();n++)
              {
                  string strTemplate = json_object_Objs[*iter][n].toStyledString();
@@ -125,6 +165,7 @@ bool jsonzteDevReader(char* jsonstr, int len)
                      string strObjId = "";
                      Json::Value::Members memdev = json_object_devs.getMemberNames();
 
+					 // 这里取中括号下面大括号项目的每1行
                      for (Json::Value::Members::iterator iterdev = memdev.begin(); iterdev != memdev.end(); iterdev++)
                      {
                          string newstring;
@@ -815,14 +856,50 @@ void StrBubbleSort(string *arr, int size)
 
 
 
-// 上传卡号钩子函数, 先保留
-void zte_locker_id_send_hook(int seq)
+// 上传卡号钩子函数
+void zte_locker_id_send_hook(int seq,UINT32 card_id)
 {
-	;
+	string jsonstr;
+    string mstrkey = ""; //没有用户名和密码：则为“”；
+	REMOTE_CONTROL *pRCtrl;
+	int ret;
+
+	// 注意上报上去的ID是1,2,257,258，要区别一下
+	// 语句：if(cabineid==1 && operate==ACT_UNLOCK) pRCtrl->FrontDoorCtrl=ACT_UNLOCK;
+	SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,card_id,lockerHw_Param[seq]->address,jsonstr);
+	printf("DealLockerMsg jsonstr=%s\n" ,jsonstr.c_str());
+	NetSendParm(NETCMD_DEAL_LOCKER, (char*)jsonstr.c_str(), jsonstr.length());
+	if(StrServerURL4.length()>0)			//上报利通后台
+	{
+		ret=HttpPostParm(StrServerURL4,jsonstr,mstrkey,HTTPPOST,"","",15);
+		if(ret)
+		{
+			pRCtrl=stuRemote_Ctrl;
+			memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+			jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+			RemoteControl((UINT8*)pRCtrl);
+		}
+		else
+			printf("LTKJ HttpPostParm error, ret=%d\n",ret);
+	}
+	if(StrServerURL2.length()>0)			//上报新粤后台
+	{
+		ret=HttpPostParm(StrServerURL2,jsonstr,mstrkey,HTTPPOST,"","",15);
+		if(ret)
+		{
+			pRCtrl=stuRemote_Ctrl;
+			memset(pRCtrl,0,sizeof(REMOTE_CONTROL));
+			jsonstrRCtrlReader((char*)jsonstr.c_str(),jsonstr.length(),(UINT8 *)pRCtrl);//将json字符串转换成结构体
+			RemoteControl((UINT8*)pRCtrl);
+		}
+		else
+			printf("XY HttpPostParm error, ret=%d\n",ret);
+	}
 }
 
+
 // 门锁开关命令,seq为锁的序号，pSend为清零的缓存
-void zte_locker_ctrl_process(int seq,UINT8 *pSend,string strDigestUser,string strDigestKey)
+void zte_locker_ctrl_process(int seq,UINT8 cmd,UINT8 *pSend,string strDigestUser,string strDigestKey)
 {
 	string lockerurl;
 	string locker_data; // data部分
@@ -834,23 +911,158 @@ void zte_locker_ctrl_process(int seq,UINT8 *pSend,string strDigestUser,string st
 	if ((seq%2) == 0)
 	{
 		// 如果是锁0,2是前门
-		lock_len = locker_cmd_pack(DOOR_ZTE_OPEN_CMD,FRONT_DOOR,DOOR_OPEN,pSend);
+		lock_len = locker_cmd_pack(cmd,FRONT_DOOR,DOOR_OPEN,pSend);
 		//lock_len = locker_cmd_pack(DOOR_JSA_OPEN_CMD,FRONT_DOOR,DOOR_OPEN,pSend);
 
 	}
 	else
 	{
 		// 如果是锁1,3则是后门
-		lock_len = locker_cmd_pack(DOOR_ZTE_OPEN_CMD,BACK_DOOR,DOOR_OPEN,pSend);
+		lock_len = locker_cmd_pack(cmd,BACK_DOOR,DOOR_OPEN,pSend);
 	}
 	locker_data= Base64Cal.Encode(pSend, lock_len); // 加密
 	printf("lockerSecretOpen = %s\r\n",locker_data.c_str());
-	lockerurl = "http://128.8.82.246/jscmd/serialsend";
+	lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
 	mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
 	printf("lockerOpen = %s\r\n",mStrdata.c_str());
 	HttpPostParm(lockerurl,mStrdata,"",HTTPPOST,strDigestUser,strDigestKey,15);	// 要不要再发一次?
 }
 
+// 根据锁的ID获取其配置的COM口，从而判断ID是设备柜还是电源柜
+// 把COM5口对应的ID号放至zteLockDevID[0]/[1]，其它的放至[2]/[3]
+bool jsonzteLockerComGet(char* jsonstr, int len)
+{
+    //printf("%s \r\n",jsonstr);
+
+	UINT8 i=0,j=0,k=0,m=0;
+  Json::Reader reader;
+  Json::Value json_object;
+
+
+  //if (!reader.parse(jsonstr, json_object))
+
+  //  return 0;
+
+ // string strentity = json_object["result"].toStyledString() ;
+  //if(strentity.size() > 3)
+  {
+     //printf("result:%s\r\n",strentity.c_str()) ;
+     Json::Reader reader_Objs;
+     Json::Value json_object_Objs;
+     if (!reader_Objs.parse(jsonstr, json_object_Objs))
+       return 0;
+      string strObjs = json_object_Objs["result"].toStyledString() ;
+      if(strObjs.size() > 3)
+      {
+         //printf("Objs:%s\r\n",strObjs.c_str()) ;
+         Json::Value::Members mem = json_object_Objs.getMemberNames();
+		 // 这里取成员是result下面有几个大括号成员，这里只有1个
+         for (Json::Value::Members::iterator iter = mem.begin(); iter != mem.end(); iter++)
+         {
+         	 printf("===========:%d\r\n",m++);	//这里会打印4次，没理解清楚
+         	 // 这里取成员是Objs下面有几个中括号，这里只有n个
+             for(int n=0;n<json_object_Objs[*iter].size();n++)
+             {
+                 string strTemplate = json_object_Objs[*iter][n].toStyledString();
+
+
+                 //printf("strTemplate:%s\r\n",strTemplate.c_str());
+                 //解析设备列表具体协议
+                 {
+                     Json::Reader reader_devs;
+                     Json::Value json_object_devs;
+                     if (!reader_devs.parse(strTemplate, json_object_devs))
+                       return 0;
+
+                     string strObjId = "";
+					 string strPortId = "";
+                     Json::Value::Members memdev = json_object_devs.getMemberNames();
+
+					 // 这里取中括号下面大括号项目的每1行
+                     for (Json::Value::Members::iterator iterdev = memdev.begin(); iterdev != memdev.end(); iterdev++)
+                     {
+                         string newstring;
+                         stringstream ss;
+                         switch (json_object_devs[*iterdev].type())
+                         {
+                         case Json::nullValue:
+                             break;
+                         case Json::booleanValue:
+                             break;
+                         case Json::intValue:
+                             ss<<(json_object_devs[*iterdev].asInt());
+                             newstring = ss.str();
+                             break;
+                         case Json::uintValue:
+                             ss<<(json_object_devs[*iterdev].asUInt());
+                             newstring = ss.str();
+                             break;
+                         case Json::realValue:
+                             ss<<(json_object_devs[*iterdev].asDouble());
+                             newstring = ss.str();
+                             break;
+                         case Json::stringValue:
+                             newstring = json_object_devs[*iterdev].asString();
+                             break;
+                         default:
+                             break;
+                         }
+
+						  if((*iterdev) == "objId")
+                             strObjId = newstring ;
+                         else if((*iterdev) == "portId")
+                             strPortId = newstring ;
+
+                    }
+					// 1个成员结束，判断是否为锁
+					for (i = 0; i < LOCK_MAX_NUM; i++)
+					{
+						if (zteLockDevParam[i].lockDevID == strObjId)
+						{
+							zteLockDevParam[i].portID = strPortId;
+							cout<<"lockID"<<i<<"=="<<zteLockDevParam[i].lockDevID<<endl;
+							cout<<"portID"<<i<<"=="<<zteLockDevParam[i].portID<<endl;
+						}
+					}
+
+                 }
+             }
+         }
+		 for (i=0,j=0,k=2; i < LOCK_MAX_NUM; i++)
+		 {
+		 	// COM5是接设备柜，对应zteLockDevID 0,1号
+		 	if (zteLockDevParam[i].portID == "0_COM5")
+		 	{
+		 		if (j < LOCK_MAX_NUM)
+		 		{
+					zteLockDevID[j] = zteLockDevParam[i].lockDevID;
+					j++;
+		 		}
+		 	}
+			// COM3是接电源柜，对应zteLockDevID 2,3号
+			else
+			{
+				if (k < LOCK_MAX_NUM)
+				{
+					zteLockDevID[k] = zteLockDevParam[i].lockDevID;
+					k++;
+				}
+			}
+		 }
+		 for (i=0; i < LOCK_MAX_NUM; i++)
+		 {
+		 	cout<<"postID"<<i<<"="<<zteLockDevID[i]<<endl;
+		 }
+
+      }
+
+  }
+
+  //std::cout << json_object["age"] << std::endl;
+
+return true ;
+
+}
 
 
 
@@ -956,7 +1168,7 @@ bool jsonzteLockerReader(char* jsonstr, int len, int seq)
                     	// 卡的回应:7E 01 01 00 00 00 0F 00     16 00 (状态) 00 00 00 00  （卡号） FF FF FF FF FF FF 00 00 EF 21  7E 7E
                      	if ((card_read[0] == 0x7E) &&(card_read[DOOR_EOI_ADDR] == 0x7E))	// 锁的协议以0x7E开始，0x7E结束
                      	{
-                     		//if (seq < actual_locker_num)	// 防止泄露
+                     		if (seq < LOCK_MAX_NUM)	// 防止泄露
                      		{
 	                     		lockerHw_Param[seq]->status = card_read[DOOR_STATUS_ADDR];
 								memcpy(&lockerHw_Param[seq]->id[1],&card_read[DOOR_ID_ADDR],4);
@@ -964,13 +1176,14 @@ bool jsonzteLockerReader(char* jsonstr, int len, int seq)
 								//printf("lockerHw_Param[seq]->id = ");
 								//for (int i = 0 ; i< 5; i++)
 								//{
-								//	printf("%02x  ",lockerHw_Param[seq]->id[i]);
+								//	printf("%02x  ",card_read[DOOR_STATUS_ADDR+i]);
 								//}
-								char_to_long(&(lockerHw_Param[seq]->id[1]),&card_id);
+								// 这个锁读到的卡号是逆序的，比如0xD6E9C160的卡(3605643616)读出来是60 c1 e9 d6
+								char_to_long_reverse(&(lockerHw_Param[seq]->id[1]),&card_id);
 								printf("  lock_id = %d\r\n",card_id);
 								if (card_id != 0)
 								{
-									zte_locker_id_send_hook(seq);
+									zte_locker_id_send_hook(seq,card_id);
 									return true;
 								}
                      		}
@@ -998,21 +1211,18 @@ bool zte_locker_polling(int seq,UINT8 *pSend,string strDigestUser,string strDige
 	UINT8 lock_len = 0;
 	int i = 0;
 	bool re_val=false;
+	int door_addr = 1;
 
+	// 因为2个柜子的前后门地址都是1,2，我们实际设置时要设1,2, 257,258,然后屏蔽掉高8位
+	door_addr = lockerHw_Param[seq]->address&0x00FF;
+	cout<<"dooraddr"<<seq<<"="<<door_addr<<endl;
 	// 组包锁的轮询协议, 设备柜前门
-	if ((seq%2) == 0)
-	{
-		// 如果是锁0,2是前门
-		lock_len = locker_cmd_pack(DOOR_ZTE_POLL_CMD,FRONT_DOOR,DOOR_POLL,pSend);
-	}
-	else
-	{
-		// 如果是锁1,3则是后门
-		lock_len = locker_cmd_pack(DOOR_ZTE_POLL_CMD,BACK_DOOR,DOOR_POLL,pSend);
-	}
+	// 如果是锁0,2是前门
+	lock_len = locker_cmd_pack(DOOR_ZTE_POLL_CMD,door_addr,DOOR_POLL,pSend);
+
 	locker_data= Base64Cal.Encode(pSend, lock_len);	// 加密
 	printf("lockerSecret = %s\r\n",locker_data.c_str());
-	lockerurl = "http://128.8.82.246/jscmd/serialsend";
+	lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
 	mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
 	printf("lockerPolling = %s\r\n",mStrdata.c_str());
 	HttpPostParm(lockerurl,mStrdata,"",HTTPPOST,strDigestUser,strDigestKey,15);
@@ -1040,12 +1250,29 @@ void *zte_HTTP_thread(void *param)
 
     string mStrUser = StrHWGetPasswd;
     string mStrkey = StrHWSetPasswd;
+	UINT8 byteSend[BASE64_HEX_LEN]={0x00,};
+	UINT8 lock_len = 0;
+	bool isCardExist[4] = {false,false,false,false};
+
     sleep(5);
     //StrHWServer
    // HttpPostParm("http://128.8.82.238/jscmd/objs",mStrdata,"",HTTPGET,mStrUser,mStrkey);
     string getStrHWServer = "http://"+StrHWServer+"/jscmd/objs";
-    HttpPostParm(getStrHWServer.c_str(),mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+	//cout<<"agin = "<<getStrHWServer<<endl;
+    HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
     jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
+
+	sleep(2);
+	// 获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
+	getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
+	cout<<"agin = "<<getStrHWServer<<endl;
+	HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+	// 先初始化, 初始化不能放在开始那里，否则取不到数据
+	for (int i = 0; i < LOCK_MAX_NUM; i++)
+	{
+		zteLockDevParam[i].lockDevID = zteLockDevID[i];
+	}
+	jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
 
     while(1)
     {
@@ -1057,10 +1284,21 @@ void *zte_HTTP_thread(void *param)
         {
             mStrdata = "";
             getStrHWServer = "http://"+StrHWServer+"/jscmd/objs";
+			cout<<"agin2 = "<<getStrHWServer<<endl;
             HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
             //HttpPostParm("http://128.8.82.238/jscmd/objs",mStrdata,"",HTTPGET,mStrUser,mStrkey);
            if(mStrdata != "")
               jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
+
+			// 2s后获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
+		    sleep(2);
+			getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
+			cout<<"agin = "<<getStrHWServer<<endl;
+			HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+			if(mStrdata != "")
+			{
+				jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
+			}
         }
         else
         {
@@ -1190,12 +1428,38 @@ void *zte_HTTP_thread(void *param)
 
 
 
+			// 获取锁的卡号和状态
+			// 先进行排序,数字小的一组22545/22546接设备柜前/后门, 数字大一组23042/23043的接电池柜前/后门
+			// 同时数字小的为前门22545、23042，数字大的为后门22546/23043
+			//StrBubbleSort(zteLockDevID,4);
+			printf("lockerID0 = %s\r\n",zteLockDevID[0].c_str());
+			printf("lockerID1 = %s\r\n",zteLockDevID[1].c_str());
+			printf("lockerID2 = %s\r\n",zteLockDevID[2].c_str());
+			printf("lockerID3 = %s\r\n",zteLockDevID[3].c_str());
+			for(int n=0;n<4;n++)
+			{
+			   // 测试金圣安
+			   mStrdata = "";
+			   // 组包锁的轮询协议, 设备柜前门/后门
+			   memset(byteSend,0,BASE64_HEX_LEN);
+			   // 轮询顺序安装zteLockDevID下标来
+			   if (zteLockDevID[n] != "" )	// 如果是空的，则会得到无尽的回应，导致崩溃
+			   {
+				   if (zte_locker_polling(n,byteSend,mStrUser,mStrkey))
+				   {
+				   		;//memset(byteSend,0,BASE64_HEX_LEN);
+						// 测试用，只要刷卡有卡号，就开锁
+				   		//zte_locker_ctrl_process(n,DOOR_ZTE_OPEN_CMD,byteSend,mStrUser,mStrkey);
+				   }
+			   }
+			}
         }
 
-        sleep(60);
+        sleep(6);
     }
      return 0 ;
 }
+
 
 int zteinit(void)
 {

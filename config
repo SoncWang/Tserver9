@@ -3,7 +3,7 @@ ID=2019090067
 stationID=001
 stationName=广惠高速永和站
 
-CabinetType=1
+CabinetType=6
 FlagNetRoadID=4420
 FlagRoadID=52
 FlagID=G00354400200001010
@@ -11,7 +11,7 @@ PosId=1
 Direction=1
 DirDescription=广州至惠州
 
-HWServer=192.168.130.3
+HWServer=128.8.82.239
 HWGetPasswd=ReadHuawei123
 HWSetPasswd=WriteHuawei
 ServerURL1=http://172.17.2.32:300/api/exchange/uploadinternaljson

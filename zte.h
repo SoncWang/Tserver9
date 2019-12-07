@@ -43,7 +43,17 @@ typedef struct ZTE_locker_struct
 }LOCKER_ZTE_PARAMS;
 
 
+typedef struct
+{
+  string lockDevID;//锁ID
+  string portID;//锁串口号
+}LOCKER_ZTE_ID_PORT;
+
+
 void zte_locker_id_send_hook(int seq);
+void zte_locker_ctrl_process(int seq,UINT8 cmd,UINT8 *pSend,string strDigestUser,string strDigestKey);
+int zteinit(void);
+
 
 
 #pragma pack(pop)
