@@ -10,8 +10,8 @@ int zteinit(void);
 #define NOT_USED_CMD		0xFF		// 未使用
 #define DOOR_ZTE_OPEN_CMD		0x01		// 中兴开锁命令
 #define DOOR_ZTE_POLL_CMD		0x02		// 中兴查询卡
-#define DOOR_JSA_OPEN_CMD		0x03		// 中兴开锁命令
-#define DOOR_JSA_POLL_CMD		0x04		// 中兴查询卡
+#define DOOR_JSA_OPEN_CMD		0x03		// 金晟安开锁命令
+#define DOOR_JSA_POLL_CMD		0x04		// 金晟安查询卡
 
 
 

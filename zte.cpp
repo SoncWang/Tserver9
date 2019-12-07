@@ -791,6 +791,7 @@ UINT8 locker_cmd_pack(UINT8 msg_type,UINT8 door_pos,UINT16 door_cmd,UINT8 *buf)
 	UINT8 *pbuf = buf;	//buf->pTxBuf;
 	UINT8 len = 0;
 	UINT8 crc_cal[2];
+	// 这2个金晟安门锁需要的命令码
 	// 注意0x20对应的是空格,即不带管理员信息开锁命令
 	UINT8 databuf[8] = {YDN_CMD_GRP_CTRL,YDN_CMD_TYPE_CTRL,YDN_CMD_DOOR_OPEN,' ',' ',' ',' ',' '};
 	// 确权对应的comand group,type 分别为0xF0,0xE0，密码5个0
@@ -821,6 +822,7 @@ UINT8 locker_cmd_pack(UINT8 msg_type,UINT8 door_pos,UINT16 door_cmd,UINT8 *buf)
 	case DOOR_JSA_POLL_CMD:
 		break;
 	case DOOR_JSA_OPEN_CMD:
+		// 开锁命令需要先确权
 		len = comm_pack_ydn(1,YDN_CID2_AUTH,7,authorbuf,buf);
 		printf("JSA author begins\r\n ");
 		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
@@ -1211,18 +1213,34 @@ bool zte_locker_polling(int seq,UINT8 *pSend,string strDigestUser,string strDige
 	UINT8 lock_len = 0;
 	int i = 0;
 	bool re_val=false;
+	UINT8 msg_t = DOOR_ZTE_POLL_CMD;
 	int door_addr = 1;
 
 	// 因为2个柜子的前后门地址都是1,2，我们实际设置时要设1,2, 257,258,然后屏蔽掉高8位
 	door_addr = lockerHw_Param[seq]->address&0x00FF;
-	cout<<"dooraddr"<<seq<<"="<<door_addr<<endl;
-	// 组包锁的轮询协议, 设备柜前门
-	// 如果是锁0,2是前门
-	lock_len = locker_cmd_pack(DOOR_ZTE_POLL_CMD,door_addr,DOOR_POLL,pSend);
+	//cout<<"dooraddr"<<seq<<"="<<door_addr<<endl;
+	// 组包锁的轮询协议, 如果是锁0,2是前门，1,3是后门
 
+	if (CabinetTypeGet() == CABIN_ZTE)
+	{
+		msg_t = DOOR_ZTE_POLL_CMD;
+		lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
+	}
+	// 金圣安有2个柜子IP，需要区别对待
+	else if (CabinetTypeGet() == CABIN_JSA)
+	{
+		msg_t = DOOR_JSA_POLL_CMD;
+		lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
+	}
+	else
+	{
+		return false;
+	}
+
+
+	lock_len = locker_cmd_pack(msg_t,door_addr,DOOR_POLL,pSend);
 	locker_data= Base64Cal.Encode(pSend, lock_len);	// 加密
 	printf("lockerSecret = %s\r\n",locker_data.c_str());
-	lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
 	mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
 	printf("lockerPolling = %s\r\n",mStrdata.c_str());
 	HttpPostParm(lockerurl,mStrdata,"",HTTPPOST,strDigestUser,strDigestKey,15);
@@ -1262,17 +1280,20 @@ void *zte_HTTP_thread(void *param)
     HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
     jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
 
-	sleep(2);
-	// 获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
-	getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
-	cout<<"agin = "<<getStrHWServer<<endl;
-	HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
-	// 先初始化, 初始化不能放在开始那里，否则取不到数据
-	for (int i = 0; i < LOCK_MAX_NUM; i++)
+	if (CabinetTypeGet() == CABIN_ZTE)
 	{
-		zteLockDevParam[i].lockDevID = zteLockDevID[i];
+		sleep(2);
+		// 获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
+		getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
+		cout<<"agin = "<<getStrHWServer<<endl;
+		HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+		// 先初始化, 初始化不能放在开始那里，否则取不到数据
+		for (int i = 0; i < LOCK_MAX_NUM; i++)
+		{
+			zteLockDevParam[i].lockDevID = zteLockDevID[i];
+		}
+		jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
 	}
-	jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
 
     while(1)
     {
@@ -1290,14 +1311,17 @@ void *zte_HTTP_thread(void *param)
            if(mStrdata != "")
               jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
 
-			// 2s后获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
-		    sleep(2);
-			getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
-			cout<<"agin = "<<getStrHWServer<<endl;
-			HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
-			if(mStrdata != "")
+			if (CabinetTypeGet() == CABIN_ZTE)
 			{
-				jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
+				// 2s后获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
+			    sleep(2);
+				getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
+				cout<<"agin = "<<getStrHWServer<<endl;
+				HttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+				if(mStrdata != "")
+				{
+					jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
+				}
 			}
         }
         else
@@ -1436,9 +1460,8 @@ void *zte_HTTP_thread(void *param)
 			printf("lockerID1 = %s\r\n",zteLockDevID[1].c_str());
 			printf("lockerID2 = %s\r\n",zteLockDevID[2].c_str());
 			printf("lockerID3 = %s\r\n",zteLockDevID[3].c_str());
-			for(int n=0;n<4;n++)
+			for(int n=0;n<LOCK_MAX_NUM;n++)
 			{
-			   // 测试金圣安
 			   mStrdata = "";
 			   // 组包锁的轮询协议, 设备柜前门/后门
 			   memset(byteSend,0,BASE64_HEX_LEN);
