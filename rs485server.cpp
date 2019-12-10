@@ -823,7 +823,7 @@ int DealLockerMsg(unsigned char seq,unsigned char *buf,unsigned short int len)
 	if ((card_read!=0) && ((last_cnt[seq] >= lockerHw_Param[seq]->report_cnt) \
 		||((lockerHw_Param[seq]->report_cnt == 1) && (last_cnt[seq]==0))))
 	{
-		SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,card_read,addr,jsonstr);
+		SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,(UINT64)card_read,addr,jsonstr);
 		printf("DealLockerMsg jsonstr=%s\n" ,jsonstr.c_str());
 		NetSendParm(NETCMD_DEAL_LOCKER, (char*)jsonstr.c_str(), jsonstr.length());
 		if(StrServerURL4.length()>0)			//上报利通后台

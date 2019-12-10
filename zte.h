@@ -7,20 +7,26 @@ int zteinit(void);
 
 
 // 信息打包类型
-#define NOT_USED_CMD		0xFF		// 未使用
-#define DOOR_ZTE_OPEN_CMD		0x01		// 中兴开锁命令
-#define DOOR_ZTE_POLL_CMD		0x02		// 中兴查询卡
-#define DOOR_JSA_OPEN_CMD		0x03		// 金晟安开锁命令
-#define DOOR_JSA_POLL_CMD		0x04		// 金晟安查询卡
+#define NOT_USED_CMD			0xFF		// 未使用
+#define DOOR_ZTE_POLL_CMD		0x01		// 中兴查询卡
+#define DOOR_JSA_POLL_CMD		0x02		// 金晟安查询卡
+#define DOOR_ZTE_OPEN_CMD		0x03		// 中兴开锁命令
+#define DOOR_JSA_OPEN_CMD		0x04		// 金晟安开锁命令
+#define DOOR_ZTE_CLOSE_CMD		0x05		// 中兴关锁
+#define DOOR_JSA_CLOSE_CMD		0x06		// JSA关锁
+
+#define DOOR_POLL_CMD			0x10	// 定义一个统一的接口，下面再区分zte还是JSA
+#define DOOR_OPEN_CMD			0x20
+#define DOOR_CLOSE_CMD			0x30
 
 
 
 #define FRONT_DOOR		0x01
 #define BACK_DOOR		0x02
 
-#define DOOR_POLL		0x0016
-#define DOOR_OPEN		0x0005
-#define DOOR_CLOSE		0x0006
+#define ZTE_DOOR_POLL		0x0016		// 锁协议中的控制命令
+#define ZTE_DOOR_OPEN		0x0005
+#define ZTE_DOOR_CLOSE		0x0006
 
 #define DOOR_STATUS_ADDR	9	// 返回帧锁的状态在第几个字节
 #define DOOR_ID_ADDR		10	// 返回帧锁的ID在第几个字节
@@ -50,8 +56,17 @@ typedef struct
 }LOCKER_ZTE_ID_PORT;
 
 
-void zte_locker_id_send_hook(int seq);
-void zte_locker_ctrl_process(int seq,UINT8 cmd,UINT8 *pSend,string strDigestUser,string strDigestKey);
+/*结构联合声明长整型*/
+typedef union longlong_union
+{
+	UINT64 i;
+	UINT8 b[8];
+}LONGLONG_UNION;
+
+
+bool card_id_parse(char *buf,int len,int seq);
+void zte_locker_id_send_hook(int seq,UINT64 card_id);
+bool zte_jsa_locker_process(int seq,UINT8 msg_type,UINT8 *pSend,string strDigestUser,string strDigestKey);
 int zteinit(void);
 
 

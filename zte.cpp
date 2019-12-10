@@ -86,7 +86,7 @@ string strzteAcbTemperature[4];             //电池温度
 *
 *  其它:
 *******************************************************************************/
-void char_to_long_reverse(UINT8* buffer,UINT32* value)
+void char_to_long_reverse(UINT8* buffer,UINT64* value)
 {
 	LONG_UNION long_value;
 	UINT8 i;
@@ -96,6 +96,34 @@ void char_to_long_reverse(UINT8* buffer,UINT32* value)
 		long_value.b[i] = *(buffer + i);
 	}
 	*value = long_value.i;
+}
+
+
+/******************************************************************************
+*  函数名: void char_to_longlong(INT8U* buffer,LONG64U* value)
+*
+*  描述: 节字符转化为长长整型
+*
+*
+*
+*  输入:
+*
+*  输出:
+*
+*  返回值:
+*
+*  其它:
+*******************************************************************************/
+void char_to_longlong(UINT8* buffer,UINT64* value)
+{
+	LONGLONG_UNION longlong_value;
+	UINT8 i;
+
+	for(i=0;i<8;i++)
+	{
+		longlong_value.b[7 - i] = *(buffer + i);
+	}
+	*value = longlong_value.i;
 }
 
 
@@ -785,49 +813,74 @@ return true ;
 
 /////////////////////////////////////////////////////////////////////////////////////
 //////////////////////          锁处理开始             ///////////////////////////////////
-UINT8 locker_cmd_pack(UINT8 msg_type,UINT8 door_pos,UINT16 door_cmd,UINT8 *buf)
+
+// 中兴机柜的打包子函数
+UINT8 zte_cmd_pack(UINT8 door_pos,UINT16 door_cmd,UINT8 *buf)
 {
-	/*取得目标串口对应的发送缓存*/
-	UINT8 *pbuf = buf;	//buf->pTxBuf;
+	UINT8 *pbuf = buf;
 	UINT8 len = 0;
 	UINT8 crc_cal[2];
+
+	pbuf[len++] = 0x7E;
+	pbuf[len++] = door_pos;
+	pbuf[len++] = 1;
+	pbuf[len++] = 0;
+	pbuf[len++] = 0;
+	pbuf[len++] = 0x00;
+	pbuf[len++] = 0x02;
+	pbuf[len++] = (door_cmd>>8)&0xFF;
+	pbuf[len++] = door_cmd&0xFF;
+	CalulateCRCbySoft(&buf[1],len-1,crc_cal);
+	pbuf[len++] = crc_cal[1];	// 高位要在前
+	pbuf[len++] = crc_cal[0];
+	pbuf[len++] = 0x7E;
+	pbuf[len++] = 0x7E;
+	printf("zte Locker data begins\r\n ");
+	for(int j=0;j<len;j++) printf("0x%02x ",pbuf[j]);printf("\r\n");
+
+	return len;
+
+}
+
+UINT8 locker_cmd_pack(UINT8 msg_type,UINT8 door_pos,UINT8 *buf)
+{
+	/*取得目标串口对应的发送缓存*/
+	UINT8 *pbuf = buf;
+	UINT8 len = 0;
+	//UINT8 crc_cal[2];
+	UINT16 door_cmd = ZTE_DOOR_POLL;
 	// 这2个金晟安门锁需要的命令码
 	// 注意0x20对应的是空格,即不带管理员信息开锁命令
 	UINT8 databuf[8] = {YDN_CMD_GRP_CTRL,YDN_CMD_TYPE_CTRL,YDN_CMD_DOOR_OPEN,' ',' ',' ',' ',' '};
 	// 确权对应的comand group,type 分别为0xF0,0xE0，密码5个0
 	UINT8 authorbuf[7] = {0xF0,0xE0,0,0,0,0,0};
+	// 读取记录对应的comand group,type 分别为0xF2,0xE2
+	UINT8 pollbuf[2] = {0xF2,0xE2};
 
 	switch(msg_type)
 	{
 	case DOOR_ZTE_OPEN_CMD:
+		door_cmd = ZTE_DOOR_OPEN;
+		len = zte_cmd_pack(door_pos,door_cmd,buf);
+		break;
+
 	case DOOR_ZTE_POLL_CMD:
-		pbuf[len++] = 0x7E;
-		pbuf[len++] = door_pos;
-		pbuf[len++] = 1;
-		pbuf[len++] = 0;
-		pbuf[len++] = 0;
-		pbuf[len++] = 0x00;
-		pbuf[len++] = 0x02;
-		pbuf[len++] = (door_cmd>>8)&0xFF;
-		pbuf[len++] = door_cmd&0xFF;
-		CalulateCRCbySoft(&buf[1],len-1,crc_cal);
-		pbuf[len++] = crc_cal[1];	// 高位要在前
-		pbuf[len++] = crc_cal[0];
-		pbuf[len++] = 0x7E;
-		pbuf[len++] = 0x7E;
-		printf("Locker cmd begins\r\n ");
-		for(int j=0;j<len;j++) printf("0x%02x ",pbuf[j]);printf("\r\n");
+		door_cmd = ZTE_DOOR_POLL;
+		len = zte_cmd_pack(door_pos,door_cmd,buf);
 		break;
 
 	case DOOR_JSA_POLL_CMD:
+		len = comm_pack_ydn(door_pos,YDN_CID2_POLL,2,pollbuf,buf);
+		printf("JSA poll begins\r\n ");
+		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
 		break;
 	case DOOR_JSA_OPEN_CMD:
 		// 开锁命令需要先确权
-		len = comm_pack_ydn(1,YDN_CID2_AUTH,7,authorbuf,buf);
+		len = comm_pack_ydn(door_pos,YDN_CID2_AUTH,7,authorbuf,buf);
 		printf("JSA author begins\r\n ");
 		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
 		usleep(100000);		// 延时100ms
-		len = comm_pack_ydn(1,YDN_CID2_CTRL,8,databuf,buf);
+		len = comm_pack_ydn(door_pos,YDN_CID2_CTRL,8,databuf,buf);
 		printf("JSA cmd begins\r\n ");
 		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
 		break;
@@ -859,7 +912,7 @@ void StrBubbleSort(string *arr, int size)
 
 
 // 上传卡号钩子函数
-void zte_locker_id_send_hook(int seq,UINT32 card_id)
+void zte_locker_id_send_hook(int seq,UINT64 card_id)
 {
 	string jsonstr;
     string mstrkey = ""; //没有用户名和密码：则为“”；
@@ -899,7 +952,7 @@ void zte_locker_id_send_hook(int seq,UINT32 card_id)
 	}
 }
 
-
+#if 0
 // 门锁开关命令,seq为锁的序号，pSend为清零的缓存
 void zte_locker_ctrl_process(int seq,UINT8 cmd,UINT8 *pSend,string strDigestUser,string strDigestKey)
 {
@@ -908,27 +961,40 @@ void zte_locker_ctrl_process(int seq,UINT8 cmd,UINT8 *pSend,string strDigestUser
 	string mStrdata = "";
 	UINT8 lock_len = 0;
 	int i = 0;
+	UINT8 msg_t = DOOR_ZTE_OPEN_CMD;
+	int door_addr = 1;
 
-	// 组包锁的轮询协议, 设备柜前门
-	if ((seq%2) == 0)
+	// 因为2个柜子的前后门地址都是1,2，我们实际设置时要设1,2, 257,258,然后屏蔽掉高8位
+	door_addr = lockerHw_Param[seq]->address&0x00FF;
+	//cout<<"dooraddr"<<seq<<"="<<door_addr<<endl;
+	// 组包锁的轮询协议, 如果是锁0,2是前门，1,3是后门
+
+	if (CabinetTypeGet() == CABIN_ZTE)
 	{
-		// 如果是锁0,2是前门
-		lock_len = locker_cmd_pack(cmd,FRONT_DOOR,DOOR_OPEN,pSend);
-		//lock_len = locker_cmd_pack(DOOR_JSA_OPEN_CMD,FRONT_DOOR,DOOR_OPEN,pSend);
-
+		lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
+	}
+	// 金圣安有2个柜子IP，需要区别对待
+	else if (CabinetTypeGet() == CABIN_JSA)
+	{
+		lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
 	}
 	else
 	{
-		// 如果是锁1,3则是后门
-		lock_len = locker_cmd_pack(cmd,BACK_DOOR,DOOR_OPEN,pSend);
+		return;
 	}
+
+	// 如果是锁0,2是前门
+	// 如果是锁1,3则是后门
+	msg_t = cmd;
+	lock_len = locker_cmd_pack(msg_t,door_addr,DOOR_OPEN,pSend);
 	locker_data= Base64Cal.Encode(pSend, lock_len); // 加密
 	printf("lockerSecretOpen = %s\r\n",locker_data.c_str());
-	lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
 	mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
 	printf("lockerOpen = %s\r\n",mStrdata.c_str());
 	HttpPostParm(lockerurl,mStrdata,"",HTTPPOST,strDigestUser,strDigestKey,15);	// 要不要再发一次?
 }
+#endif
+
 
 // 根据锁的ID获取其配置的COM口，从而判断ID是设备柜还是电源柜
 // 把COM5口对应的ID号放至zteLockDevID[0]/[1]，其它的放至[2]/[3]
@@ -1067,6 +1133,93 @@ return true ;
 }
 
 
+#define CARD_ID_POS 	13		// 定义互信互达卡ID的位置
+// 读卡后数据解析
+bool card_id_parse(char *buf,int len,int seq)
+{
+	UINT8 *p_read = (UINT8 *)buf;
+	UINT64 card_id = 0;
+	UINT16 buf_len = 0;
+	UINT8 *pbuf = (UINT8 *)buf;
+	UINT16 temp = 0;
+	UINT8 remark = 0;
+	UINT8 c_value[4] = {0,0,};
+
+	if (CabinetTypeGet() == CABIN_ZTE)
+	{
+		if ((p_read[0] == 0x7E) &&(p_read[DOOR_EOI_ADDR] == 0x7E))	// 锁的协议以0x7E开始，0x7E结束
+		{
+			if (seq < LOCK_MAX_NUM)	// 防止泄露
+			{
+				lockerHw_Param[seq]->status = p_read[DOOR_STATUS_ADDR];
+				memcpy(&lockerHw_Param[seq]->id[1],&p_read[DOOR_ID_ADDR],4);
+				printf("status = %d\r\n",lockerHw_Param[seq]->status);
+				//printf("lockerHw_Param[seq]->id = ");
+				//for (int i = 0 ; i< 5; i++)
+				//{
+				//	printf("%02x  ",card_read[DOOR_STATUS_ADDR+i]);
+				//}
+				// 这个锁读到的卡号是逆序的，比如0xD6E9C160的卡(3605643616)读出来是60 c1 e9 d6
+				char_to_long_reverse(&(lockerHw_Param[seq]->id[1]),&card_id);
+				printf("  lock_id = %d\r\n",card_id);
+				if (card_id != 0)
+				{
+					zte_locker_id_send_hook(seq,card_id);
+					return true;
+				}
+			}
+		}
+	}
+	else if (CabinetTypeGet() == CABIN_JSA)
+	{
+		buf_len = strlen(buf);
+		temp  = checkSumCalc(pbuf+1, buf_len-1);
+		// 对收到的数据进行校验，1是长度，1是校验码
+		/*
+		7E
+		31 30 	// VER
+		30 31 	// ADR
+		38 30 	// CID1
+		30 30 	// RTN
+		33 30 31 43 // L.TH
+		30 30 44 36 45 39 43 31 36 30 	// CARD ID
+		32 30 31 39 31 32 30 35 31 35 31 32 33 37 // DATA-TIME
+		30 38 	// STATUS
+		30 38 	// remark
+		46 37 44 36 // SUM
+		0D
+		*/
+		// 锁的状态没法读?
+		if ((buf_len == 46) && (temp == ascii_to_hex4(pbuf+buf_len-5)))
+		{
+			remark = ascii_to_hex2(pbuf+buf_len-7);		// remark字段
+			// REMARK字段，8: 无效卡        9:有效期过期       10：当前时间无进入权限            0：刷卡记录开门
+			if ((remark == 8) || (remark == 9) ||(remark == 10))
+			{
+				if (seq < LOCK_MAX_NUM)	// 防止泄露
+				{
+					lockerHw_Param[seq]->id[1] = 0;
+					lockerHw_Param[seq]->id[2] = 0;
+					lockerHw_Param[seq]->id[3] = 0;
+					lockerHw_Param[seq]->id[4] = ascii_to_hex2(pbuf+CARD_ID_POS);
+					lockerHw_Param[seq]->id[5] = ascii_to_hex2(pbuf+CARD_ID_POS+2);
+					lockerHw_Param[seq]->id[6] = ascii_to_hex2(pbuf+CARD_ID_POS+4);
+					lockerHw_Param[seq]->id[7] = ascii_to_hex2(pbuf+CARD_ID_POS+6);
+					lockerHw_Param[seq]->id[8] = ascii_to_hex2(pbuf+CARD_ID_POS+8);
+					// ID卡是有5字节的
+					char_to_longlong(&(lockerHw_Param[seq]->id[1]),&card_id);
+					if (card_id != 0)
+					{
+						zte_locker_id_send_hook(seq,card_id);
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 
 // 锁状态
 bool jsonzteLockerReader(char* jsonstr, int len, int seq)
@@ -1080,7 +1233,8 @@ bool jsonzteLockerReader(char* jsonstr, int len, int seq)
 
   string data_read;
   char card_read[BASE64_HEX_LEN];	// c语言中的字符串
-  UINT32 card_id = 0;
+  bool reval = false;
+  int real_len = 0;
 
   //const char* json_document = "{\"age\" : 26,\"name\" : \"huchao\"}";
 
@@ -1164,32 +1318,10 @@ bool jsonzteLockerReader(char* jsonstr, int len, int seq)
 						printf(" %02x",card_read[i]);
 					}
 
-
                     if(strObjId == zteLockDevID[seq]) //锁1
                     {
-                    	// 卡的回应:7E 01 01 00 00 00 0F 00     16 00 (状态) 00 00 00 00  （卡号） FF FF FF FF FF FF 00 00 EF 21  7E 7E
-                     	if ((card_read[0] == 0x7E) &&(card_read[DOOR_EOI_ADDR] == 0x7E))	// 锁的协议以0x7E开始，0x7E结束
-                     	{
-                     		if (seq < LOCK_MAX_NUM)	// 防止泄露
-                     		{
-	                     		lockerHw_Param[seq]->status = card_read[DOOR_STATUS_ADDR];
-								memcpy(&lockerHw_Param[seq]->id[1],&card_read[DOOR_ID_ADDR],4);
-								printf("status = %d\r\n",lockerHw_Param[seq]->status);
-								//printf("lockerHw_Param[seq]->id = ");
-								//for (int i = 0 ; i< 5; i++)
-								//{
-								//	printf("%02x  ",card_read[DOOR_STATUS_ADDR+i]);
-								//}
-								// 这个锁读到的卡号是逆序的，比如0xD6E9C160的卡(3605643616)读出来是60 c1 e9 d6
-								char_to_long_reverse(&(lockerHw_Param[seq]->id[1]),&card_id);
-								printf("  lock_id = %d\r\n",card_id);
-								if (card_id != 0)
-								{
-									zte_locker_id_send_hook(seq,card_id);
-									return true;
-								}
-                     		}
-                     	}
+                    	reval = card_id_parse(card_read,BASE64_HEX_LEN,seq);
+						return reval;
                     }
                  }
              //}
@@ -1203,7 +1335,7 @@ bool jsonzteLockerReader(char* jsonstr, int len, int seq)
 
 }
 
-
+#if 0
 // 中兴锁的轮询函数
 bool zte_locker_polling(int seq,UINT8 *pSend,string strDigestUser,string strDigestKey)
 {
@@ -1238,7 +1370,7 @@ bool zte_locker_polling(int seq,UINT8 *pSend,string strDigestUser,string strDige
 	}
 
 
-	lock_len = locker_cmd_pack(msg_t,door_addr,DOOR_POLL,pSend);
+	lock_len = locker_cmd_pack(msg_t,door_addr,pSend);
 	locker_data= Base64Cal.Encode(pSend, lock_len);	// 加密
 	printf("lockerSecret = %s\r\n",locker_data.c_str());
 	mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
@@ -1250,6 +1382,78 @@ bool zte_locker_polling(int seq,UINT8 *pSend,string strDigestUser,string strDige
 	}
 	return re_val;
 }
+#endif
+
+
+// 中兴金圣安锁的统一处理函数
+bool zte_jsa_locker_process(int seq,UINT8 msg_type,UINT8 *pSend,string strDigestUser,string strDigestKey)
+{
+	string lockerurl;
+	string locker_data;			// data部分
+	string mStrdata = "";
+	UINT8 lock_len = 0;
+	int i = 0;
+	bool re_val=false;
+	UINT8 msg_div = msg_type;	// 把统一的命令分开
+	int door_addr = 1;
+
+	// 因为2个柜子的前后门地址都是1,2，我们实际设置时要设1,2, 257,258,然后屏蔽掉高8位
+	door_addr = lockerHw_Param[seq]->address&0x00FF;
+	//cout<<"dooraddr"<<seq<<"="<<door_addr<<endl;
+	// 组包锁的轮询协议, 如果是锁0,2是前门，1,3是后门
+
+	if (CabinetTypeGet() == CABIN_ZTE)
+	{
+		lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
+		if (msg_type == DOOR_OPEN_CMD)
+		{
+			msg_div = DOOR_ZTE_OPEN_CMD;
+		}
+		else if (msg_type == DOOR_CLOSE_CMD)
+		{
+			msg_div = DOOR_ZTE_CLOSE_CMD;
+		}
+		else if (msg_type == DOOR_POLL_CMD)
+		{
+			msg_div = DOOR_ZTE_POLL_CMD;
+		}
+	}
+	// 金圣安有2个柜子IP，需要区别对待
+	else if (CabinetTypeGet() == CABIN_JSA)
+	{
+		lockerurl = "http://"+StrHWServer+"/jscmd/serialsend";
+		if (msg_type == DOOR_OPEN_CMD)
+		{
+			msg_div = DOOR_JSA_OPEN_CMD;
+		}
+		else if (msg_type == DOOR_CLOSE_CMD)
+		{
+			msg_div = DOOR_JSA_CLOSE_CMD;
+		}
+		else if (msg_type == DOOR_POLL_CMD)
+		{
+			msg_div = DOOR_JSA_POLL_CMD;
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+
+	lock_len = locker_cmd_pack(msg_div,door_addr,pSend);
+	locker_data= Base64Cal.Encode(pSend, lock_len);	// 加密
+	printf("lockerSecret = %s\r\n",locker_data.c_str());
+	mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
+	printf("lockertype=%d ---> %s\r\n",msg_type,mStrdata.c_str());
+	HttpPostParm(lockerurl,mStrdata,"",HTTPPOST,strDigestUser,strDigestKey,15);
+	if(mStrdata != "")
+	{
+		re_val = jsonzteLockerReader((char *)(mStrdata.c_str()),mStrdata.size(),seq);
+	}
+	return re_val;
+}
+
 
 
 void *zte_HTTP_thread(void *param)
@@ -1468,11 +1672,11 @@ void *zte_HTTP_thread(void *param)
 			   // 轮询顺序安装zteLockDevID下标来
 			   if (zteLockDevID[n] != "" )	// 如果是空的，则会得到无尽的回应，导致崩溃
 			   {
-				   if (zte_locker_polling(n,byteSend,mStrUser,mStrkey))
+				   if (zte_jsa_locker_process(n,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
 				   {
-				   		;//memset(byteSend,0,BASE64_HEX_LEN);
+				   		memset(byteSend,0,BASE64_HEX_LEN);
 						// 测试用，只要刷卡有卡号，就开锁
-				   		//zte_locker_ctrl_process(n,DOOR_ZTE_OPEN_CMD,byteSend,mStrUser,mStrkey);
+				   		zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 				   }
 			   }
 			}

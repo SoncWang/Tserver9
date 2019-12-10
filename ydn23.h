@@ -44,8 +44,8 @@ typedef union{
 #define   YDN_CID1		0x80
 
 #define   YDN_CID2_AUTH		0x48	// 确权
-#define   YDN_CID2_CTRL		0x49
-#define   YDN_CID2_POLL		0xED
+#define   YDN_CID2_CTRL		0x49	// 设置命令
+#define   YDN_CID2_POLL		0x4A
 
 #define YDN_CMD_GRP_CTRL	0xF1	// 门锁设置，其COMMAND GROUP = F1H
 #define YDN_CMD_TYPE_CTRL	0xED	// 门锁设置，其COMMAND TYPE = EDH

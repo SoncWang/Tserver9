@@ -5362,7 +5362,7 @@ void SetjsonCabinetStatus(char* table, string &mstrjson)
 
 }
 
-void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &mstrjson)
+void SetjsonDealLockerStr(int messagetype,UINT64 cardid,UINT8 lockaddr,string &mstrjson)
 {
 	char str[100],sDateTime[30];
 	int i;
@@ -5394,7 +5394,7 @@ void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &m
 		{sprintf(str,"\"cabineid\":%d,\n",i+1); strJson = strJson + str;}	//机柜ID
 	}
 
-	sprintf(str,"\"cardid\":\"%u\",\n",cardid); strJson = strJson + str;	//ID卡号
+	sprintf(str,"\"cardid\":\"%llu\",\n",cardid); strJson = strJson + str;	//ID卡号
 	sprintf(str,"\"operate\":%d\n",ACT_UNLOCK); strJson = strJson + str;	//操作请求
 	strJson +=	"}\n\0";
 

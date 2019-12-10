@@ -1333,7 +1333,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 	printf("FrontDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
-		   	zte_locker_ctrl_process(0,DOOR_ZTE_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		   	zte_jsa_locker_process(0,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
 		 usleep(2000);
 	 }
@@ -1360,7 +1360,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 	printf("BackDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
-		   	zte_locker_ctrl_process(1,DOOR_ZTE_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		   	zte_jsa_locker_process(1,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
 		 usleep(2000);
 	 }
@@ -1387,7 +1387,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 	printf("SideDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
-		   	zte_locker_ctrl_process(2,DOOR_ZTE_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		   	zte_jsa_locker_process(2,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
 		 usleep(2000);
 	 }
@@ -1414,7 +1414,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 	printf("SideDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
-		   	zte_locker_ctrl_process(3,DOOR_ZTE_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		   	zte_jsa_locker_process(3,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
 		 usleep(2000);
 	 }
