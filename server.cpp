@@ -1322,110 +1322,120 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	  }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_UNLOCK)					 //开锁
 	 {
+	 	printf("FrontDoorCtrl ACT_UNLOCK");
 		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
+	#if (CABINETTYPE == 1)
+		 //if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
 		 {
 			locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
 		 }
 		 //else if (CabinetTypeGet == CABIN_ZTE)
-		 else
+	#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-		 	printf("FrontDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
 		   	zte_jsa_locker_process(0,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
+	#endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_LOCK) 				 //关锁
 	 {
 		 printf("FrontDoorCtrl ACT_LOCK");
 		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
+		 #if (CABINETTYPE == 1)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
 		 }
+		 #endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->BackDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
+	 	printf("BackDoorCtrl ACT_UNLOCK");
 		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
+		 #if(CABINETTYPE == 1) //华为
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_UNLOCK);
 		 }
 		 //else if (CabinetTypeGet == CABIN_ZTE)
-		 else
+		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-		 	printf("BackDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
 		   	zte_jsa_locker_process(1,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
+		 #endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->BackDoorCtrl==ACT_LOCK)					 //关锁
 	 {
 		 printf("BackDoorCtrl ACT_LOCK") ;
 		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
+		 #if (CABINETTYPE == 1)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
 		 }
+		 #endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
+	 	printf("SideDoorCtrl ACT_UNLOCK");
+	     //CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特斯 StrVersionNo
+   	#if(CABINETTYPE == 1) //华为
 		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_UNLOCK);
 		 }
+	#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 //else if (CabinetTypeGet == CABIN_ZTE)
-		 else
+		// else
 		 {
-		 	printf("SideDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
 		   	zte_jsa_locker_process(2,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
+	#endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_LOCK)					 //关锁
 	 {
  		 printf("SideDoorCtrl ACT_LOCK");
 		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
+		 #if (CABINETTYPE == 1)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_LOCK);
 		 }
+		 #endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->RightSideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
+	 	printf("SideDoorCtrl ACT_UNLOCK");
 		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
+		 #if (CABINETTYPE == 1)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_4_CTRL_UNLOCK);
 		 }
-		 //else if (CabinetTypeGet == CABIN_ZTE)
-		 else
+		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-		 	printf("SideDoorCtrl ACT_UNLOCK");
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
 		   	zte_jsa_locker_process(3,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
+		 #endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->RightSideDoorCtrl==ACT_LOCK)					 //关锁
 	 {
  		 printf("SideDoorCtrl ACT_LOCK");
-		 // 如果是华为机柜
-		 if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
+		  // 如果是华为机柜
+		 #if (CABINETTYPE == 1)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_4_CTRL_LOCK);
 		 }
+		 #endif
 		 usleep(2000);
 	 }
 

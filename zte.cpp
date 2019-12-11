@@ -1674,9 +1674,9 @@ void *zte_HTTP_thread(void *param)
 			   {
 				   if (zte_jsa_locker_process(n,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
 				   {
-				   		memset(byteSend,0,BASE64_HEX_LEN);
+				   		//;memset(byteSend,0,BASE64_HEX_LEN);
 						// 测试用，只要刷卡有卡号，就开锁
-				   		zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+				   		//zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 				   }
 			   }
 			}
