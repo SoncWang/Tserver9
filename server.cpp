@@ -1571,10 +1571,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 //雷击计数清零
 			 if (SPD_Type == TYPE_LEIXUN)
 			 {
-				// 只有雷迅有这个功能, 且只有1个防雷器
-				if (i == 0)
+				//if (i == 0)
 				{
-					Ex_SPD_Set_Process(SPD_DO_SET,DO_ADDR_CNT_CLR,dummy,DO_ON_CMD);
+					Ex_SPD_Set_Process(i,SPD_DO_SET,DO_ADDR_CNT_CLR,dummy,DO_ON_CMD);
 				}
 			 }
 		 }
@@ -1585,10 +1584,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 //总雷击计数清零
 			 if (SPD_Type == TYPE_LEIXUN)
 			 {
-				// 只有雷迅有这个功能, 且只有1个防雷器
-				if (i == 0)
+				//if (i == 0)
 				{
-					Ex_SPD_Set_Process(SPD_DO_SET,DO_ADDR_TOTAL_CLR,dummy,DO_ON_CMD);
+					Ex_SPD_Set_Process(i,SPD_DO_SET,DO_ADDR_TOTAL_CLR,dummy,DO_ON_CMD);
 				}
 			 }
 		 }
@@ -1599,10 +1597,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 //雷击时间清零
 			 if (SPD_Type == TYPE_LEIXUN)
 			 {
-				// 只有雷迅有这个功能, 且只有1个防雷器
-				if (i == 0)
+				//if (i == 0)
 				{
-					Ex_SPD_Set_Process(SPD_DO_SET,DO_ADDR_STRUCK_TIME_CLR,dummy,DO_ON_CMD);
+					Ex_SPD_Set_Process(i,SPD_DO_SET,DO_ADDR_STRUCK_TIME_CLR,dummy,DO_ON_CMD);
 				}
 			 }
 		 }
@@ -1613,10 +1610,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 //在线时间清零
 			 if (SPD_Type == TYPE_LEIXUN)
 			 {
-				// 只有雷迅有这个功能, 且只有1个防雷器
-				if (i == 0)
+				//if (i == 0)
 				{
-					Ex_SPD_Set_Process(SPD_DO_SET,DO_ADDR_WORK_TIME_CLR,dummy,DO_ON_CMD);
+					Ex_SPD_Set_Process(i,SPD_DO_SET,DO_ADDR_WORK_TIME_CLR,dummy,DO_ON_CMD);
 				}
 			 }
 		 }
@@ -1627,12 +1623,11 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 //外接漏电流控制	 注意:设置时 0:内置漏电流，1：外接漏电流
 			 if (SPD_Type == TYPE_LEIXUN)
 			 {
-				// 只有雷迅有这个功能, 且只有1个防雷器
-				if (i == 0)
+				//if (i == 0)
 				{
 					// 把1,2转换成0,1
 					temp = ((pstuRCtrl->DO_leak_type[i]-1) == 0)?0:1;
-					Ex_SPD_Set_Process(SPD_DO_SET,DO_ADDR_LEAK_SET,dummy,temp);
+					Ex_SPD_Set_Process(i,SPD_DO_SET,DO_ADDR_LEAK_SET,dummy,temp);
 				}
 			 }
 		 }
@@ -1643,11 +1638,10 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 //漏电流报警阈值
 			 if (SPD_Type == TYPE_LEIXUN)
 			 {
-				// 只有雷迅有这个功能, 且只有1个防雷器
-				if (i == 0)
+				//if (i == 0)
 				{
 					dummy.f = pstuRCtrl->spdleak_alarm_threshold[i];
-					Ex_SPD_Set_Process(SPD_AI_SET,AI_LEAK_THRESHOLD_ADDR,dummy,0);
+					Ex_SPD_Set_Process(i,SPD_AI_SET,AI_LEAK_THRESHOLD_ADDR,dummy,0);
 				}
 			 }
 		 }
@@ -1658,11 +1652,10 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			 //防雷器设备地址
 			 if (SPD_Type == TYPE_LEIXUN)
 			 {
-				// 只有雷迅有这个功能, 且只有1个防雷器
-				if (i == 0)
+				//if (i == 0)
 				{
 					dummy.f = pstuRCtrl->spd_modbus_addr[i];
-					Ex_SPD_Set_Process(SPD_AI_SET,AI_SPD_ID_ADDR,dummy,0);
+					Ex_SPD_Set_Process(i,SPD_AI_SET,AI_SPD_ID_ADDR,dummy,0);
 				}
 			 }
 		 }

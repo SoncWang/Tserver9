@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/wait.h>
+#include <assert.h>
 #include <sys/socket.h>
 #include <unistd.h> 	// fork, close
 #include <arpa/inet.h>  // inet_ntoa
@@ -23,10 +24,10 @@ static int sockfd_spd[SPD_NUM+RES_NUM];	// 还有1个接地电阻
 static int udpfd_spd[SPD_NUM+RES_NUM];	// 华咨的是udp协议
 
 
-UINT16  spd_net_flag = 0;	// SPD轮询标志
-UINT16  spd_ctl_flag = 0;	// SPD控制标志
+UINT16  spd_net_flag[SPD_NUM] = {0,0};	// SPD轮询标志
+UINT16  spd_ctl_flag[SPD_NUM] = {0,0};	// SPD控制标志
 
-UINT8  WAIT_net_res_flag=0;	// 等待信息回应
+UINT8  WAIT_net_res_flag[SPD_NUM]={0,0};	// 等待信息回应
 
 UINT16 gsocket = 0;
 UINT16 net_Conneted = 0;	// 连接标志1:已经连接
@@ -37,7 +38,7 @@ UINT8 SPD_Type = TYPE_LEIXUN;
 UINT8 SPD_num = SPD_NUM;
 UINT8 SPD_Address[SPD_NUM+RES_NUM] = {SPD_ADDR,SPD_ADDR,SPD_RES_ADDR};
 //UINT8 SPD_Res_Address = SPD_RES_ADDR;
-SPD_CTRL_VALUE SPD_ctrl_value;
+SPD_CTRL_VALUE SPD_ctrl_value[SPD_NUM];
 
 pthread_mutex_t SPDdataHandleMutex;
 
@@ -71,7 +72,10 @@ const  SPD_FunctionArray_Struct g_SPD_Function_Array[SPD_DATA_NUM] =
 	{SPD_READ_CMD,SPD_AI_ADDR,SPD_AI_NUM},
 	{SPD_DI_CMD,SPD_DI_ADDR,SPD_DI_NUM},
 	{SPD_DO_CMD,SPD_DO_ADDR,SPD_DO_NUM},
-	// 这2项对应的是华咨的,但是华咨不是MODBUS格式，所以没用
+	// 这项对应的是华咨的,但是华咨不是MODBUS格式，所以没用
+	{0,0,0},
+	// 宽永的先保留
+	{0,0,0},
 	{0,0,0},
 	{0,0,0},
 	// 接地电阻值
@@ -134,23 +138,49 @@ void char_to_float(UINT8* buffer,FDATA* value)
 
 /*接口函数，其它线程调用这个函数,进行参数的设置*/
 /*ai_data: ai参数设置，data:其它参数设置*/
-int Ex_SPD_Set_Process(SPD_CTRL_LIST SPD_ctrl_event, UINT8 set_addr, FDATA ai_data,UINT16 data)
+int Ex_SPD_Set_Process(int seq,SPD_CTRL_LIST SPD_ctrl_event, UINT8 set_addr, FDATA ai_data,UINT16 data)
 {
-	spd_ctl_flag |= BIT(SPD_ctrl_event);	//先置标志位
+	// 如果是SPD_NUM表明所有的防雷监测器都要设置
+	if (seq < SPD_NUM)
+	{
+		spd_ctl_flag[seq] |= BIT(SPD_ctrl_event);	//先置标志位
 
-	SPD_ctrl_value.ref_addr = set_addr;
-	if (SPD_ctrl_event == SPD_AI_SET)
-	{
-		SPD_ctrl_value.f_ai_set = ai_data;
+		SPD_ctrl_value[seq].ref_addr = set_addr;
+		if (SPD_ctrl_event == SPD_AI_SET)
+		{
+			SPD_ctrl_value[seq].f_ai_set = ai_data;
+		}
+		else if (SPD_ctrl_event == SPD_DO_SET)
+		{
+			SPD_ctrl_value[seq].do_set = data;
+		}
+		else if (SPD_ctrl_event == SPD_RES_SET)
+		{
+			SPD_ctrl_value[seq].res_set = data;
+		}
 	}
-	else if (SPD_ctrl_event == SPD_DO_SET)
+	else
 	{
-		SPD_ctrl_value.do_set = data;
+		for (int i = 0; i< SPD_num; i++)
+		{
+			spd_ctl_flag[i] |= BIT(SPD_ctrl_event);	//先置标志位
+
+			SPD_ctrl_value[i].ref_addr = set_addr;
+			if (SPD_ctrl_event == SPD_AI_SET)
+			{
+				SPD_ctrl_value[i].f_ai_set = ai_data;
+			}
+			else if (SPD_ctrl_event == SPD_DO_SET)
+			{
+				SPD_ctrl_value[i].do_set = data;
+			}
+			else if (SPD_ctrl_event == SPD_RES_SET)
+			{
+				SPD_ctrl_value[i].res_set = data;
+			}
+		}
 	}
-	else if (SPD_ctrl_event == SPD_RES_SET)
-	{
-		SPD_ctrl_value.res_set = data;
-	}
+
 	return 0;
 }
 
@@ -411,62 +441,76 @@ int SPD_Time_Set_Reg(int socket_addr,UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR,UI
 
 
 /*模块化spd数据读取*/
-int spd_send_process(UINT16 *pnet_flag, SPD_DATA_LIST SPD_data_event)
+int spd_send_process(UINT16 seq,UINT16 *pnet_flag)
 {
 	UINT8 addr_temp;
 	UINT8 func_temp = HZ_SPD_READ;;
-	int seq = 0;	// 表明这是哪一台装置
-
-	if (SPD_data_event >= SPD_DATA_NUM)
-	{
-		return 0;
-	}
+	int seq_t = 0;	// 表明这是哪一台装置
+	int event_j;
 
 	if (SPD_Type == TYPE_LEIXUN)
 	{
-		seq = 0;
-		if (SPD_data_event < SPD_RES_DATA)
+		for(event_j=SPD_AI_DATA; event_j<SPD_DATA_NUM; event_j++)
 		{
-			addr_temp = SPD_Address[0];
+			if (event_j < SPD_HZ_DATA)
+			{
+				addr_temp = SPD_Address[seq];
+			}
+			else if (event_j == SPD_RES_DATA)
+			{
+				addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
+			}
+			else
+			{
+				// 从其它类型切换过来, 清除掉,然后继续
+				*pnet_flag &= ~(BIT(event_j));
+				continue;
+			}
+
+			if (*pnet_flag & (BIT(event_j)))
+			{
+				*pnet_flag &= ~(BIT(event_j));
+				//读取防雷器和接地电阻的数据
+				SPD_Read_Reg(0,addr_temp, g_SPD_Function_Array[event_j].func_code,\
+						g_SPD_Function_Array[event_j].reg_addr,g_SPD_Function_Array[event_j].reg_num);
+				return 0;
+			}
 		}
-		else
-		{
-			addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
-		}
-		if (*pnet_flag & (BIT(SPD_data_event)))
-		{
-			*pnet_flag &= ~(BIT(SPD_data_event));
-			//读取防雷器和接地电阻的数据
-			SPD_Read_Reg(seq,addr_temp, g_SPD_Function_Array[SPD_data_event].func_code,\
-					g_SPD_Function_Array[SPD_data_event].reg_addr,g_SPD_Function_Array[SPD_data_event].reg_num);
-		}
+	}
+	else if (SPD_Type == TYPE_KY)
+	{
+		;
 	}
 	else
 	{
-		if (SPD_data_event == SPD_HZ_DATA_1)
+		for(event_j=SPD_AI_DATA; event_j<SPD_DATA_NUM; event_j++)
 		{
-			seq = 0;
-			addr_temp = SPD_Address[0];
-			func_temp = HZ_SPD_READ;
-		}
-		else if (SPD_data_event == SPD_HZ_DATA_2)
-		{
-			seq = 1;
-			addr_temp = SPD_Address[1];
-			func_temp = HZ_SPD_READ;
-		}
-		else
-		{
-			seq = 2;
-			addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
-			func_temp = HZ_RES_READ;
-		}
+			if (event_j == SPD_HZ_DATA)
+			{
+				seq_t = seq;
+				addr_temp = SPD_Address[seq];
+				func_temp = HZ_SPD_READ;
+			}
+			else if (event_j == SPD_RES_DATA)
+			{
+				seq_t = 2;	// 接地电阻单独有1个网口地址
+				addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
+				func_temp = HZ_RES_READ;
+			}
+			else
+			{
+				// 从其它类型切换过来, 清除掉,然后继续
+				*pnet_flag &= ~(BIT(event_j));
+				continue;
+			}
 
-		if (*pnet_flag & (BIT(SPD_data_event)))
-		{
-			*pnet_flag &= ~(BIT(SPD_data_event));
-			//读取防雷器和接地电阻的数据
-			SPD_HZ_Read_Reg(seq,HZ_ADDR, func_temp,NULL_VAR,24);
+			if (*pnet_flag & (BIT(event_j)))
+			{
+				*pnet_flag &= ~(BIT(event_j));
+				//读取防雷器和接地电阻的数据
+				SPD_HZ_Read_Reg(seq_t,HZ_ADDR, func_temp,NULL_VAR,24);
+				return 0;
+			}
 		}
 	}
 	return 1;
@@ -474,64 +518,65 @@ int spd_send_process(UINT16 *pnet_flag, SPD_DATA_LIST SPD_data_event)
 
 
 /*模块化spd数据设置*/
-int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event)
+int spd_ctrl_process(UINT16 seq,UINT16 *pctrl_flag)
 {
 	UINT8 addr_temp;
 	int socketq = 0;	// 表明这是哪一台装置
-
-	if (SPD_ctrl_event >= SPD_CTRL_NUM)
-	{
-		return 0;
-	}
+	int event_i;
 
 	if (SPD_Type == TYPE_LEIXUN)
 	{
 		socketq = sockfd_spd[0];
-		if (SPD_ctrl_event < SPD_RES_SET)	// 防雷检测地址
-		{
-			addr_temp = SPD_Address[0];
-		}
-		else
-		{
-			addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
-		}
 
-		if (*pctrl_flag & (BIT(SPD_ctrl_event)))
+		for(event_i=SPD_AI_SET; event_i<SPD_CTRL_NUM; event_i++)
 		{
-			*pctrl_flag &= ~(BIT(SPD_ctrl_event));
-			switch(SPD_ctrl_event)
+			if (event_i < SPD_RES_SET)	// 防雷检测地址
 			{
-			case SPD_AI_SET:
-				// 不要改id,防止误操作
-				if (SPD_ctrl_value.ref_addr != AI_SPD_ID_ADDR)
+				addr_temp = SPD_Address[seq];
+			}
+			else
+			{
+				addr_temp = SPD_Address[SPD_NUM];	// 接地电阻仪地址
+			}
+
+			if (*pctrl_flag & (BIT(event_i)))
+			{
+				*pctrl_flag &= ~(BIT(event_i));
+				switch(event_i)
 				{
-					//SPD_Address[0] = (UINT8)SPD_ctrl_value.f_ai_set.f;
-					//设置防雷器的AI数据
-					SPD_AI_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,AI_SET_MIN,&SPD_ctrl_value.f_ai_set);
+				case SPD_AI_SET:
+					// 不要改id,防止误操作
+					if (SPD_ctrl_value[seq].ref_addr != AI_SPD_ID_ADDR)
+					{
+						//SPD_Address[0] = (UINT8)SPD_ctrl_value.f_ai_set.f;
+						//设置防雷器的AI数据
+						SPD_AI_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value[seq].ref_addr,AI_SET_MIN,&SPD_ctrl_value[seq].f_ai_set);
+					}
+					break;
+
+				case SPD_DO_SET:
+					// DO每次只写1个寄存器
+					SPD_DO_Ctrl_Reg(socketq,addr_temp,SPD_DO_CTRL_CMD,SPD_ctrl_value[seq].ref_addr,SPD_ctrl_value[seq].do_set);
+					break;
+
+				case SPD_RES_SET:
+					// 不要改id,防止误操作
+					if (SPD_ctrl_value[seq].ref_addr != RES_ID_ADDR)
+					{
+						//SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
+						// RES接地电阻部分设置
+						SPD_Res_Set_Reg(socketq,addr_temp,SPD_RES_SET_CMD,SPD_ctrl_value[seq].ref_addr,SPD_ctrl_value[seq].res_set);
+					}
+					break;
+
+				case SPD_TIME_SET:
+					// 对时写
+					SPD_Time_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value[seq].ref_addr,TIME_SET_LEN);
+					break;
+				default:
+					break;
 				}
-				break;
-
-			case SPD_DO_SET:
-				// DO每次只写1个寄存器
-				SPD_DO_Ctrl_Reg(socketq,addr_temp,SPD_DO_CTRL_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.do_set);
-				break;
-
-			case SPD_RES_SET:
-				// 不要改id,防止误操作
-				if (SPD_ctrl_value.ref_addr != RES_ID_ADDR)
-				{
-					//SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
-					// RES接地电阻部分设置
-					SPD_Res_Set_Reg(socketq,addr_temp,SPD_RES_SET_CMD,SPD_ctrl_value.ref_addr,SPD_ctrl_value.res_set);
-				}
-				break;
-
-			case SPD_TIME_SET:
-				// 对时写
-				SPD_Time_Set_Reg(socketq,addr_temp,SPD_WRITE_CMD,SPD_ctrl_value.ref_addr,TIME_SET_LEN);
-				break;
-			default:
-				break;
+				return 0;	// 如果有事件发生就要直接返回，防止连续写
 			}
 		}
 	}
@@ -588,11 +633,13 @@ int obtain_net_psd(UINT16 seq)
 
 #define INT_REG_POS	11	// 前面11个是实数
 
-void DealSPDAiMsg(unsigned char *buf,unsigned short int len)
+void DealSPDAiMsg(int seq,unsigned char *buf,unsigned short int len)
 {
+	assert(seq < SPD_NUM);
 	UINT8 i;
-	FDATA *fpointer = &stuSpd_Param->dSPD_AIdata.leak_current;
-	UINT16 *pointer = &stuSpd_Param->dSPD_AIdata.systime_year;
+
+	FDATA *fpointer = &stuSpd_Param->dSPD_AIdata[seq].leak_current;
+	UINT16 *pointer = &stuSpd_Param->dSPD_AIdata[seq].systime_year;
 
 	if(len == (SPD_AI_NUM*2+5))
 	{
@@ -616,7 +663,7 @@ void DealSPDAiMsg(unsigned char *buf,unsigned short int len)
 		printf("day_time = %7.3f \r\n",stuSpd_Param->dSPD_AIdata.day_time.f);
 		#endif
 
-		pointer = &stuSpd_Param->dSPD_AIdata.systime_year;
+		pointer = &stuSpd_Param->dSPD_AIdata[seq].systime_year;
 		// 后面的字节是整数,2个字节,另外最后一个数据没有变量对应,舍弃掉
 		for(i = INT_REG_POS;i < (SPD_AI_NUM-INT_REG_POS-1);i++)		// 从11项开始,前面的实数占了2个位置，所以减掉
 		{
@@ -668,32 +715,34 @@ void DealSPDAiMsg(unsigned char *buf,unsigned short int len)
 	}
 }
 
-void DealSPDDiMsg(unsigned char *buf,unsigned short int len)
+void DealSPDDiMsg(int seq,unsigned char *buf,unsigned short int len)
 {
+	assert(seq < SPD_NUM);
+
 	UINT8 i;
-	UINT8 *pointer = &stuSpd_Param->dSPD_DI.SPD_DI;
+	UINT8 *pointer = &stuSpd_Param->dSPD_DI[seq].SPD_DI;
 
 	// 只返回1个字节
 	if(len == (1+5))
 	{
-		//printf("spd_DI begain\r\n");
+		printf("LXspd_DI begain->%d\r\n",seq);
 		*pointer = *(buf+FRAME_HEAD_NUM);
 
-		//printf("SPD_DI = 0x%02x \r\n",stuSpd_Param->dSPD_DI.SPD_DI);
+		printf("SPD_DI = 0x%02x \r\n",stuSpd_Param->dSPD_DI[seq].SPD_DI);
 	}
 }
 
-void DealSPDDoMsg(unsigned char *buf,unsigned short int len)
+void DealSPDDoMsg(int seq,unsigned char *buf,unsigned short int len)
 {
 	UINT8 i;
-	UINT8 *pointer = &stuSpd_Param->dSPD_DO.SPD_DO;
+	UINT8 *pointer = &stuSpd_Param->dSPD_DO[seq].SPD_DO;
 
 	// 只返回6个字节
 	if(len == (1+5))
 	{
-		//printf("spd_DO begain\r\n");
+		printf("LXspd_DO begain->%d\r\n",seq);
 		*pointer = *(buf+FRAME_HEAD_NUM);
-		//printf("SPD_DO = 0x%02x \r\n",stuSpd_Param->dSPD_DO.SPD_DO);
+		printf("SPD_DO = 0x%02x \r\n",stuSpd_Param->dSPD_DO[seq].SPD_DO);
 	}
 }
 
@@ -742,38 +791,39 @@ void DealSPDResStatusMsg(unsigned char *buf,unsigned short int len)
 }
 
 // 把和下位机的协议数据转换成和后台的协议数据
-void RealDataCopy(SPD_DATA_LIST msg_t)
+void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 {
+	assert(seq < SPD_NUM);
+
 	UINT16 *pdes = NULL;
 	UINT16 *psrc = NULL;
 	UINT8 i;
-	UINT8 seq = 0;
 
 	switch (msg_t)
 	{
 	case (SPD_AI_DATA):
 		// 不能memset清0, 因为会把DI值清掉
-		stuSpd_Param->rSPD_data[0].id = (UINT16)stuSpd_Param->dSPD_AIdata.id.f;
-		stuSpd_Param->rSPD_data[0].ref_volt = stuSpd_Param->dSPD_AIdata.ref_volt.f;
-		stuSpd_Param->rSPD_data[0].real_volt = stuSpd_Param->dSPD_AIdata.real_volt.f;
-		stuSpd_Param->rSPD_data[0].volt_A = NULL_VALUE;	// 雷迅没有
-		stuSpd_Param->rSPD_data[0].volt_B = NULL_VALUE;
-		stuSpd_Param->rSPD_data[0].volt_C = NULL_VALUE;
-		stuSpd_Param->rSPD_data[0].leak_current = stuSpd_Param->dSPD_AIdata.leak_current.f;
-		stuSpd_Param->rSPD_data[0].leak_A = NULL_VALUE;
-		stuSpd_Param->rSPD_data[0].leak_B = NULL_VALUE;
-		stuSpd_Param->rSPD_data[0].leak_C = NULL_VALUE;
-		stuSpd_Param->rSPD_data[0].struck_cnt = stuSpd_Param->dSPD_AIdata.struck_cnt.f;
-		stuSpd_Param->rSPD_data[0].struck_total = stuSpd_Param->dSPD_AIdata.struck_total.f;
-		stuSpd_Param->rSPD_data[0].spd_temp = stuSpd_Param->dSPD_AIdata.spd_temp.f;
-		stuSpd_Param->rSPD_data[0].envi_temp = stuSpd_Param->dSPD_AIdata.envi_temp.f;
-		stuSpd_Param->rSPD_data[0].life_time = (float)stuSpd_Param->dSPD_AIdata.life_time;
-		stuSpd_Param->rSPD_data[0].soft_version = stuSpd_Param->dSPD_AIdata.soft_version.f;
-		stuSpd_Param->rSPD_data[0].leak_alarm_threshold = stuSpd_Param->dSPD_AIdata.leak_alarm_threshold.f;
-		stuSpd_Param->rSPD_data[0].day_time = stuSpd_Param->dSPD_AIdata.day_time.f;
+		stuSpd_Param->rSPD_data[seq].id = (UINT16)stuSpd_Param->dSPD_AIdata[seq].id.f;
+		stuSpd_Param->rSPD_data[seq].ref_volt = stuSpd_Param->dSPD_AIdata[seq].ref_volt.f;
+		stuSpd_Param->rSPD_data[seq].real_volt = stuSpd_Param->dSPD_AIdata[seq].real_volt.f;
+		stuSpd_Param->rSPD_data[seq].volt_A = NULL_VALUE;	// 雷迅没有
+		stuSpd_Param->rSPD_data[seq].volt_B = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].volt_C = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].leak_current = stuSpd_Param->dSPD_AIdata[seq].leak_current.f;
+		stuSpd_Param->rSPD_data[seq].leak_A = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].leak_B = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].leak_C = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].struck_cnt = stuSpd_Param->dSPD_AIdata[seq].struck_cnt.f;
+		stuSpd_Param->rSPD_data[seq].struck_total = stuSpd_Param->dSPD_AIdata[seq].struck_total.f;
+		stuSpd_Param->rSPD_data[seq].spd_temp = stuSpd_Param->dSPD_AIdata[seq].spd_temp.f;
+		stuSpd_Param->rSPD_data[seq].envi_temp = stuSpd_Param->dSPD_AIdata[seq].envi_temp.f;
+		stuSpd_Param->rSPD_data[seq].life_time = (float)stuSpd_Param->dSPD_AIdata[seq].life_time;
+		stuSpd_Param->rSPD_data[seq].soft_version = stuSpd_Param->dSPD_AIdata[seq].soft_version.f;
+		stuSpd_Param->rSPD_data[seq].leak_alarm_threshold = stuSpd_Param->dSPD_AIdata[seq].leak_alarm_threshold.f;
+		stuSpd_Param->rSPD_data[seq].day_time = stuSpd_Param->dSPD_AIdata[seq].day_time.f;
 
-		pdes = &stuSpd_Param->rSPD_data[0].systime_year;
-		psrc = &stuSpd_Param->dSPD_AIdata.systime_year;
+		pdes = &stuSpd_Param->rSPD_data[seq].systime_year;
+		psrc = &stuSpd_Param->dSPD_AIdata[seq].systime_year;
 
 		// 系统时间
 		for(i = 0;i < 6;i++)
@@ -783,8 +833,8 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 			psrc++;
 		}
 		// 最近1次雷击
-		pdes = &stuSpd_Param->rSPD_data[0].last_1_struck_year;
-		psrc = &stuSpd_Param->dSPD_AIdata.last_1_struck_year;
+		pdes = &stuSpd_Param->rSPD_data[seq].last_1_struck_year;
+		psrc = &stuSpd_Param->dSPD_AIdata[seq].last_1_struck_year;
 		for(i = 0;i < 5;i++)
 		{
 			*pdes = *psrc;
@@ -792,8 +842,8 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 			psrc++;
 		}
 		// 倒数第2次雷击
-		pdes = &stuSpd_Param->rSPD_data[0].last_2_struck_year;
-		psrc = &stuSpd_Param->dSPD_AIdata.last_2_struck_year;
+		pdes = &stuSpd_Param->rSPD_data[seq].last_2_struck_year;
+		psrc = &stuSpd_Param->dSPD_AIdata[seq].last_2_struck_year;
 		for(i = 0;i < 5;i++)
 		{
 			*pdes = *psrc;
@@ -801,8 +851,8 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 			psrc++;
 		}
 		// 倒数第3次雷击
-		pdes = &stuSpd_Param->rSPD_data[0].last_3_struck_year;
-		psrc = &stuSpd_Param->dSPD_AIdata.last_3_struck_year;
+		pdes = &stuSpd_Param->rSPD_data[seq].last_3_struck_year;
+		psrc = &stuSpd_Param->dSPD_AIdata[seq].last_3_struck_year;
 		for(i = 0;i < 5;i++)
 		{
 			*pdes = *psrc;
@@ -810,8 +860,8 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 			psrc++;
 		}
 		// 倒数第4次雷击
-		pdes = &stuSpd_Param->rSPD_data[0].last_4_struck_year;
-		psrc = &stuSpd_Param->dSPD_AIdata.last_4_struck_year;
+		pdes = &stuSpd_Param->rSPD_data[seq].last_4_struck_year;
+		psrc = &stuSpd_Param->dSPD_AIdata[seq].last_4_struck_year;
 		for(i = 0;i < 5;i++)
 		{
 			*pdes = *psrc;
@@ -819,101 +869,100 @@ void RealDataCopy(SPD_DATA_LIST msg_t)
 			psrc++;
 		}
 		// 倒数第5次雷击
-		pdes = &stuSpd_Param->rSPD_data[0].last_5_struck_year;
-		psrc = &stuSpd_Param->dSPD_AIdata.last_5_struck_year;
+		pdes = &stuSpd_Param->rSPD_data[seq].last_5_struck_year;
+		psrc = &stuSpd_Param->dSPD_AIdata[seq].last_5_struck_year;
 		for(i = 0;i < 5;i++)
 		{
 			*pdes = *psrc;
 			pdes++;
 			psrc++;
 		}
-		printf("spd_real begain\r\n");
-		printf("leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_current);
-		printf("A_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_A);
-		printf("B_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_B);
-		printf("C_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_C);
-		printf("ref_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[0].ref_volt);
-		printf("real_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[0].real_volt);
-		printf("volt_A = %7.3f \r\n",stuSpd_Param->rSPD_data[0].volt_A);
-		printf("volt_B = %7.3f \r\n",stuSpd_Param->rSPD_data[0].volt_B);
-		printf("volt_C = %7.3f \r\n",stuSpd_Param->rSPD_data[0].volt_C);
-		printf("struck_cnt = %7.3f \r\n",stuSpd_Param->rSPD_data[0].struck_cnt);
-		printf("struck_total = %7.3f \r\n",stuSpd_Param->rSPD_data[0].struck_total);
-		printf("spd_temp = %7.3f \r\n",stuSpd_Param->rSPD_data[0].spd_temp);
-		printf("envi_temp = %7.3f \r\n",stuSpd_Param->rSPD_data[0].envi_temp);
-		printf("id =  %5hd \r\n",stuSpd_Param->rSPD_data[0].id);
-		printf("soft_version = %7.3f \r\n",stuSpd_Param->rSPD_data[0].soft_version);
-		printf("leak_alarm_threshold = %7.3f \r\n",stuSpd_Param->rSPD_data[0].leak_alarm_threshold);
-		printf("day_time = %7.3f \r\n",stuSpd_Param->rSPD_data[0].day_time);
-		printf("life_time = %7.3f \r\n",stuSpd_Param->rSPD_data[0].life_time);
+		printf("LXspd_real begain,%5hd\r\n",seq);
+		printf("leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_current);
+		printf("A_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_A);
+		printf("B_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_B);
+		printf("C_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_C);
+		printf("ref_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].ref_volt);
+		printf("real_volt = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].real_volt);
+		printf("volt_A = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].volt_A);
+		printf("volt_B = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].volt_B);
+		printf("volt_C = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].volt_C);
+		printf("struck_cnt = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].struck_cnt);
+		printf("struck_total = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].struck_total);
+		printf("spd_temp = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].spd_temp);
+		printf("envi_temp = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].envi_temp);
+		printf("id =  %5hd \r\n",stuSpd_Param->rSPD_data[seq].id);
+		printf("soft_version = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].soft_version);
+		printf("leak_alarm_threshold = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_alarm_threshold);
+		printf("day_time = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].day_time);
+		printf("life_time = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].life_time);
 
-		printf("systime_year = %5hd \r\n",stuSpd_Param->rSPD_data[0].systime_year);
-		printf("systime_month = %5hd \r\n",stuSpd_Param->rSPD_data[0].systime_month);
-		printf("systime_day = %5hd \r\n",stuSpd_Param->rSPD_data[0].systime_day);
-		printf("systime_hour = %5hd \r\n",stuSpd_Param->rSPD_data[0].systime_hour);
-		printf("systime_min = %5hd \r\n",stuSpd_Param->rSPD_data[0].systime_min);
-		printf("systime_sec = %5hd \r\n",stuSpd_Param->rSPD_data[0].systime_sec);
+		printf("systime_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_year);
+		printf("systime_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_month);
+		printf("systime_day = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_day);
+		printf("systime_hour = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_hour);
+		printf("systime_min = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_min);
+		printf("systime_sec = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_sec);
 
-		printf("last_1_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_1_struck_year);
-		printf("last_1_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_1_struck_month);
-		printf("last_1_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_1_struck_day);
-		printf("last_1_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_1_struck_hour);
-		printf("last_1_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_1_struck_min);
+		printf("last_1_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_1_struck_year);
+		printf("last_1_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_1_struck_month);
+		printf("last_1_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_1_struck_day);
+		printf("last_1_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_1_struck_hour);
+		printf("last_1_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_1_struck_min);
 
-		printf("last_2_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_2_struck_year);
-		printf("last_2_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_2_struck_month);
-		printf("last_2_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_2_struck_day);
-		printf("last_2_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_2_struck_hour);
-		printf("last_2_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_2_struck_min);
+		printf("last_2_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_2_struck_year);
+		printf("last_2_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_2_struck_month);
+		printf("last_2_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_2_struck_day);
+		printf("last_2_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_2_struck_hour);
+		printf("last_2_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_2_struck_min);
 
-		printf("last_3_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_3_struck_year);
-		printf("last_3_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_3_struck_month);
-		printf("last_3_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_3_struck_day);
-		printf("last_3_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_3_struck_hour);
-		printf("last_3_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_3_struck_min);
+		printf("last_3_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_3_struck_year);
+		printf("last_3_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_3_struck_month);
+		printf("last_3_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_3_struck_day);
+		printf("last_3_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_3_struck_hour);
+		printf("last_3_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_3_struck_min);
 
-		printf("last_4_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_4_struck_year);
-		printf("last_4_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_4_struck_month);
-		printf("last_4_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_4_struck_day);
-		printf("last_4_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_4_struck_hour);
-		printf("last_4_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_4_struck_min);
+		printf("last_4_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_4_struck_year);
+		printf("last_4_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_4_struck_month);
+		printf("last_4_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_4_struck_day);
+		printf("last_4_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_4_struck_hour);
+		printf("last_4_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_4_struck_min);
 
-		printf("last_5_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_5_struck_year);
-		printf("last_5_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_5_struck_month);
-		printf("last_5_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_5_struck_day);
-		printf("last_5_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_5_struck_hour);
-		printf("last_5_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[0].last_5_struck_min);
+		printf("last_5_struck_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_year);
+		printf("last_5_struck_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_month);
+		printf("last_5_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_day);
+		printf("last_5_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_hour);
+		printf("last_5_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_min);
 		break;
 
 	case (SPD_DI_DATA):
 		// 这2个0：告警，1:正常,所以要反一下
-		stuSpd_Param->rSPD_data[0].DI_C1_status = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(3))?0:1;
-		stuSpd_Param->rSPD_data[0].DI_leak_alarm  = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(6))?0:1;
+		stuSpd_Param->rSPD_data[seq].DI_C1_status = (stuSpd_Param->dSPD_DI[seq].SPD_DI & BIT(3))?0:1;
+		stuSpd_Param->rSPD_data[seq].DI_leak_alarm  = (stuSpd_Param->dSPD_DI[seq].SPD_DI & BIT(6))?0:1;
 		// 这里0：正常，1:告警
-		stuSpd_Param->rSPD_data[0].DI_grd_alarm = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(4))?1:0;
-		stuSpd_Param->rSPD_data[0].DI_volt_alarm  = (stuSpd_Param->dSPD_DI.SPD_DI & BIT(7))?1:0;
+		stuSpd_Param->rSPD_data[seq].DI_grd_alarm = (stuSpd_Param->dSPD_DI[seq].SPD_DI & BIT(4))?1:0;
+		stuSpd_Param->rSPD_data[seq].DI_volt_alarm  = (stuSpd_Param->dSPD_DI[seq].SPD_DI & BIT(7))?1:0;
 
 
-		printf("C1_status = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_C1_status);
-		printf("grd_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_grd_alarm);
-		printf("leak_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_leak_alarm);
-		printf("volt_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DI_volt_alarm);
+		printf("C1_status%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_C1_status);
+		printf("grd_alarm%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_grd_alarm);
+		printf("leak_alarm%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_leak_alarm);
+		printf("volt_alarm%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_volt_alarm);
 
 		break;
 
 	case (SPD_DO_DATA):
-		stuSpd_Param->rSPD_data[0].DO_spdcnt_clear = (stuSpd_Param->dSPD_DO.SPD_DO & BIT(0))?1:0;
-		stuSpd_Param->rSPD_data[0].DO_totalspdcnt_clear = (stuSpd_Param->dSPD_DO.SPD_DO & BIT(1))?1:0;
-		stuSpd_Param->rSPD_data[0].DO_leak_type = (stuSpd_Param->dSPD_DO.SPD_DO & BIT(2))?1:0;
-		stuSpd_Param->rSPD_data[0].DO_psdtime_clear = (stuSpd_Param->dSPD_DO.SPD_DO & BIT(4))?1:0;
-		stuSpd_Param->rSPD_data[0].DO_daytime_clear = (stuSpd_Param->dSPD_DO.SPD_DO & BIT(5))?1:0;
+		stuSpd_Param->rSPD_data[seq].DO_spdcnt_clear = (stuSpd_Param->dSPD_DO[seq].SPD_DO & BIT(0))?1:0;
+		stuSpd_Param->rSPD_data[seq].DO_totalspdcnt_clear = (stuSpd_Param->dSPD_DO[seq].SPD_DO & BIT(1))?1:0;
+		stuSpd_Param->rSPD_data[seq].DO_leak_type = (stuSpd_Param->dSPD_DO[seq].SPD_DO & BIT(2))?1:0;
+		stuSpd_Param->rSPD_data[seq].DO_psdtime_clear = (stuSpd_Param->dSPD_DO[seq].SPD_DO & BIT(4))?1:0;
+		stuSpd_Param->rSPD_data[seq].DO_daytime_clear = (stuSpd_Param->dSPD_DO[seq].SPD_DO & BIT(5))?1:0;
 
-		printf("DO_leak_type = 0x%02x \r\n",stuSpd_Param->rSPD_data[0].DO_leak_type);
+		printf("DO_leak_type%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DO_leak_type);
 		break;
 
-	case (SPD_HZ_DATA_1):
-	case (SPD_HZ_DATA_2):
-		seq = msg_t - SPD_HZ_DATA_1;
+	case (SPD_HZ_DATA):
+		//seq = msg_t - SPD_HZ_DATA_1;
 		stuSpd_Param->rSPD_data[seq].id = 1;	// 地址是1不会变
 		stuSpd_Param->rSPD_data[seq].ref_volt = NULL_VALUE;	// 没有的清0
 		stuSpd_Param->rSPD_data[seq].real_volt = NULL_VALUE;
@@ -1091,39 +1140,57 @@ void DealHZResMsg(int seq,unsigned char *buf,unsigned short int len)
 }
 
 
-int DealNetSPD(int seq,unsigned char *buf,unsigned short int len)
+int DealNetSPD(int skt,unsigned char *buf,unsigned short int len)
 {
+	UINT8 seq = 0;
+	int i=0;
+
+	// 当为雷迅则外部的skt没有意义，因为是同一个IP地址来的
 	if (SPD_Type == TYPE_LEIXUN)
 	{
-		if (buf[0] == SPD_Address[0])
+		for (i=0; i<SPD_NUM+RES_NUM; i++)
 		{
-			// 根据命令码来进行信息的区分
-			switch(buf[1])
+			if (buf[0] == SPD_Address[i])
 			{
-				case SPD_READ_CMD:
-					DealSPDAiMsg(buf, len);
-					RealDataCopy(SPD_AI_DATA);
-				break;
-				case SPD_DI_CMD:
-					DealSPDDiMsg(buf, len);
-					RealDataCopy(SPD_DI_DATA);
-				break;
-				// DO不处理
-				case SPD_DO_CMD:
-					DealSPDDoMsg(buf, len);
-					RealDataCopy(SPD_DO_DATA);
-				break;
-				default:
+				seq = i;	// 找出返回的数据是对应哪个地址?
 				break;
 			}
 		}
-		else if (buf[0] == SPD_Address[SPD_NUM])
+		if (i == (SPD_NUM+RES_NUM))
+		{
+			return 0;	// 没找到对应的地址，无效数据，直接返回
+		}
+
+		// 如果是接地电阻的数据
+		if (buf[0] == SPD_Address[SPD_NUM])
 		{
 			// 根据命令码来进行信息的区分
 			switch(buf[1])
 			{
 				case SPD_RES_READ_CMD:
 					DealSPDResStatusMsg(buf, len);
+				break;
+				default:
+				break;
+			}
+		}
+		else
+		{
+			// 根据命令码来进行信息的区分
+			switch(buf[1])
+			{
+				case SPD_READ_CMD:
+					DealSPDAiMsg(seq,buf, len);
+					RealDataCopy(seq,SPD_AI_DATA);
+				break;
+				case SPD_DI_CMD:
+					DealSPDDiMsg(seq,buf, len);
+					RealDataCopy(seq,SPD_DI_DATA);
+				break;
+				// DO不处理
+				case SPD_DO_CMD:
+					DealSPDDoMsg(seq,buf, len);
+					RealDataCopy(seq,SPD_DO_DATA);
 				break;
 				default:
 				break;
@@ -1140,8 +1207,8 @@ int DealNetSPD(int seq,unsigned char *buf,unsigned short int len)
 			{
 			// 防雷数据长度为46
 			case (HZ_SPD_LEN):
-				DealHZSPDMsg(seq,buf, len);
-				RealDataCopy((SPD_DATA_LIST)(SPD_HZ_DATA_1+seq));
+				DealHZSPDMsg(skt,buf, len);
+				RealDataCopy(skt,SPD_HZ_DATA);
 			break;
 			// 地阻数据长度为26
 			case (HZ_RES_LEN):
@@ -1168,7 +1235,7 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 	//gsocket = 0;
 	while(1)
 	{
-		if (SPD_Type == TYPE_LEIXUN)
+		if ((SPD_Type == TYPE_LEIXUN) ||(SPD_Type == TYPE_KY))
 		{
 	      	len = read(sockfd_spd[0], buf, sizeof(buf)-1);
 			if (len >= 0)
@@ -1194,7 +1261,7 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 				if (first_entry == 0)
 				{
 					first_entry = 1;
-					Ex_SPD_Set_Process(SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
+					Ex_SPD_Set_Process(SPD_NUM,SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
 				}
 			}
 			// 断线了
@@ -1312,6 +1379,7 @@ void *NetWork_DataGet_thread_SPD_HZRes(void *param)
 
 
 // 统一创建接收线程
+// 宽永和雷迅共用1个线程，2者处理方式是一样的
 void DataGet_Thread_Create(UINT16 SPD_t)
 {
 	//if (SPD_t == TYPE_LEIXUN)
@@ -1369,6 +1437,7 @@ void* NetWork_server_thread_SPD(void*arg)
 	//int bFlag=0;
 	static UINT16 op_counter = 0;
 	static UINT16 poll_cnt = 0;
+	static UINT16 seq_cnt = 0;		// 标志现在轮询到了几个寄存器了
 	// 线程开始测试一次电阻，不然要等10分钟, 延时20s,先对时
 	static UINT32 ctrl_counter = (SPD_TEST_RES_INTERVAL-10);
 	FDATA dummy;
@@ -1376,7 +1445,10 @@ void* NetWork_server_thread_SPD(void*arg)
 	static UINT16 try_connect[SPD_NUM+RES_NUM] = {0,};
 	static UINT16 anyone_connect = 0;	// 如果任何一个设备已经连接
 
-	memset (&SPD_ctrl_value,0,sizeof(SPD_CTRL_VALUE));
+	for (i = 0; i < SPD_NUM; i++)
+	{
+		memset (&SPD_ctrl_value[i],0,sizeof(SPD_CTRL_VALUE));
+	}
 	dummy.f=NULL_VAR;
 
 	#if 0
@@ -1387,7 +1459,7 @@ void* NetWork_server_thread_SPD(void*arg)
 	#endif
 
 	temp=0;
-	if (SPD_Type == TYPE_LEIXUN)
+	if ((SPD_Type == TYPE_LEIXUN) || (SPD_Type == TYPE_KY))
 	{
 		net_Conneted=0;		// 开始连接前置0
 		while(net_Conneted==0)
@@ -1427,11 +1499,15 @@ void* NetWork_server_thread_SPD(void*arg)
 		if (SPD_Type == TYPE_HUAZI)
 		{
 			// 如果是华咨,没有设置参数，忽略
-			spd_ctl_flag = 0;
+			for (i = 0; i < SPD_NUM; i++)
+			{
+				spd_ctl_flag[i] = 0;
+			}
 		}
-		if (spd_ctl_flag&BITS_MSK_GET(0,SPD_CTRL_NUM))
+		if ((spd_ctl_flag[0]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[1]&BITS_MSK_GET(0,SPD_CTRL_NUM)))
 		{
-			spd_net_flag = 0;
+			spd_net_flag[0] = 0;
+			spd_net_flag[1] = 0;
 		}
 		else
 		{
@@ -1469,28 +1545,31 @@ void* NetWork_server_thread_SPD(void*arg)
 			if (poll_cnt >= SPD_POLLING_INTERVAL)
 			{
 				poll_cnt = 0;
-				op_counter++;						// 轮询间隔标志
 				if (SPD_Type == TYPE_LEIXUN)
 				{
-					if (op_counter == SPD_HZ_DATA_1)
+					if (op_counter >= SPD_HZ_DATA)
 					{
 						op_counter = SPD_RES_DATA;	// 跳过第二个防雷器
 					}
 					if (op_counter >= SPD_DATA_NUM)
 					{
 						op_counter = 0;
+						seq_cnt++;
+						// 按config设置的数量来
+						if (seq_cnt >= SPD_num)
+						{
+							seq_cnt = 0;
+						}
 					}
 					if ((ctrl_counter % SPD_TEST_RES_INTERVAL) ==0)
 					{
-						//ctrl_counter = 0;
 						// 接地电阻10分钟测试一次
-						Ex_SPD_Set_Process(SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
+						Ex_SPD_Set_Process(SPD_NUM,SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
 					}
 					if (ctrl_counter >= SPD_TIME_SYN_INTERVAL)
 					{
 						ctrl_counter = 0;
-						// 对时一次,不关心值
-						Ex_SPD_Set_Process(SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
+						Ex_SPD_Set_Process(SPD_NUM,SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
 					}
 					ctrl_counter++;		// 每隔一段时间进行一次接地电阻测试
 					//printf("ctrl_counter = 0x%08x \r\n",ctrl_counter);
@@ -1498,63 +1577,179 @@ void* NetWork_server_thread_SPD(void*arg)
 				else if (SPD_Type == TYPE_HUAZI)
 				{
 					// 这里的逻辑要再想想
-					if (op_counter <= SPD_HZ_DATA_1)
+					if ((op_counter != SPD_HZ_DATA) && (op_counter != SPD_RES_DATA))
 					{
-						op_counter = SPD_HZ_DATA_1;	// 跳过雷迅的轮询
+						op_counter = SPD_HZ_DATA;	// 把非法值纠正过来
 					}
 
-					if (op_counter >= SPD_DATA_NUM)
+					if (op_counter < SPD_HZ_DATA)
 					{
-						op_counter = SPD_HZ_DATA_1;
+						op_counter = SPD_HZ_DATA;
+					}
+
+					if (op_counter > SPD_HZ_DATA)
+					{
+						op_counter = SPD_RES_DATA;
+					}
+
+					if ((op_counter > SPD_RES_DATA) || (op_counter >= SPD_DATA_NUM))
+					{
+						op_counter = SPD_HZ_DATA;
+						seq_cnt++;
+						// 按config设置的数量来
+						if (seq_cnt >= SPD_num)
+						{
+							seq_cnt = 0;
+						}
 					}
 				}
-				spd_net_flag |= BIT(op_counter);
+
+				// 宽永的处理
+				else if (SPD_Type == TYPE_KY)
+				{
+					if (op_counter <= SPD_RUN_DATA)
+					{
+						op_counter = SPD_RUN_DATA;	// 防止异常值
+					}
+					if (op_counter >= SPD_DATA_NUM)
+					{
+						op_counter = SPD_RUN_DATA;
+						seq_cnt++;
+						// 按config设置的数量来
+						if (seq_cnt >= SPD_num)
+						{
+							seq_cnt = 0;
+						}
+					}
+				}
+
+				if (seq_cnt < SPD_NUM)
+				{
+					spd_net_flag[seq_cnt] |= BIT(op_counter);
+				}
+				op_counter++;// 轮询间隔标志
 			}
 		}
 
 		// 统一处理的设置函数，这种结构注定上位机只能一次设置一个，且要有个间隔时间,400ms
-		if (spd_ctl_flag&BIT(SPD_AI_SET))
+		for (i=0; i<SPD_NUM; i++)
 		{
-			spd_ctrl_process(&spd_ctl_flag,SPD_AI_SET);
-		}
-		else if (spd_ctl_flag&BIT(SPD_DO_SET))
-		{
-			spd_ctrl_process(&spd_ctl_flag,SPD_DO_SET);
-		}
-		else if (spd_ctl_flag&BIT(SPD_TIME_SET))
-		{
-			spd_ctrl_process(&spd_ctl_flag,SPD_TIME_SET);
-		}
-		else if (spd_ctl_flag&BIT(SPD_RES_SET))
-		{
-			spd_ctrl_process(&spd_ctl_flag,SPD_RES_SET);
+			if (spd_ctl_flag[i]&BITS_MSK_GET(0,SPD_CTRL_NUM))
+			{
+				spd_ctrl_process(i,&spd_ctl_flag[i]);
+				break;	// 有事件发生直接跳出循环，下次再轮询
+			}
+
+			if (spd_net_flag[i]&BITS_MSK_GET(0,SPD_DATA_NUM))
+			{
+				spd_send_process(i,&spd_net_flag[i]);
+				break;	// 有事件发生直接跳出循环，下次再轮询
+			}
 		}
 
+	#if 0
+		if (spd_ctl_flag[0]&BIT(SPD_AI_SET))
+		{
+			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_AI_SET);
+		}
+		else if (spd_ctl_flag[0]&BIT(SPD_DO_SET))
+		{
+			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_DO_SET);
+		}
+		else if (spd_ctl_flag[0]&BIT(SPD_TIME_SET))
+		{
+			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_TIME_SET);
+		}
+		else if (spd_ctl_flag[0]&BIT(SPD_RES_SET))
+		{
+			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_RES_SET);
+		}
+
+		else if (spd_ctl_flag[1]&BIT(SPD_AI_SET))
+		{
+			spd_ctrl_process(1,&spd_ctl_flag[1],SPD_AI_SET);
+		}
+		else if (spd_ctl_flag[1]&BIT(SPD_DO_SET))
+		{
+			spd_ctrl_process(1,&spd_ctl_flag[1],SPD_DO_SET);
+		}
+		else if (spd_ctl_flag[1]&BIT(SPD_TIME_SET))
+		{
+			spd_ctrl_process(1,&spd_ctl_flag[1],SPD_TIME_SET);
+		}
+		// 接地电阻只有1个，这里是多余的
+		else if (spd_ctl_flag[1]&BIT(SPD_RES_SET))
+		{
+			spd_ctl_flag[1] &= ~(BIT(SPD_RES_SET));
+			//spd_ctrl_process(1,&spd_ctl_flag,SPD_RES_SET);
+		}
+
+
 		// 设置完毕，开始轮询
-		else if (spd_net_flag&BIT(SPD_AI_DATA))
+		else if (spd_net_flag[0]&BIT(SPD_AI_DATA))
 		{
-			spd_send_process(&spd_net_flag,SPD_AI_DATA);
+			spd_send_process(0,&spd_net_flag[0],SPD_AI_DATA);
 		}
-		else if (spd_net_flag&BIT(SPD_DI_DATA))
+		else if (spd_net_flag[0]&BIT(SPD_DI_DATA))
 		{
-			spd_send_process(&spd_net_flag,SPD_DI_DATA);
+			spd_send_process(0,&spd_net_flag[0],SPD_DI_DATA);
 		}
-		else if (spd_net_flag&BIT(SPD_DO_DATA))
+		else if (spd_net_flag[0]&BIT(SPD_DO_DATA))
 		{
-			spd_send_process(&spd_net_flag,SPD_DO_DATA);
+			spd_send_process(0,&spd_net_flag[0],SPD_DO_DATA);
 		}
-		else if (spd_net_flag&BIT(SPD_HZ_DATA_1))
+
+		// 宽永的
+		else if (spd_net_flag[0]&BIT(SPD_RUN_DATA))
 		{
-			spd_send_process(&spd_net_flag,SPD_HZ_DATA_1);
+			spd_send_process(0,&spd_net_flag[0],SPD_RUN_DATA);
 		}
-		else if (spd_net_flag&BIT(SPD_HZ_DATA_2))
+		else if (spd_net_flag[0]&BIT(SPD_REMOTE_DATA))
 		{
-			spd_send_process(&spd_net_flag,SPD_HZ_DATA_2);
+			spd_send_process(0,&spd_net_flag[0],SPD_REMOTE_DATA);
 		}
-		else if (spd_net_flag&BIT(SPD_RES_DATA))
+		else if (spd_net_flag[0]&BIT(SPD_REMOTE_DATA))
 		{
-			spd_send_process(&spd_net_flag,SPD_RES_DATA);
+			spd_send_process(0,&spd_net_flag[0],SPD_REMOTE_DATA);
 		}
+
+		// 华咨的
+		else if (spd_net_flag[0]&BIT(SPD_HZ_DATA))
+		{
+			spd_send_process(0,&spd_net_flag[0],SPD_HZ_DATA);
+		}
+		// 接地电阻,共用的
+		else if (spd_net_flag[0]g&BIT(SPD_RES_DATA))
+		{
+			spd_send_process(0,&spd_net_flag,SPD_RES_DATA);
+		}
+
+
+		// 第二套轮询
+		else if (spd_net_flag[1]&BIT(SPD_AI_DATA))
+		{
+			spd_send_process(1,&spd_net_flag[1],SPD_AI_DATA);
+		}
+		else if (spd_net_flag[1]&BIT(SPD_DI_DATA))
+		{
+			spd_send_process(1,&spd_net_flag[1],SPD_DI_DATA);
+		}
+		else if (spd_net_flag[1]&BIT(SPD_DO_DATA))
+		{
+			spd_send_process(1,&spd_net_flag[1],SPD_DO_DATA);
+		}
+
+		else if (spd_net_flag[1]&BIT(SPD_HZ_DATA))
+		{
+			spd_send_process(1,&spd_net_flag[1],SPD_HZ_DATA);
+		}
+		else if (spd_net_flag[1]&BIT(SPD_RES_DATA))
+		{
+			// 只有1套接地
+			spd_net_flag[1] &= ~(BIT(SPD_RES_DATA));
+			//spd_send_process(0,&spd_net_flag,SPD_RES_DATA);
+		}
+		#endif
 		usleep(SPD_INTERVAL_TIME);	// 参数设置间隔
 	}
 }

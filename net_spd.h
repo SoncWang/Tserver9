@@ -8,6 +8,8 @@
 
 #define TYPE_LEIXUN		1
 #define TYPE_HUAZI		2
+#define TYPE_KY			3	// 宽永
+
 
 #define NULL_VALUE		0		// 定义没有这个参数时的默认值
 /**********************************************/
@@ -324,8 +326,13 @@ typedef enum
 	SPD_DO_DATA,
 
 	// 华咨的轮询标志
-	SPD_HZ_DATA_1,
-	SPD_HZ_DATA_2,
+	SPD_HZ_DATA,
+	//SPD_HZ_DATA_2,
+
+	// 宽永的轮询标志
+	SPD_RUN_DATA,
+	SPD_REMOTE_DATA,	// 遥信
+	SPD_REC_DATA,		// 历史记录
 
 	SPD_RES_DATA,	// 接地电阻部分
 
@@ -349,9 +356,9 @@ typedef enum
 typedef struct spd_struct
 {
 	// 雷迅的防雷
-	SPD_AI_PARAMS dSPD_AIdata;
-	SPD_DI_PARAMS dSPD_DI;
-	SPD_DO_PARAMS dSPD_DO;
+	SPD_AI_PARAMS dSPD_AIdata[SPD_NUM];
+	SPD_DI_PARAMS dSPD_DI[SPD_NUM];
+	SPD_DO_PARAMS dSPD_DO[SPD_NUM];
 
 	// 华咨有2个防雷
 	SPD_HZ_PARAMS dSPD_HZ[SPD_NUM];	// 华咨的防雷器
@@ -374,7 +381,7 @@ typedef struct spd_ctrl_value_struct
 }SPD_CTRL_VALUE;
 
 
-extern SPD_CTRL_VALUE SPD_ctrl_value;
+extern SPD_CTRL_VALUE SPD_ctrl_value[SPD_NUM];
 extern UINT8 SPD_Address[SPD_NUM+RES_NUM];
 //extern UINT8 SPD_Res_Address;
 extern UINT8 SPD_Type;
@@ -385,14 +392,14 @@ extern UINT8 HZ_reset_pre[SPD_NUM+RES_NUM];
 
 void init_net_spd();
 //void send_SPD(char command,bool ReSend,char state,int num);
-int spd_send_process(UINT16 *pnet_flag, SPD_DATA_LIST SPD_data_event);
-int spd_ctrl_process(UINT16 *pctrl_flag, SPD_CTRL_LIST SPD_ctrl_event);
+int spd_send_process(UINT16 seq,UINT16 *pnet_flag, SPD_DATA_LIST SPD_data_event);
+int spd_ctrl_process(UINT16 seq,UINT16 *pctrl_flag);
 int obtain_net_psd(UINT16 seq);
-void DealSPDAiMsg(unsigned char *buf,unsigned short int len);
+void DealSPDAiMsg(int seq,unsigned char *buf,unsigned short int len);
 void DealSPDDiMsg(unsigned char *buf,unsigned short int len);
-int DealNetSPD(int seq,unsigned char *buf,unsigned short int len);
-int Ex_SPD_Set_Process(SPD_CTRL_LIST SPD_ctrl_event, UINT8 set_addr, FDATA ai_data,UINT16 data);
-void RealDataCopy(SPD_DATA_LIST msg_t);
+int DealNetSPD(int skt,unsigned char *buf,unsigned short int len);
+int Ex_SPD_Set_Process(int seq,SPD_CTRL_LIST SPD_ctrl_event, UINT8 set_addr, FDATA ai_data,UINT16 data);
+void RealDataCopy(int seq,SPD_DATA_LIST msg_t);
 
 
 #endif

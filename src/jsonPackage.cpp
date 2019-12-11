@@ -1308,7 +1308,7 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			stuSpd_Param->rSPD_res.alarm_value=atoi(value);
 			printf("spdres报警值修改=%s\n",value);
 			//spdres更改报警值
-			Ex_SPD_Set_Process(SPD_RES_SET,RES_ALARM_ADDR,dummy,atoi(value));
+			Ex_SPD_Set_Process(0,SPD_RES_SET,RES_ALARM_ADDR,dummy,atoi(value));
 		}
 
 		for(i=0;i<LOCK_MAX_NUM;i++)
@@ -2930,7 +2930,7 @@ bool jsonstrVmCtlParamReaderXY(char* jsonstr, int len, UINT8 *pstPam)
 			stuSpd_Param->rSPD_res.alarm_value=atoi(value);
 			printf("spdres报警值修改=%s\n",value);
 			//spdres更改报警值
-			Ex_SPD_Set_Process(SPD_RES_SET,RES_ALARM_ADDR,dummy,atoi(value));
+			Ex_SPD_Set_Process(0,SPD_RES_SET,RES_ALARM_ADDR,dummy,atoi(value));
 		}
 	}
 
@@ -3022,7 +3022,7 @@ bool jsonstrVmCtlParamReaderXY(char* jsonstr, int len, UINT8 *pstPam)
 	}
 
 	// 没有配置的都置空
-	if ((SPD_Type == TYPE_LEIXUN) && (SPD_num == 1))
+	if (SPD_num == 1)
 	{
 		for (i=1;i<SPD_NUM;i++)
 		{
