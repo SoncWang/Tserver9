@@ -108,13 +108,13 @@ unsigned short  crc_ccitt_byte(unsigned short crc, const unsigned char c)
 unsigned short GetCrc(unsigned char *buf,int len)
 {
 	int i;
-	unsigned short crc=0xffff;
+	unsigned short crc=0xffff;	
 	for(i=0;i<len;i++)			//检查收到的CRC是否正确
- 	{
+ 	{					
 		crc=crc_ccitt_byte(crc,buf[i]);
  	}
 	crc^=0xffff;
-	return crc;
+	return crc;	
 }
 
 
@@ -160,37 +160,4 @@ unsigned short CRC16(unsigned char *puchMsg , unsigned short usDataLen)
 	}
 	return (uchCRCHi << 8 | uchCRCLo);
 }
-
-
-//用软件计算CRC4函数
-//
-void CalulateCRCbySoft(unsigned char *pucData,unsigned char wLength,unsigned char *pOutData)
-{
-	unsigned char ucTemp;
-	unsigned short wValue;
-	unsigned short crc_tbl[16]={0x0000,0x1021,0x2042,0x3063,0x4084,0x50a5,0x60c6,0x70e7,
-	0x8108,0x9129,0xa14a,0xb16b,0xc18c,0xd1ad,0xe1ce,0xf1ef};  //四位余式表
-
-	wValue=0;
-
-	//本字节的CRC余式等于上一字节的CRC余式的低12位左移4位后，
-	//再加上上一字节CRC余式右移4位（也既取高4位）和本字节之和后所求得的CRC码
-	while(wLength--!=0)
-	{
-	//根据四位CRC余式表，先计算高四位CRC余式
-
-	ucTemp=((wValue>>8))>>4;
-	wValue<<=4;
-	wValue^=crc_tbl[ucTemp^((*pucData)>>4)];
-	//再计算低四位余式
-	ucTemp=((wValue>>8))>>4;
-	wValue<<=4;
-	wValue^=crc_tbl[ucTemp^((*pucData)&0x0f)];
-	pucData++;
-	}
-	pOutData[0]=wValue;
-	pOutData[1]=(wValue>>8);
-}
-
-
 

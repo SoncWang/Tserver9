@@ -206,8 +206,8 @@ int SPD_Read_Reg(int seq,UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UINT16 REFS_C
     bytSend[len-2] = (CRC&0xFF00) >> 8;     //CRC high
     bytSend[len-1] =  CRC&0x00FF;           //CRC low
 
-	//printf("psd Rdata->socket_addr=%d:",sockfd_spd[seq]);
-	//for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
+	printf("psd Rdata->socket_addr=%d:",sockfd_spd[seq]);
+	for(j=0;j<len;j++)printf("0x%02x ",bytSend[j]);printf("\r\n");
 
 	write(sockfd_spd[seq],bytSend,len);
 	pthread_mutex_unlock(&SPDdataHandleMutex);
@@ -1252,9 +1252,9 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 				  continue ;
 			  	}
 
-		      	//printf("spd len=%d\r\n",buffPos) ;
+		      	printf("spd len=%d\r\n",buffPos) ;
 			  	/*debug the information*/
-				//int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
+				int j ;for(j=0;j<buffPos;j++)printf("0x%02x ",buf[j]);printf("\r\n");
 			  	DealNetSPD(0,buf, buffPos);
 			  	buffPos=0;
 				// 第一次连接对时一次
@@ -1547,10 +1547,6 @@ void* NetWork_server_thread_SPD(void*arg)
 				poll_cnt = 0;
 				if (SPD_Type == TYPE_LEIXUN)
 				{
-					if (op_counter >= SPD_HZ_DATA)
-					{
-						op_counter = SPD_RES_DATA;	// 跳过第二个防雷器
-					}
 					if (op_counter >= SPD_DATA_NUM)
 					{
 						op_counter = 0;
@@ -1560,6 +1556,11 @@ void* NetWork_server_thread_SPD(void*arg)
 						{
 							seq_cnt = 0;
 						}
+					}
+					// 要放在下面，否则不会执行上面的if语句
+					else if (op_counter >= SPD_HZ_DATA)
+					{
+						op_counter = SPD_RES_DATA;	// 跳过第二个防雷器
 					}
 					if ((ctrl_counter % SPD_TEST_RES_INTERVAL) ==0)
 					{
@@ -1576,20 +1577,9 @@ void* NetWork_server_thread_SPD(void*arg)
 				}
 				else if (SPD_Type == TYPE_HUAZI)
 				{
-					// 这里的逻辑要再想想
-					if ((op_counter != SPD_HZ_DATA) && (op_counter != SPD_RES_DATA))
-					{
-						op_counter = SPD_HZ_DATA;	// 把非法值纠正过来
-					}
-
 					if (op_counter < SPD_HZ_DATA)
 					{
 						op_counter = SPD_HZ_DATA;
-					}
-
-					if (op_counter > SPD_HZ_DATA)
-					{
-						op_counter = SPD_RES_DATA;
 					}
 
 					if ((op_counter > SPD_RES_DATA) || (op_counter >= SPD_DATA_NUM))
@@ -1601,6 +1591,11 @@ void* NetWork_server_thread_SPD(void*arg)
 						{
 							seq_cnt = 0;
 						}
+					}
+					// 要放在下面,否则上面的if不会执行
+					else if (op_counter > SPD_HZ_DATA)
+					{
+						op_counter = SPD_RES_DATA;
 					}
 				}
 
@@ -1626,6 +1621,7 @@ void* NetWork_server_thread_SPD(void*arg)
 				if (seq_cnt < SPD_NUM)
 				{
 					spd_net_flag[seq_cnt] |= BIT(op_counter);
+					printf("seq_cnt=%d,spd_net_flag=%02x",seq_cnt,spd_net_flag[seq_cnt]);
 				}
 				op_counter++;// 轮询间隔标志
 			}

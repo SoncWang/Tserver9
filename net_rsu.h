@@ -9,18 +9,20 @@
 typedef struct PSAM1_S{
 		char Psam1_channel;
 		char Psam1_status;	
+		char Psam1_auth; 	//1字节PSAM授权状态00H已授权01H未授权
 }PSAM1_STU;
 typedef struct PSAM2_S{
 		char Psam2_channel;
 		char Psam2_status;	
+		char Psam2_auth; 	//1字节PSAM授权状态00H已授权01H未授权
 }PSAM2_STU;
 typedef struct AntennaInfoN_n{
 			char Rsu_id;			//天线ID编号
-			char Control_state;		//天线控制状态
+			char Control_state;		//天线运行状态
 			char Channel;			//天线信道
 			char Power;			//天线功率
-			char send_status;		//1字节天线发射状态,00H正常，01H异常
-			char recv_status;		//1字节天线接收状态，00H正常,01H异常
+//			char send_status;		//1字节天线发射状态,00H正常，01H异常
+//			char recv_status;		//1字节天线接收状态，00H正常,01H异常
 }ANTENNAINFON_N;				
 typedef struct control_S{
 	char ControlStatus_1;	//控制器1状态
@@ -31,6 +33,7 @@ typedef struct control_S{
 	PSAM1_S Psam1[12];	//控制器1,PSAM卡状态
 	PSAM2_S Psam2[12];	//控制器2,PSAM卡状态
 	char AntennaCount;	//天线数量
+	char AntennaCount2;	//正常工作天线数量
 	AntennaInfoN_n  AntennaInfoN[8];	//天线数量
 }RSUCONTROLER;
 //************B0（设备状态）数据帧解析******************

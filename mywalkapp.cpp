@@ -777,12 +777,12 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,string getspInt,int Intstrtyp
 	   sprintf(mbuf,"%d",mIntegerValue) ;
 	   HUAWEIDevValue.strhwDcAirEquipAddress = mbuf ;
        //21：设备柜（控制器）  22：电池柜
-       if((HUAWEIDevValue.strhwDcAirEquipAddress == "21") || (HUAWEIDevValue.strhwDcAirEquipAddress == "24"))
+       if((HUAWEIDevValue.strhwDcAirEquipAddress == "21") || (HUAWEIDevValue.strhwDcAirEquipAddress == "24") || (HUAWEIDevValue.strhwDcAirEquipAddress == "28"))
        {
            hwAirAddrbuf[0] = mgetindx ;
            printf("空调设备柜索引:%d\r\n",mgetindx);
        }
-       else if((HUAWEIDevValue.strhwDcAirEquipAddress == "22") || (HUAWEIDevValue.strhwDcAirEquipAddress == "25"))
+       else if((HUAWEIDevValue.strhwDcAirEquipAddress == "22") || (HUAWEIDevValue.strhwDcAirEquipAddress == "25") || (HUAWEIDevValue.strhwDcAirEquipAddress == "29"))
        {
            hwAirAddrbuf[1] = mgetindx ;
            printf("空调电池柜索引:%d\r\n",mgetindx);

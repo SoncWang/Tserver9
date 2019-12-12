@@ -247,28 +247,32 @@ static void* NetWork_server_thread_RSU(void*arg)//接收天线数据线程
 					n=buf[12];
 					for(i=0;i<n;i++)
 					{
-						stuRsuControl.Psam1[i].Psam1_channel=buf[13+i*2];
-						stuRsuControl.Psam1[i].Psam1_status=buf[14+i*2];
+						stuRsuControl.Psam1[i].Psam1_channel=buf[13+i*3];
+						stuRsuControl.Psam1[i].Psam1_status=buf[14+i*3];
+						stuRsuControl.Psam1[i].Psam1_auth=buf[15+i*3];//增加了授权状态
 					}
-					stuRsuControl.Psam_num2=buf[13+2*n];
+					stuRsuControl.Psam_num2=buf[13+3*n];
 					printf("Psam_num2 is %x\n",stuRsuControl.Psam_num2);
-					m=buf[13+2*n];
+					m=buf[13+3*n];
 					for(i=0;i<m;i++)
 					{
-						stuRsuControl.Psam2[i].Psam2_channel=buf[14+2*n+i*2];
-						stuRsuControl.Psam2[i].Psam2_status=buf[15+2*n+i*2];
+						stuRsuControl.Psam2[i].Psam2_channel=buf[14+3*n+i*3];
+						stuRsuControl.Psam2[i].Psam2_status=buf[15+3*n+i*3];
+						stuRsuControl.Psam2[i].Psam2_auth=buf[16+3*n+i*3];
 					}
-					stuRsuControl.AntennaCount=buf[14+2*n+2*m];
-					printf("Antenna num is %x\n",stuRsuControl.AntennaCount);
-					h=buf[14+2*n+2*m];
+					stuRsuControl.AntennaCount=buf[14+3*n+3*m];		//天线数量
+					stuRsuControl.AntennaCount2=buf[15+3*n+3*m];	//正常工作天线数量
+					printf("全部 Antenna num is %x\n",stuRsuControl.AntennaCount);
+					printf("正常工作 Antenna num is %x\n",stuRsuControl.AntennaCount2);
+					h=buf[14+3*n+3*m];
 					for(i=0;i<h;i++)
 					{
-						stuRsuControl.AntennaInfoN[i].Rsu_id=buf[15+2*n+2*m+i*6];
-						stuRsuControl.AntennaInfoN[i].Control_state=buf[16+2*n+2*m+i*6];
-						stuRsuControl.AntennaInfoN[i].Channel=buf[17+2*n+2*m+i*6];
-						stuRsuControl.AntennaInfoN[i].Power=buf[18+2*n+2*m+i*6];
-						stuRsuControl.AntennaInfoN[i].send_status=buf[19+2*n+2*m+i*6];
-						stuRsuControl.AntennaInfoN[i].recv_status=buf[20+2*n+2*m+i*6];
+						stuRsuControl.AntennaInfoN[i].Rsu_id=buf[16+3*n+3*m+i*4];
+						stuRsuControl.AntennaInfoN[i].Control_state=buf[17+3*n+3*m+i*4];
+						stuRsuControl.AntennaInfoN[i].Channel=buf[18+3*n+3*m+i*4];
+						stuRsuControl.AntennaInfoN[i].Power=buf[19+3*n+3*m+i*4];
+						//stuRsuControl.AntennaInfoN[i].send_status=buf[19+2*n+2*m+i*6];
+						//stuRsuControl.AntennaInfoN[i].recv_status=buf[20+2*n+2*m+i*6];
 					}
 				}
 				if(buf[8]==0xb0&&buf[nlen-2]==((crc_rsu&0xff00)>>8)&&buf[nlen-1]==(crc_rsu&0x00ff)&&buf[0]==0xff)
@@ -386,8 +390,8 @@ static void* NetWork_server_thread_RSU2(void*arg)//接收天线数据线程
 						stuRsuControl.AntennaInfoN[i].Control_state=buf[16+2*n+2*m+i*6];
 						stuRsuControl.AntennaInfoN[i].Channel=buf[17+2*n+2*m+i*6];
 						stuRsuControl.AntennaInfoN[i].Power=buf[18+2*n+2*m+i*6];
-						stuRsuControl.AntennaInfoN[i].send_status=buf[19+2*n+2*m+i*6];
-						stuRsuControl.AntennaInfoN[i].recv_status=buf[20+2*n+2*m+i*6];
+						//stuRsuControl.AntennaInfoN[i].send_status=buf[19+2*n+2*m+i*6];
+						//stuRsuControl.AntennaInfoN[i].recv_status=buf[20+2*n+2*m+i*6];
 					}
 				}
 				if(buf[8]==0xb0&&buf[nlen-2]==((crc_rsu&0xff00)>>8)&&buf[nlen-1]==(crc_rsu&0x00ff)&&buf[0]==0xff)

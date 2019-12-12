@@ -134,6 +134,7 @@ int HttpPostjpeng(unsigned char *pjpengbuf,int jpenglen)
     curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, strJsonData.c_str());
     curl_easy_setopt(pCurl, CURLOPT_POSTFIELDSIZE, strJsonData.size());
 
+	curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, 20);
 
     res = curl_easy_perform(pCurl);
 
@@ -170,16 +171,15 @@ int HttpPostjpeng(unsigned char *pjpengbuf,int jpenglen)
 }
 
 
-//strBasickey: Basic Authkey认证发方式(摄像枪的) ; strDigestUser:Digest认证的用户名,strDigestKey:Digest认证的密码 Inttimeout:超时时间 建议15秒
-int HttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,string strDigestUser,string strDigestKey,int Inttimeout)
+int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag)
 {
-   // pthread_mutex_lock(&PostGetMutex );
+    pthread_mutex_lock(&PostGetMutex );
 
     CURLcode res = curl_global_init(CURL_GLOBAL_ALL);
     if(CURLE_OK != res)
     {
         cout<<"curl init failed"<<endl;
-        // pthread_mutex_unlock(&PostGetMutex );
+         pthread_mutex_unlock(&PostGetMutex );
         return 1;
     }
 
@@ -189,7 +189,7 @@ int HttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,strin
     if( NULL == pCurl)
     {
         cout<<"Init CURL failed..."<<endl;
-        // pthread_mutex_unlock(&PostGetMutex );
+         pthread_mutex_unlock(&PostGetMutex );
         return -1;
     }
 
@@ -197,7 +197,7 @@ int HttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,strin
 //    string url = "http://172.17.2.32:290/api/UpLoad/SendDeviceStatus";
 //	string url = StrServerURL; 
     string filename = "result.json";
-    cout<<url.c_str()<<endl;
+ cout<<url.c_str()<<endl;
     curl_slist *pList = NULL;
     pList = curl_slist_append(pList,"Accept: application/json");
     pList = curl_slist_append(pList,"Content-Type:application/json");
@@ -235,34 +235,21 @@ int HttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,strin
 	    curl_easy_setopt(pCurl, CURLOPT_CUSTOMREQUEST, "GET");
 	}
     //是否设置CURLAUTH_BASIC密码
-    if(strBasickey != "")
+    if(strkey != "")
     {
-        curl_easy_setopt(pCurl, CURLOPT_USERPWD, strBasickey.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_USERPWD, strkey.c_str());
         curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
     }
-    else if(strDigestUser != "")
-    {
-        curl_easy_setopt(pCurl, CURLOPT_USERNAME, strDigestUser.c_str());
-        curl_easy_setopt(pCurl, CURLOPT_PASSWORD, strDigestKey.c_str());
-        curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST|CURLAUTH_BASIC);
-    }
-
         //是否设置CURLAUTH_BASIC密码
        // curl_easy_setopt(pCurl, CURLOPT_USERPWD, "hdcam:hdcam");
        // curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 
-    //Inttimeout秒超时
-    if(Inttimeout >= 40)
-        Inttimeout = 40;
-    curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, Inttimeout);
-    printf("curl_easy_perform\r\n");
-    res = curl_easy_perform(pCurl);
 
-    printf("curl_easy_getinfo\r\n");
+    res = curl_easy_perform(pCurl);
 
     long res_code=0;
     res=curl_easy_getinfo(pCurl, CURLINFO_RESPONSE_CODE, &res_code);
-    printf("res == CURLE_OK \r\n");
+
     if(( res == CURLE_OK ) && (res_code == 200 || res_code == 201))
     {
        /*
@@ -291,7 +278,7 @@ int HttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,strin
         curl_easy_cleanup(pCurl);
        curl_global_cleanup();
     
-        //pthread_mutex_unlock(&PostGetMutex );
+        pthread_mutex_unlock(&PostGetMutex );
         return true;
     }
     else
@@ -299,8 +286,7 @@ int HttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,strin
        curl_slist_free_all(pList);
        curl_easy_cleanup(pCurl);
        curl_global_cleanup();
-      // pthread_mutex_unlock(&PostGetMutex );
-       printf("HttpPostParm out\r\n");
+       pthread_mutex_unlock(&PostGetMutex );
        return 0;
 
     }

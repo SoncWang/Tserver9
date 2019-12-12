@@ -6,6 +6,7 @@ using namespace std;
 
 int IpCamServerInit(void);
 void initIPcamState();
+void initIPcam900State();
 
 
 #pragma pack(push, 1)
