@@ -9,6 +9,8 @@
 #define TYPE_LEIXUN		1
 #define TYPE_HUAZI		2
 #define TYPE_KY			3	// 宽永
+#define TYPE_MAX_NUM	4	// 支持的数量
+
 
 
 #define NULL_VALUE		0		// 定义没有这个参数时的默认值
@@ -77,11 +79,36 @@
 #define HZ_SPD_DATA_NUM	15		// 15个数据
 #define HZ_RES_DATA_NUM	5		// 5个数据
 
+/**********************************************/
+// 宽永检测器的定义
+#define KY_READ_CMD			0x03
+#define KY_WRITE_CMD		0x06
+
+#define KY_RUN_ADDR			0x63
+#define KY_RUN_NUM			12		// 运行数据从63H开始,12个
+
+#define KY_DI_ADDR			0x200	// 遥信数据从200H开始，2个
+#define KY_DI_NUM			2
+
+#define KY_HIS_ADDR			0x99	// 遥信数据从99H开始，8个
+#define KY_HIS_NUM			8
+
+#define KY_RES_VALUE_ADDR			0x01	// 1：接地电阻值,2:设备地址 3：报警值 4:接地电阻测试 5:使能测试模式
+#define KY_RES_ID_ADDR				0x02
+#define KY_RES_ALARM_ADDR			0x03
+#define KY_RES_TEST_ADDR			0x04
+
+#define KY_RES_NUM					1		// 宽永的比较坑,1次只能读1个数量
+
+#define KY_SHIELD_INTERVAL			20		// 宽永的电阻测试需要2s以上才有回复，10不能再次测试，为了保险，设为20s
 
 
+
+/**********************************************/
+// 一些基本设置
 #define SPD_INTERVAL_TIME		400000		// 400ms,让控制命令更快下发
 #define SPD_POLLING_INTERVAL 	3			// 1.05s轮询一次参数
-#define SPD_TEST_RES_INTERVAL	602		// 1.2*500 = 600s,10min,错开一点点, 所以最后一次24小时时会错失一次
+#define SPD_TEST_RES_INTERVAL	602		// 1.05*600 = 600s,10min,错开一点点, 所以最后一次24小时时会错失一次
 #define SPD_TIME_SYN_INTERVAL	72000		// 时间同步间隔,24小时 = 72000*1.2 s
 
 
@@ -190,7 +217,39 @@ typedef struct spd_hz_struct
 }SPD_HZ_PARAMS;
 
 
-// 华咨的协议参数
+// 宽永的协议参数
+typedef struct spd_ky_struct
+{
+	UINT16 current_A;		// A相电流
+	UINT16 current_B;
+	UINT16 current_C;
+	UINT16 volt_A;			// A相电压
+	UINT16 volt_B;
+	UINT16 volt_C;
+	UINT16 struck_cnt;					// 雷击计数
+	UINT16 struck_strenth;				// 雷击强度
+	UINT16 struck_strenth_strongest;	// 最大雷击强度
+	UINT16 temp;				// 防雷器温度
+	UINT16 moist;				// 湿度
+	UINT16 life_time;			// 劣化程度,和生命值是相反的
+
+	// 报警值
+	UINT16 life_time_alarm;		// 生命周期报警
+	UINT16 di_alarm;			// bit0:外接脱扣, bit1:未用,bit2:接地
+
+	UINT16 struk_peak;			// 峰值
+	// 最近一次防雷发生时间
+	UINT16 struck_year;
+	UINT16 struck_month;
+	UINT16 struck_day;
+	UINT16 struck_hour;
+	UINT16 struck_min;
+	UINT16 struck_sec;
+	UINT16 his_num;
+}SPD_KY_PARAMS;
+
+
+// 统一的协议参数
 typedef struct spd_real_struct
 {
 	UINT16 id;				// 设备地址
@@ -362,6 +421,9 @@ typedef struct spd_struct
 
 	// 华咨有2个防雷
 	SPD_HZ_PARAMS dSPD_HZ[SPD_NUM];	// 华咨的防雷器
+
+	// 宽永有2个防雷
+	SPD_KY_PARAMS dSPD_KY[SPD_NUM];
 
 	// 共性，接地电阻值数据, 不需要再设置一个协议值了
 	SPD_RES_ST_PARAMS rSPD_res;
