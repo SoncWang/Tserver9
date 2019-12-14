@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include "ats.h"
 #include "snmp.h"
+#include "config.h"
+
 
 
 using namespace std;
@@ -18,7 +20,7 @@ int atsssockSrv;
 struct sockaddr_in atsAddr;
 pthread_mutex_t atsdataMutex ;
 
-string StratsIP = "128.8.82.248";
+extern string StrHWServer;		//华为服务器地址
 
 unsigned char atslockstate = 0x30;
 unsigned char atsforntdoorstate = 0x30;
@@ -29,6 +31,10 @@ extern THUAWEIGantry HUAWEIDevValue;
 extern THUAWEIALARM HUAWEIDevAlarm;
 
 //int atsInit(void);
+
+//CABINETTYPE:作为区分机柜类型，用于编译不同的代码
+//CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特思 StrVersionNo
+#if(CABINETTYPE == 7) //爱特思
 
 unsigned char getbcc(unsigned char *buf,int len)
 {
@@ -87,9 +93,9 @@ void *atsSendthread(void *param)
      //发送获取
      //SendatsData(unsigned char cam,unsigned char *buf,unsigned char len)
      //查询 8 路输入状态 02 41 00 41 03
-     buf[0] = 0x00;
-     SendatsData(0x41,buf,0);
-     sleep(1);
+     //buf[0] = 0x00;
+     //SendatsData(0x41,buf,0);
+     //sleep(1);
      //查询门锁状态
      buf[0] = 0x00;
      SendatsData(0x51,buf,0);
@@ -172,7 +178,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
                printf("门禁告警\r\n");
            }
            else
-               HUAWEIDevAlarm.hwDoorAlarmTraps = "1";
+               HUAWEIDevAlarm.hwDoorAlarmTraps = "0";
            break;
       case 0x54://远程开锁
            atsopendoorstate = pbuf[3];
@@ -182,6 +188,8 @@ void atcDataRecv(unsigned char *pbuf,int len)
       {
            //x1-x14 为电池 1 的参数，x15-x28 为电池 2 参数，每种参数均由两字节组成，先高位后低位
            unsigned short int mget;
+           float fRemainCapacity;
+           float fTotalCapacity;
            float fmget ;
            char fbuf[30];
            pbuf += 3;
@@ -224,10 +232,11 @@ void atcDataRecv(unsigned char *pbuf,int len)
            mget = (mget<<8) & 0xFF00;
            mget = mget | *(pbuf++); 
            fmget = (float)mget;
-           memset(fbuf,0x00,30);
-           sprintf(fbuf,"%f",fmget/100) ;
-           HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity = fbuf;
-           printf("电池1剩余容量:%s\r\n",HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str());
+           fRemainCapacity = fmget;
+           //memset(fbuf,0x00,30);
+           //sprintf(fbuf,"%f",fmget/100) ;
+           //HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity = fbuf;
+           //printf("电池1剩余容量:%s\r\n",HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str());
 
 
            //充满容量
@@ -235,10 +244,11 @@ void atcDataRecv(unsigned char *pbuf,int len)
            mget = (mget<<8) & 0xFF00;
            mget = mget | *(pbuf++); 
            fmget = (float)mget;
-           memset(fbuf,0x00,30);
-           sprintf(fbuf,"%f",fmget/100) ;
-           HUAWEIDevValue.strhwAcbGroupTotalCapacity = fbuf;
-           printf("电池1充满容量:%s\r\n",HUAWEIDevValue.strhwAcbGroupTotalCapacity.c_str());
+           fTotalCapacity = fmget;
+           //memset(fbuf,0x00,30);
+           //sprintf(fbuf,"%f",fmget/100) ;
+           //HUAWEIDevValue.strhwAcbGroupTotalCapacity = fbuf;
+           //printf("电池1充满容量:%s\r\n",HUAWEIDevValue.strhwAcbGroupTotalCapacity.c_str());
 
 
            //循环次数
@@ -301,10 +311,11 @@ void atcDataRecv(unsigned char *pbuf,int len)
            mget = (mget<<8) & 0xFF00;
            mget = mget | *(pbuf++);
            fmget = (float)mget;
-           memset(fbuf,0x00,30);
-           sprintf(fbuf,"%f",fmget/100) ;
+           fRemainCapacity += fmget;
+           //memset(fbuf,0x00,30);
+           //sprintf(fbuf,"%f",fmget/100) ;
            //HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity = fbuf;
-           printf("电池2剩余容量:%s\r\n",fbuf);
+           //printf("电池2剩余容量:%s\r\n",fbuf);
 
 
            //充满容量
@@ -312,10 +323,25 @@ void atcDataRecv(unsigned char *pbuf,int len)
            mget = (mget<<8) & 0xFF00;
            mget = mget | *(pbuf++);
            fmget = (float)mget;
+           fTotalCapacity += fmget;
+           //memset(fbuf,0x00,30);
+          // sprintf(fbuf,"%f",fmget/100) ;
+           //HUAWEIDevValue.strhwAcbBatCapacity = fbuf;
+           //printf("电池2充满容量:%s\r\n",HUAWEIDevValue.strhwAcbBatCapacity.c_str());
+
+
+           //赋值累加容量
            memset(fbuf,0x00,30);
-           sprintf(fbuf,"%f",fmget/100) ;
-           HUAWEIDevValue.strhwAcbBatCapacity = fbuf;
-           printf("电池2充满容量:%s\r\n",HUAWEIDevValue.strhwAcbBatCapacity.c_str());
+           sprintf(fbuf,"%f",fRemainCapacity/100) ;
+           HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity = fbuf;
+           printf("电池组剩余容量:%s\r\n",HUAWEIDevValue.strhwAcbGroupTotalRemainCapacity.c_str());
+
+           memset(fbuf,0x00,30);
+           sprintf(fbuf,"%f",fTotalCapacity/100) ;
+           HUAWEIDevValue.strhwAcbGroupTotalCapacity = fbuf;
+           printf("电池组充满容量:%s\r\n",HUAWEIDevValue.strhwAcbGroupTotalCapacity.c_str());
+
+
 
 
            //循环次数
@@ -333,10 +359,10 @@ void atcDataRecv(unsigned char *pbuf,int len)
            mget = (mget<<8) & 0xFF00;
            mget = mget | *(pbuf++);
            fmget = (float)mget;
-           memset(fbuf,0x00,30);
-           sprintf(fbuf,"%f",fmget/100) ;
+           //memset(fbuf,0x00,30);
+           //sprintf(fbuf,"%f",fmget/100) ;
            //HUAWEIDevValue.strhwAcbGroupTotalCapacity = fbuf;
-           printf("电池2设计容量:%s\r\n",fbuf);
+           //printf("电池2设计容量:%s\r\n",fbuf);
 
       }
            break;
@@ -354,7 +380,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
          fmget = (float)mget;
          memset(fbuf,0x00,30);
          sprintf(fbuf,"%f",fmget/10) ;
-         //HUAWEIDevValue.strhwAcbGroupTemperature = fbuf;
+         HUAWEIDevValue.StrUpsCityVol = fbuf;
          printf("逆变器市电电压:%s\r\n",fbuf);
 
          //输出电压
@@ -364,7 +390,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
          fmget = (float)mget;
          memset(fbuf,0x00,30);
          sprintf(fbuf,"%f",fmget/10) ;
-         //HUAWEIDevValue.strhwAcbGroupTemperature = fbuf;
+         HUAWEIDevValue.StrUpsOVol = fbuf;
          printf("逆变器输出电压:%s\r\n",fbuf);
 
 
@@ -376,7 +402,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
          memset(fbuf,0x00,30);
          sprintf(fbuf,"%d",mget) ;
          //HUAWEIDevValue.strhwAcbGroupTemperature = fbuf;
-         printf("逆变器负载百分比:%s\r\n",fbuf);
+         //printf("逆变器负载百分比:%s\r\n",fbuf);
 
          //市电异常状态
          mget = *(pbuf++);
@@ -393,7 +419,15 @@ void atcDataRecv(unsigned char *pbuf,int len)
           //ups 故障状态
          mget = *(pbuf++);
          if(mget == 1)
+         {
+           HUAWEIDevAlarm.Ups_alarm = "1";
            printf("逆变器ups异常\r\n");
+         }
+         else
+         {
+           HUAWEIDevAlarm.Ups_alarm = "0";
+           printf("逆变器ups正常\r\n");
+         }
          //ups温度
          mget = *(pbuf++);
          mget = (mget<<8) & 0xFF00;
@@ -401,6 +435,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
          fmget = (float)mget;
          memset(fbuf,0x00,30);
          sprintf(fbuf,"%f",fmget/10) ;
+         HUAWEIDevValue.StrUpsTemp = fbuf;
          printf("ups温度:%s\r\n",fbuf);
 
       }
@@ -408,6 +443,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
 
       case 0x82://空调状态 固定开机温度40度 关机温度25度
       {
+
          unsigned short int mget;
          float fmget ;
          char fbuf[30];
@@ -416,128 +452,148 @@ void atcDataRecv(unsigned char *pbuf,int len)
          //制冷器状态
          mget = *(pbuf++);
          if(mget == 0)
+         {
+             HUAWEIDevValue.StrCoolerState = "0";
              printf("空调制冷器闭合\r\n");
+         }
          else if(mget == 1)
+         {
+             HUAWEIDevValue.StrCoolerState = "1";
              printf("空调制冷器开启\r\n");
+         }
 
          //内风机状态
          mget = *(pbuf++);
          if(mget == 0)
+         {
+             HUAWEIDevValue.StrIn_FanState = "0";
              printf("空调内风机闭合\r\n");
+         }
          else if(mget == 1)
+         {
+             HUAWEIDevValue.StrIn_FanState = "1";
              printf("空调内风机开启\r\n");
+         }
 
          //外风机状态
          mget = *(pbuf++);
          if(mget == 0)
+         {
+             HUAWEIDevValue.StrOut_FanState = "0";
              printf("空调外风机闭合\r\n");
+         }
          else if(mget == 1)
+         {
+             HUAWEIDevValue.StrOut_FanState = "1";
              printf("空调外风机开启\r\n");
+         }
 
 
          //加热器状态
          mget = *(pbuf++);
          if(mget == 0)
+         {
+             HUAWEIDevValue.StrHeaterState = "0";
              printf("空调加热器闭合\r\n");
+         }
          else if(mget == 1)
+         {
+             HUAWEIDevValue.StrHeaterState = "1";
              printf("空调加热器开启\r\n");
+         }
+
 
          //制冷器故障告警
          mget = *(pbuf++);
          if(mget == 1)
+         {
+             HUAWEIDevAlarm.Air_Cooler_alarm = "1";
              printf("空调制冷器故障告警\r\n");
+         }
          else if(mget == 0)
+         {
+             HUAWEIDevAlarm.Air_Cooler_alarm = "0";
              printf("空调制冷器正常\r\n");
+         }
 
          //高温告警
          mget = *(pbuf++);
          if(mget == 1)
+         {
+             HUAWEIDevAlarm.Air_High_temper_alarm = "1";
              printf("空调高温告警\r\n");
+         }
          else if(mget == 0)
+         {
+             HUAWEIDevAlarm.Air_High_temper_alarm = "0";
              printf("空调高温正常\r\n");
+         }
 
          //低温告警
          mget = *(pbuf++);
          if(mget == 1)
+         {
+             HUAWEIDevAlarm.Air_Lower_temper_alarm = "1";
              printf("空调低温告警\r\n");
+         }
          else if(mget == 0)
+         {
+             HUAWEIDevAlarm.Air_Lower_temper_alarm = "0";
              printf("空调低温正常\r\n");
+         }
 
          //加热器故障告警
          mget = *(pbuf++);
          if(mget == 1)
+         {
+             HUAWEIDevAlarm.Air_Heater_alarm = "1";
              printf("空调加热器故障告警\r\n");
+         }
          else if(mget == 0)
+         {
+             HUAWEIDevAlarm.Air_Heater_alarm = "0";
              printf("空调加热器正常\r\n");
+         }
 
          //温度传感器故障
          mget = *(pbuf++);
          if(mget == 1)
+         {
+             HUAWEIDevAlarm.Air_Temper_Sensor_alarm = "1";
              printf("空调温度传感器故障\r\n");
+         }
          else if(mget == 0)
+         {
+             HUAWEIDevAlarm.Air_Temper_Sensor_alarm = "0";
              printf("空调温度传感器正常\r\n");
+         }
 
          //电压高压告警
          mget = *(pbuf++);
          if(mget == 1)
+         {
+             HUAWEIDevAlarm.Air_High_Vol_alarm = "1";
              printf("空调电压高压告警\r\n");
+         }
          else if(mget == 0)
+         {
+             HUAWEIDevAlarm.Air_High_Vol_alarm = "0";
              printf("空调电压高压正常\r\n");
+         }
 
          //电压低压告警
          mget = *(pbuf++);
          if(mget == 1)
+         {
+             HUAWEIDevAlarm.Air_Lower_Vol_alarm = "1";
              printf("电压低压告警\r\n");
+         }
          else if(mget == 0)
+         {
+             HUAWEIDevAlarm.Air_Lower_Vol_alarm = "0";
              printf("电压低压正常\r\n");
+         }
 
-/*
-         //空调柜温度
-         mget = *(pbuf++);
-         mget = (mget<<8) & 0xFF00;
-         mget = mget | *(pbuf++);
-         fmget = (float)mget;
-         memset(fbuf,0x00,30);
-         sprintf(fbuf,"%f",fmget/100) ;
-         HUAWEIDevValue.strhwDcAirEnterChannelTemp[0] = fbuf;
-         printf("空调柜温度:%s\r\n",fbuf);
-         //制冷起点温度
-         mget = *(pbuf++);
-         mget = (mget<<8) & 0xFF00;
-         mget = mget | *(pbuf++);
-         fmget = (float)mget;
-         memset(fbuf,0x00,30);
-         sprintf(fbuf,"%f",fmget/100) ;
-         HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0] = fbuf;
-         printf("制冷起点温度:%s\r\n",fbuf);
-         //制冷灵敏度
-         mget = *(pbuf++);
-         mget = (mget<<8) & 0xFF00;
-         mget = mget | *(pbuf++);
-         fmget = (float)mget;
-         memset(fbuf,0x00,30);
-         sprintf(fbuf,"%f",fmget/100) ;
-         //HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0] = fbuf;
-         printf("制冷灵敏度:%s\r\n",fbuf);
-         //加热起点温度
-         mget = *(pbuf++);
-         mget = (mget<<8) & 0xFF00;
-         mget = mget | *(pbuf++);
-         fmget = (float)mget;
-         memset(fbuf,0x00,30);
-         sprintf(fbuf,"%f",fmget/100) ;
-         //HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0] = fbuf;
-         printf("加热起点温度:%s\r\n",fbuf);
-         //加热
-         mget = *(pbuf++);
-         mget = (mget<<8) & 0xFF00;
-         mget = mget | *(pbuf++);
-         fmget = (float)mget;
-         memset(fbuf,0x00,30);
-         sprintf(fbuf,"%f",fmget/100) ;
-         //HUAWEIDevValue.strhwDcAirPowerOnTempPoint[0] = fbuf;
-         printf("加热:%s\r\n",fbuf);
-*/
 
       }
       break;
@@ -593,7 +649,9 @@ void atcDataRecv(unsigned char *pbuf,int len)
        fmget = (float)powertall;
        memset(fbuf,0x00,30);
        sprintf(fbuf,"%f",fmget/10000) ;
-       printf("电表电压:%s\r\n",fbuf);
+       HUAWEIDevValue.strhwApOrAblVoltage = fbuf;
+       printf("A相电压:%s\r\n",fbuf);
+       //printf("电表电压:%s\r\n",fbuf);
        pbuf += 4;
 
        //电流
@@ -603,7 +661,9 @@ void atcDataRecv(unsigned char *pbuf,int len)
        fmget = (float)powertall;
        memset(fbuf,0x00,30);
        sprintf(fbuf,"%f",fmget/10000) ;
-       printf("电表电流:%s\r\n",fbuf);
+       HUAWEIDevValue.strhwAphaseCurrent = fbuf;
+       printf("A相电流:%s\r\n",fbuf);
+       //printf("电表电流:%s\r\n",fbuf);
        pbuf += 4;
 
 
@@ -634,8 +694,8 @@ void atcDataRecv(unsigned char *pbuf,int len)
        fmget = (float)mget;
        memset(fbuf,0x00,30);
        sprintf(fbuf,"%f",fmget/10) ;
-       HUAWEIDevValue.strhwDcAirEnterChannelTemp[0] = fbuf;
-       printf("交流电压:%s\r\n",fbuf);
+       //HUAWEIDevValue.strhwApOrAblVoltage = fbuf;
+       //printf("A相电压:%s\r\n",fbuf);
        //交流电流
        mget = *(pbuf++);
        mget = (mget<<8) & 0xFF00;
@@ -644,8 +704,8 @@ void atcDataRecv(unsigned char *pbuf,int len)
        fmget = (float)mget;
        memset(fbuf,0x00,30);
        sprintf(fbuf,"%f",fmget/10) ;
-       HUAWEIDevValue.strhwDcAirEnterChannelTemp[0] = fbuf;
-       printf("交流电流:%s\r\n",fbuf);
+       //HUAWEIDevValue.strhwAphaseCurrent = fbuf;
+       //printf("A相电流:%s\r\n",fbuf);
        //交流告警
        unsigned char malarm = *(pbuf++);
        if(malarm & 0x10)
@@ -684,7 +744,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
           printf("水浸高警\r\n");
         }
         else
-            HUAWEIDevAlarm.hwWaterAlarmTraps = "1";
+            HUAWEIDevAlarm.hwWaterAlarmTraps = "0";
         //烟雾状态
         malarm = *(pbuf++);
         if(malarm == 0x31)
@@ -693,7 +753,7 @@ void atcDataRecv(unsigned char *pbuf,int len)
           printf("烟雾高警\r\n");
         }
         else
-            HUAWEIDevAlarm.hwSmokeAlarmTraps = "1";
+            HUAWEIDevAlarm.hwSmokeAlarmTraps = "0";
     }
     break;
       default:
@@ -720,11 +780,11 @@ void *atsRecvthread(void *param)
     struct timeval timeout={8,0};//3s
     setsockopt(atsssockSrv,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
 	
-    printf("StratsIP:%s\r\n",StratsIP.c_str());	
+    printf("StratsIP:%s\r\n",StrHWServer.c_str());
 	
     bzero(&atsAddr,sizeof(atsAddr));  
     atsAddr.sin_family = AF_INET;  
-    atsAddr.sin_addr.s_addr = inet_addr(StratsIP.c_str());  
+    atsAddr.sin_addr.s_addr = inet_addr(StrHWServer.c_str());
     atsAddr.sin_port = htons(2929);  
 
     struct sockaddr_in Recvaddr = atsAddr;
@@ -750,9 +810,14 @@ void *atsRecvthread(void *param)
 }
 
 
+#endif
+
 
 int atsInit(void)
 {
+    //CABINETTYPE:作为区分机柜类型，用于编译不同的代码
+    //CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特思 StrVersionNo
+    #if(CABINETTYPE == 7) //爱特思
 
    pthread_mutex_init(&atsdataMutex,NULL);
 
@@ -762,6 +827,7 @@ int atsInit(void)
    pthread_t m_atsSendthread ;
    pthread_create(&m_atsSendthread,NULL,atsSendthread,NULL);
 
+   #endif
 
    return 0 ;
 }

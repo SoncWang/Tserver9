@@ -87,12 +87,8 @@ string StrLeakAddr;			//漏电检测装置地址
 string StrSpdRes_Alarm_Value;		//接地电阻监测器报警值
 
 string StrdeviceType="XY-TMC-001";	//设备型号
-string StrVersionNo="V1.01.17" ;	//当前版本号
-string StrSoftDate="2019-12-11" ;	//当前版本日期
-//string StrVersionNo="V1.01.09" ;	//当前版本号
-//string StrSoftDate="2019-11-01" ;	//当前版本日期
-//string StrVersionNo="V99.14.07" ;	//测试版本号
-//string StrSoftDate="2019-09-23" ;	//测试版本日期
+string StrVersionNo;	//当前版本号
+string StrSoftDate;	//当前版本日期
 
 string StrCabinetType;		//机柜类型
 string StrFlagNetRoadID;	//ETC 门架路网编号
@@ -159,6 +155,20 @@ string getstring(string str,string strkey)
 
 int GetConfig(void)
 {
+    //CABINETTYPE:作为区分机柜类型，用于编译不同的代码
+    //CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特斯 StrVersionNo
+    #if(CABINETTYPE == 1) //华为
+       StrVersionNo ="V1.01.18" ;//当前版本号
+    #elif (CABINETTYPE == 5) //中兴
+       StrVersionNo ="V1.05.15" ;
+    #elif (CABINETTYPE == 6) //金晟安
+       StrVersionNo ="V1.06.15" ;//当前版本号
+    #elif (CABINETTYPE == 7) //爱特斯
+       StrVersionNo ="V1.07.15" ;//当前版本号
+    #endif
+	StrSoftDate="2019-12-11" ;	//当前版本日期
+
+
     int i,j,vehplatecnt,vehplate900cnt,rsucnt;
 	char key[128],value[10],devicename[128];
 	char *strbuf; 

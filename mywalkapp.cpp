@@ -4,13 +4,13 @@
 #include <string.h>  
 #include <stdlib.h>  
 #include <string>
-#include "snmp.h"
 #include <pthread.h>
 #include <vector>
 #include <sstream> 
 #include <iostream>
 #include "snmp.h"
 #include "registers.h"
+#include "config.h"
 
 using namespace std;
 
@@ -2405,6 +2405,8 @@ void *WalkSendsnmpthread(void *param)
         vecWalkTime = 0;
         pthread_mutex_unlock(&WalksnmpoidMutex);
     
+        #if(CABINETTYPE == 1) //华为
+
 		//获取空调地址
 		printf("SendHUAWEIsnmp %d\n",hwDcAirEquipAddress);
 		SendHUAWEIsnmpWalk(hwDcAirEquipAddress,0);
@@ -2418,6 +2420,8 @@ void *WalkSendsnmpthread(void *param)
 			SendHUAWEIsnmpWalk((EM_HUAWEIGantry)i,0);
 		}
 		
+        #endif
+
 		sleep(5);
 		
        //交换机1

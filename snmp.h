@@ -3,6 +3,8 @@
 
 #include <string> 
 #include "server.h" 
+#include "config.h"
+
 
 using namespace std; 
 
@@ -238,6 +240,42 @@ typedef struct
     string strhwswitchEntityDevModel1;           //设备型号
 
 
+#if(CABINETTYPE == 5) //飞达中兴
+    //中兴机柜增加
+    string RectifierModuleVol;  //整流器输出电压
+    string RectifierModuleCurr; //整流器输出电流
+    string RectifierModuleTemp;//整流器机内温度
+    //空调
+    string StrIn_FanState;  //内风机状态 0代表关闭 1代表开启
+    string StrOut_FanState; //外风机状态 0代表关闭 1代表开启
+#elif(CABINETTYPE == 6) //金晟安
+    //Ups
+    string StrUpsCityVol;    //Ups市电电压
+    string StrUpsOVol;      //Ups输出电压
+    string StrUpsTemp;      //Ups温度
+    //空调
+    string StrIn_FanState;  //内风机状态 0代表关闭 1代表开启
+    string StrOut_FanState; //外风机状态 0代表关闭 1代表开启
+
+#elif(CABINETTYPE == 7) //爱特思
+    //爱特思
+    //Ups
+    string StrUpsCityVol;    //Ups市电电压
+    string StrUpsOVol;      //Ups输出电压
+    string StrUpsTemp;      //Ups温度
+    //空调
+    string StrCoolerState;  //制冷器状态 0代表关闭 1代表开启
+    string StrIn_FanState;  //内风机状态 0代表关闭 1代表开启
+    string StrOut_FanState; //外风机状态 0代表关闭 1代表开启
+    string StrHeaterState;  //加热器状态  0代表关闭 1代表开启
+
+
+
+#endif
+
+
+
+
 }THUAWEIGantry;
 
 typedef struct
@@ -292,6 +330,34 @@ typedef struct
     string hwAcbBoard_Hardware_Fault_alarm[4];	//单板故障
     string hwAcbLow_Temp_Protection_alarm[4];		//低温保护
 
+    #if(CABINETTYPE == 5) //飞达中兴
+    //中兴机柜增加开关电源报警
+    string SwitchPowerCom_alarm;  //开关电源断线告警
+    string RectifierModuleCom_alarm; //整流模块通讯故障
+    //空调
+    string Air_High_temper_alarm;  //高温告警
+    string Air_Lower_temper_alarm; //低温告警
+    string Air_Heater_alarm;       //加热器故障告警
+    string Air_Temper_Sensor_alarm;       //温度传感器故障
+    #elif(CABINETTYPE == 6) //爱特思
+    //空调
+    string Ups_alarm;  //ups故障状态
+    string Air_High_temper_alarm;  //高温告警
+    string Air_Lower_temper_alarm; //低温告警
+    string Air_Heater_alarm;       //加热器故障告警
+    string Air_Temper_Sensor_alarm;       //温度传感器故障
+    #elif(CABINETTYPE == 7) //爱特思
+    string Ups_alarm;  //ups故障状态
+    //空调
+    string Air_Cooler_alarm;       //制冷器故障告警
+    string Air_High_temper_alarm;  //高温告警
+    string Air_Lower_temper_alarm; //低温告警
+    string Air_Heater_alarm;       //加热器故障告警
+    string Air_Temper_Sensor_alarm;       //温度传感器故障
+    string Air_High_Vol_alarm; //电压高压告警
+    string Air_Lower_Vol_alarm;//电压低压告警
+
+    #endif
 
 }THUAWEIALARM;
 

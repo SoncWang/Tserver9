@@ -23,6 +23,7 @@ typedef signed short        INT16;
 typedef unsigned short      UINT16;
 typedef signed int      	INT32;
 typedef unsigned int      	UINT32;
+typedef unsigned long long  UINT64;
 
 /*机柜类型定义*/
 #define HUAWEI_DUALCAB_DUALDOOR		1		

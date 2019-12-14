@@ -3,7 +3,7 @@
 
 #include "registers.h"
 
-int GetAtlasData(void);
+
 int atsInit(void);
 
 

@@ -15,6 +15,7 @@
 #include "main.h"
 #include "AtlasServer.h"
 #include "net_spd.h"
+#include "ats.h"
 
 #define WDT "/dev/watchdog"
 
@@ -55,6 +56,8 @@ extern pthread_mutex_t snmpdataMutex ;
 extern pthread_mutex_t litdataMutex ;
 pthread_mutex_t updataRebootMutex ;
 extern pthread_mutex_t uprebootMutex ;
+
+extern int zteinit(void);
 
 void WatchDogInit(void)
 {
@@ -410,6 +413,11 @@ int main(void)
 	init_DealDoReset();
     //atlas
     AtlasInit();
+    //飞达中兴
+    zteinit();
+    //爱特思
+    atsInit();
+
     while(1)
     {
         write(WDTfd, "\0", 1);

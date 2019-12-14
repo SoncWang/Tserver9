@@ -5,6 +5,8 @@
 #include <string> 
 #include "snmp.h"
 #include "registers.h"
+#include "config.h"
+
 
 using namespace std; 
 
@@ -477,8 +479,10 @@ void initHUAWEIALARM()
 
 int snmptrapInit(void)
 {
+  #if(CABINETTYPE == 1) //华为
    pthread_t m_snmptrapthread ;
    pthread_create(&m_snmptrapthread,NULL,snmptrapthread,NULL);
+  #endif
 
    return 0 ;
 

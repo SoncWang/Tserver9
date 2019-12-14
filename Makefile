@@ -31,6 +31,10 @@ OBJECTS       =  build/main.o     \
                  build/snmp.o \
                  build/mywalkapp.o \
                  build/AtlasServer.o \
+                 build/ydn23.o \
+                 build/zte.o \
+                 build/ats.o \
+                 build/base_64.o \
                  build/snmptrap.o \
                  build/tea.o      \
                  build/rtc.o      \
@@ -111,6 +115,23 @@ build/mywalkapp.o: mywalkapp.cpp \
 build/AtlasServer.o: AtlasServer.cpp \
      AtlasServer.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/AtlasServer.o AtlasServer.cpp
+
+build/ydn23.o: ydn23.cpp \
+     ydn23.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/ydn23.o ydn23.cpp
+
+build/zte.o: zte.cpp \
+     zte.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/zte.o zte.cpp
+
+build/ats.o: ats.cpp \
+     ats.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/ats.o ats.cpp
+
+build/base_64.o: base_64.cpp \
+        base_64.h
+        
+	$(CXX) -c  $(INCPATH) -o build/base_64.o base_64.cpp
 
 build/tea.o: tea.cpp \
     tea.h

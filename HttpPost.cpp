@@ -15,6 +15,8 @@
 
 #include "HttpPost.h"
 #include "registers.h"
+#include "config.h"
+
 using namespace std;
 
 
@@ -293,6 +295,175 @@ int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag)
 
 
 }
+
+
+
+//CABINETTYPE:作为区分机柜类型，用于编译不同的代码
+//CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特斯 StrVersionNo
+#if((CABINETTYPE == 5) || (CABINETTYPE == 6)) //5：中兴; 6：金晟安
+
+
+//strBasickey: Basic Authkey认证发方式(摄像枪的) ; strDigestUser:Digest认证的用户名,strDigestKey:Digest认证的密码 Inttimeout:超时时间 建议15秒
+int zteHttpPostParm(string url,string &StrParmbuf,string strBasickey,int flag,string strDigestUser,string strDigestKey,int Inttimeout)
+{
+   // pthread_mutex_lock(&PostGetMutex );
+
+    CURLcode res = curl_global_init(CURL_GLOBAL_ALL);
+    if(CURLE_OK != res)
+    {
+        cout<<"curl init failed"<<endl;
+        // pthread_mutex_unlock(&PostGetMutex );
+        return 1;
+    }
+
+    CURL *pCurl ;
+    pCurl = curl_easy_init();
+
+    if( NULL == pCurl)
+    {
+        cout<<"Init CURL failed..."<<endl;
+        // pthread_mutex_unlock(&PostGetMutex );
+        return -1;
+    }
+
+//    string url = "http://202.104.33.34:8085/toll/data";
+//    string url = "http://172.17.2.32:290/api/UpLoad/SendDeviceStatus";
+//	string url = StrServerURL;
+    string filename = "result.json";
+    cout<<url.c_str()<<endl;
+    curl_slist *pList = NULL;
+    pList = curl_slist_append(pList,"Accept: application/json");
+    pList = curl_slist_append(pList,"Content-Type:application/json");
+    pList = curl_slist_append(pList,"Accept-Language: zh-Hans-CN,zh-Hans;q=0.5");
+    pList = curl_slist_append(pList,"Accept-Encoding: gzip, deflate");
+    pList = curl_slist_append(pList,"Connection: Keep-Alive");
+    curl_easy_setopt(pCurl, CURLOPT_HTTPHEADER, pList);
+
+    curl_easy_setopt(pCurl, CURLOPT_URL, url.c_str() ); //提交表单的URL地址
+
+    curl_easy_setopt(pCurl, CURLOPT_HEADER, 0L);  //启用时会将头文件的信息作为数据流输
+    curl_easy_setopt(pCurl, CURLOPT_FOLLOWLOCATION, 1L);//允许重定向
+    curl_easy_setopt(pCurl, CURLOPT_NOSIGNAL, 1L);
+
+    //将返回结果通过回调函数写到自定义的对象中
+    MemoryStruct oDataChunk;
+    curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, &oDataChunk);
+    curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+
+    curl_easy_setopt(pCurl, CURLOPT_VERBOSE, 1L); //启用时会汇报所有的信息
+    //post表单参数
+//    string strJsonData = "";
+    string strJsonData = StrParmbuf;
+
+    if(flag==HTTPPOST)
+    {
+        //libcur的相关POST配置项
+        curl_easy_setopt(pCurl, CURLOPT_POST, 1L);
+        curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, strJsonData.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_POSTFIELDSIZE, strJsonData.size());
+    }
+    else if(flag==HTTPGET)
+    {
+        //设置Get
+        curl_easy_setopt(pCurl, CURLOPT_CUSTOMREQUEST, "GET");
+    }
+    //是否设置CURLAUTH_BASIC密码
+    if(strBasickey != "")
+    {
+        curl_easy_setopt(pCurl, CURLOPT_USERPWD, strBasickey.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    }
+    else if(strDigestUser != "")
+    {
+        curl_easy_setopt(pCurl, CURLOPT_USERNAME, strDigestUser.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_PASSWORD, strDigestKey.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST|CURLAUTH_BASIC);
+    }
+
+        //是否设置CURLAUTH_BASIC密码
+       // curl_easy_setopt(pCurl, CURLOPT_USERPWD, "hdcam:hdcam");
+       // curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+
+    //Inttimeout秒超时
+    if(Inttimeout >= 40)
+        Inttimeout = 40;
+    curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, Inttimeout);
+    printf("curl_easy_perform\r\n");
+    res = curl_easy_perform(pCurl);
+
+    printf("curl_easy_getinfo\r\n");
+
+    long res_code=0;
+    res=curl_easy_getinfo(pCurl, CURLINFO_RESPONSE_CODE, &res_code);
+    printf("res == CURLE_OK \r\n");
+    if(( res == CURLE_OK ) && (res_code == 200 || res_code == 201))
+    {
+       /*
+        FILE* fTmpMem = (FILE*)oDataChunk.memory;
+        if (!fTmpMem) {
+
+        }
+        FILE *fp=fopen(filename.c_str(),"wb");
+        if(!fp)
+        {
+            cout<<"open file failed";
+            pthread_mutex_unlock(&PostGetMutex );
+            return -1;
+        }
+
+        fwrite(fTmpMem, 1, oDataChunk.size, fp);
+        fclose(fp);
+        */
+        string strmemory = oDataChunk.memory;
+        printf("HttpPost res: %s\r\n",strmemory.c_str()) ;
+        StrParmbuf = strmemory ;
+        //memcpy(pParmbuf,strmemory.c_str(),strmemory.length());
+        //*parmlen=strmemory.length();
+
+        curl_slist_free_all(pList);
+        curl_easy_cleanup(pCurl);
+       curl_global_cleanup();
+
+        //pthread_mutex_unlock(&PostGetMutex );
+        return true;
+    }
+    else
+    {
+       curl_slist_free_all(pList);
+       curl_easy_cleanup(pCurl);
+       curl_global_cleanup();
+      // pthread_mutex_unlock(&PostGetMutex );
+       printf("HttpPostParm out\r\n");
+       return 0;
+
+    }
+
+
+}
+
+
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
