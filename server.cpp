@@ -129,6 +129,7 @@ extern string StrDirection;		//行车方向
 extern string StrDirDescription;	//行车方向说明
 extern string StrCabinetType;		//机柜类型 1：华为双机柜双开门；2：华为双机柜单开门；3：华为单机柜双开门；4：华为单机柜单开门
 									//5：中兴； 6：金晟安；7：爱特斯
+extern string zteLockDevID[4];
 
 
 extern int Writeconfig(void);
@@ -1340,9 +1341,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 //else if (CabinetTypeGet == CABIN_ZTE)
 		#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(0,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[0] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+				// 开锁
+			   	zte_jsa_locker_process(0,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		#endif
 		 usleep(2000);
@@ -1357,9 +1361,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(0,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[0] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+				// 开锁
+			   	zte_jsa_locker_process(0,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		#endif
 		usleep(2000);
@@ -1377,9 +1384,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 //else if (CabinetTypeGet == CABIN_ZTE)
 		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(1,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[1] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+				// 开锁
+			   	zte_jsa_locker_process(1,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		 #endif
 		 usleep(2000);
@@ -1394,9 +1404,11 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(1,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[1] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+			   	zte_jsa_locker_process(1,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		#endif
 		 usleep(2000);
@@ -1414,9 +1426,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 		#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(2,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[2] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+				// 开锁
+			   	zte_jsa_locker_process(2,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		#endif
 		 usleep(2000);
@@ -1431,9 +1446,11 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(2,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[2] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+			   	zte_jsa_locker_process(2,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		 #endif
 		 usleep(2000);
@@ -1450,9 +1467,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(3,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[3] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+				// 开锁
+			   	zte_jsa_locker_process(3,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		 #endif
 		 usleep(2000);
@@ -1467,9 +1487,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
-			memset(byteSend,0,BASE64_HEX_LEN);
-			// 开锁
-		   	zte_jsa_locker_process(3,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	if (zteLockDevID[3] != "")
+		 	{
+				memset(byteSend,0,BASE64_HEX_LEN);
+				// 开锁
+			   	zte_jsa_locker_process(3,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 	}
 		 }
 		 #endif
 		 usleep(2000);

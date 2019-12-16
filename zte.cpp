@@ -75,6 +75,8 @@ string strzteAcbTemperature[4];             //电池温度
 
 extern string StrCabinetType;		//机柜类型
 extern pthread_mutex_t CabinetTypeMutex ;
+pthread_mutex_t lockerwriteMutex;	// 有485，防止冲突
+
 
 #if((CABINETTYPE == 5) || (CABINETTYPE == 6)) //5：中兴; 6：金晟安
 
@@ -1410,6 +1412,7 @@ bool zte_jsa_locker_process(int seq,UINT8 msg_type,UINT8 *pSend,string strDigest
 	UINT8 msg_div = msg_type;	// 把统一的命令分开
 	int door_addr = 1;
 
+	pthread_mutex_lock(&lockerwriteMutex);
 	// 因为2个柜子的前后门地址都是1,2，我们实际设置时要设1,2, 257,258,然后屏蔽掉高8位
 	door_addr = lockerHw_Param[seq]->address&0x00FF;
 	//cout<<"dooraddr"<<seq<<"="<<door_addr<<endl;
@@ -1465,6 +1468,8 @@ bool zte_jsa_locker_process(int seq,UINT8 msg_type,UINT8 *pSend,string strDigest
 	{
 		re_val = jsonzteLockerReader((char *)(mStrdata.c_str()),mStrdata.size(),seq);
 	}
+	pthread_mutex_unlock(&lockerwriteMutex);
+
 	return re_val;
 }
 
@@ -1655,17 +1660,20 @@ void *zte_HTTP_thread(void *param)
 			for(int n=0;n<LOCK_MAX_NUM;n++)
 			{
 				mStrdata = "";
-				// 组包锁的轮询协议, 设备柜前门/后门
-				memset(byteSend,0,BASE64_HEX_LEN);
-				// 轮询顺序安装zteLockDevID下标来
-				if (zteLockDevID[n] != "" )	// 如果是空的，则会得到无尽的回应，导致崩溃
+				if (zteLockDevID[n] != "")
 				{
-					if (zte_jsa_locker_process(n,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
+					// 组包锁的轮询协议, 设备柜前门/后门
+					memset(byteSend,0,BASE64_HEX_LEN);
+					// 轮询顺序安装zteLockDevID下标来
+					if (zteLockDevID[n] != "" )	// 如果是空的，则会得到无尽的回应，导致崩溃
 					{
-						//memset(byteSend,0,BASE64_HEX_LEN);
-						// 测试用，只要刷卡有卡号，就开锁
-						//zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
-					 }
+						if (zte_jsa_locker_process(n,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
+						{
+							//memset(byteSend,0,BASE64_HEX_LEN);
+							// 测试用，只要刷卡有卡号，就开锁
+							//zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+						 }
+					}
 				}
 			}
             sleep(1);
@@ -1846,7 +1854,7 @@ int zteinit(void)
        pthread_t m_zte_HTTP_Get ;
        pthread_create(&m_zte_HTTP_Get,NULL,jsa_HTTP_thread,NULL);
     #endif
-
+	   pthread_mutex_init(&lockerwriteMutex,NULL);
 
 
     return 0 ;
