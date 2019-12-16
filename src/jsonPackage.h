@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <algorithm>  
+#include <algorithm>
 #include "../snmp.h"
 #include "../net_rsu.h"
 #include "../cJSON.h"
@@ -39,7 +39,8 @@ bool jsonStrSwitchStatusWriterXY(int messagetype, string &mstrjson);	//19回路�
 bool jsonStrHWCabinetWriter(int messagetype,char *pstPam, string &mstrjson);				//20 华为机柜状态
 void SetjsonCabinetStatus(char* table, string &mstrjson);//20 门架运行状态-新部标准
 void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &mstrjson);		//22 门禁开关锁请求					//22 门禁开关锁请求
-void SetjsonFireWallStatusStr(int messagetype,string &mstrjson);			//23防火墙状态		
+void SetjsonDealLockerStr64(int messagetype,UINT64 cardid,UINT8 lockaddr,string &mstrjson);
+void SetjsonFireWallStatusStr(int messagetype,string &mstrjson);			//23防火墙状态
 void SetjsonAtlasStatusStr(int messagetype,string &mstrjson);	//24 ATLAS状态
 bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout);
 bool SetjsonReceiveOKStr(int messagetype,char *json, int *len);

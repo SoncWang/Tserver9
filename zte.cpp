@@ -94,7 +94,7 @@ extern pthread_mutex_t CabinetTypeMutex ;
 *
 *  其它:
 *******************************************************************************/
-void char_to_long_reverse(UINT8* buffer,UINT64* value)
+void char_to_long_reverse(UINT8* buffer,UINT32* value)
 {
 	LONG_UNION long_value;
 	UINT8 i;
@@ -932,7 +932,7 @@ void zte_locker_id_send_hook(int seq,UINT64 card_id)
 
 	// 注意上报上去的ID是1,2,257,258，要区别一下
 	// 语句：if(cabineid==1 && operate==ACT_UNLOCK) pRCtrl->FrontDoorCtrl=ACT_UNLOCK;
-	SetjsonDealLockerStr(NETCMD_DEAL_LOCKER,card_id,lockerHw_Param[seq]->address,jsonstr);
+	SetjsonDealLockerStr64(NETCMD_DEAL_LOCKER,card_id,lockerHw_Param[seq]->address,jsonstr);
 	printf("DealLockerMsg jsonstr=%s\n" ,jsonstr.c_str());
 	NetSendParm(NETCMD_DEAL_LOCKER, (char*)jsonstr.c_str(), jsonstr.length());
 	if(StrServerURL4.length()>0)			//上报利通后台
@@ -1149,7 +1149,8 @@ return true ;
 bool card_id_parse(char *buf,int len,int seq)
 {
 	UINT8 *p_read = (UINT8 *)buf;
-	UINT64 card_id = 0;
+	UINT64 card_id64 = 0;
+	UINT32 card_id = 0;
 	UINT16 buf_len = 0;
 	UINT8 *pbuf = (UINT8 *)buf;
 	UINT16 temp = 0;
@@ -1218,10 +1219,10 @@ bool card_id_parse(char *buf,int len,int seq)
 					lockerHw_Param[seq]->id[7] = ascii_to_hex2(pbuf+CARD_ID_POS+6);
 					lockerHw_Param[seq]->id[8] = ascii_to_hex2(pbuf+CARD_ID_POS+8);
 					// ID卡是有5字节的
-					char_to_longlong(&(lockerHw_Param[seq]->id[1]),&card_id);
-					if (card_id != 0)
+					char_to_longlong(&(lockerHw_Param[seq]->id[1]),&card_id64);
+					if (card_id64 != 0)
 					{
-						zte_locker_id_send_hook(seq,card_id);
+						zte_locker_id_send_hook(seq,card_id64);
 						return true;
 					}
 				}
@@ -1496,38 +1497,77 @@ void *zte_HTTP_thread(void *param)
     string mStrHWServer = "";
     string mStrUser = "" ;
     string mStrkey = "" ;
+	string getStrHWServer;
+	static UINT16 poll_cnt = 10;
+
     sleep(5);
 
     int zteCabinetType = 0;
-	
+
 	UINT8 byteSend[BASE64_HEX_LEN]={0x00,};
 	UINT8 lock_len = 0;
-	bool isCardExist[4] = {false,false,false,false};
+	//bool isCardExist[4] = {false,false,false,false};
+
+	zteDevIDInit();
+	mStrHWServer = StrHWServer;
+    mStrUser = StrHWGetPasswd;
+    mStrkey = StrHWSetPasswd;
+
+	sleep(2);
+	//设备列表获取
+	// 2s后获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
+    mStrdata = "";
+    getStrHWServer = "http://"+mStrHWServer+"/jscmd/objs";
+    zteHttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+    if(mStrdata != "")
+       jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
+
+	sleep(2);
+	// 获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
+	getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
+	cout<<"agin = "<<getStrHWServer<<endl;
+	zteHttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+	// 先初始化, 初始化不能放在开始那里，否则取不到数据
+	for (int i = 0; i < LOCK_MAX_NUM; i++)
+	{
+		zteLockDevParam[i].lockDevID = zteLockDevID[i];
+	}
+	jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
+
     while(1)
     {
-
-        zteDevIDInit();
-
+    	//设备列表若未获取到，则再获取
+        if(zteTempDevID[0] == "")
         {
-           mStrHWServer = StrHWServer;
-           mStrUser = StrHWGetPasswd;
-           mStrkey = StrHWSetPasswd;
+        	sleep(2);
+            mStrdata = "";
+		    getStrHWServer = "http://"+mStrHWServer+"/jscmd/objs";
+		    zteHttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+		    if(mStrdata != "")
+		       jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
 
-           //设备列表获取
-           {
-              mStrdata = "";
-              string getStrHWServer = "http://"+mStrHWServer+"/jscmd/objs";
-              zteHttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
-              if(mStrdata != "")
-                jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
-           }
-
-           {
-              mStrdata = "";
-              string tempid1;
-              //printf("zteTempDevID[0]:%s,zteTempDevID[1]:%s\r\n",zteTempDevID[0].c_str(),zteTempDevID[1].c_str());
-              for(int n=0;n<2;n++)
-              {
+			sleep(2);
+			// 获取电子锁对应的端口号，COM5->设备柜,COM3->电源柜
+			getStrHWServer = "http://"+StrHWServer+"/jscmd/sensorports";
+			cout<<"agin = "<<getStrHWServer<<endl;
+			zteHttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+			// 先初始化, 初始化不能放在开始那里，否则取不到数据
+			for (int i = 0; i < LOCK_MAX_NUM; i++)
+			{
+				zteLockDevParam[i].lockDevID = zteLockDevID[i];
+			}
+			jsonzteLockerComGet((char *)(mStrdata.c_str()),mStrdata.size());
+        }
+		else
+    	{
+    		if (poll_cnt++ >= 10)
+    		{
+    		  poll_cnt = 0;
+        	  mStrdata = "";
+			  string tempid1;
+			  //printf("zteTempDevID[0]:%s,zteTempDevID[1]:%s\r\n",zteTempDevID[0].c_str(),zteTempDevID[1].c_str());
+			  for(int n=0;n<2;n++)
+			  {
                  if(zteTempDevID[n] != "")
                  {
                    mStrdata = "";
@@ -1559,14 +1599,12 @@ void *zte_HTTP_thread(void *param)
                    zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
                    if(mStrdata != "")
                      jsonzteTempHLReader((char *)(mStrdata.c_str()),mStrdata.size(),n,118205001);
-                  }
-
                }
+            }
 
-
-                //获取普通空调信息
-                for(int n=0;n<2;n++)
-                {
+            //获取普通空调信息
+            for(int n=0;n<2;n++)
+            {
                    if(zteAirDevID[n] != "")
                    {
                       mStrdata = "";
@@ -1575,12 +1613,12 @@ void *zte_HTTP_thread(void *param)
                       if(mStrdata != "")
                         jsonzteTempReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
                    }
-                }
+             }
 
 
-                 //获取锂电池信息
-                 for(int n=0;n<4;n++)
-                 {
+                //获取锂电池信息
+                for(int n=0;n<4;n++)
+                {
                      if(zteBatDevID[n] != "")
                      {
                          mStrdata = "";
@@ -1589,54 +1627,49 @@ void *zte_HTTP_thread(void *param)
                          if(mStrdata != "")
                            jsonzteTempReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
                      }
-                  }
+                }
 
 
-                  //获取开关电源信息
+                //获取开关电源信息
 
 
-                  //获取告警信息
-                  {
+                //获取告警信息
+                {
                      mStrdata = "";
                      tempid1 = "http://"+mStrHWServer+"/jscmd/alarmquery?type=now";
                      zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
                      if(mStrdata != "")
                         jsonzteAlarmReader((char *)(mStrdata.c_str()),mStrdata.size());
-                  }
-				  
-				  
-				  // 获取锁的卡号和状态
+                }
+    		  }
+
+
+			// 获取锁的卡号和状态
 			// 先进行排序,数字小的一组22545/22546接设备柜前/后门, 数字大一组23042/23043的接电池柜前/后门
 			// 同时数字小的为前门22545、23042，数字大的为后门22546/23043
 			//StrBubbleSort(zteLockDevID,4);
-				printf("lockerID0 = %s\r\n",zteLockDevID[0].c_str());
-				printf("lockerID1 = %s\r\n",zteLockDevID[1].c_str());
-				printf("lockerID2 = %s\r\n",zteLockDevID[2].c_str());
-				printf("lockerID3 = %s\r\n",zteLockDevID[3].c_str());
-				for(int n=0;n<LOCK_MAX_NUM;n++)
+			printf("lockerID0 = %s\r\n",zteLockDevID[0].c_str());
+			printf("lockerID1 = %s\r\n",zteLockDevID[1].c_str());
+			printf("lockerID2 = %s\r\n",zteLockDevID[2].c_str());
+			printf("lockerID3 = %s\r\n",zteLockDevID[3].c_str());
+			for(int n=0;n<LOCK_MAX_NUM;n++)
+			{
+				mStrdata = "";
+				// 组包锁的轮询协议, 设备柜前门/后门
+				memset(byteSend,0,BASE64_HEX_LEN);
+				// 轮询顺序安装zteLockDevID下标来
+				if (zteLockDevID[n] != "" )	// 如果是空的，则会得到无尽的回应，导致崩溃
 				{
-				   mStrdata = "";
-				   // 组包锁的轮询协议, 设备柜前门/后门
-				   memset(byteSend,0,BASE64_HEX_LEN);
-				   // 轮询顺序安装zteLockDevID下标来
-				   if (zteLockDevID[n] != "" )	// 如果是空的，则会得到无尽的回应，导致崩溃
-				   {
-					   if (zte_jsa_locker_process(n,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
-					   {
-							memset(byteSend,0,BASE64_HEX_LEN);
-							// 测试用，只要刷卡有卡号，就开锁
-							zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
-					   }
-				   }
+					if (zte_jsa_locker_process(n,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
+					{
+						//memset(byteSend,0,BASE64_HEX_LEN);
+						// 测试用，只要刷卡有卡号，就开锁
+						//zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+					 }
 				}
-				  
-
-             }
-
-             sleep(6);
-
+			}
+            sleep(1);
          }
-
     }
     return 0 ;
 

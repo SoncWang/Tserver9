@@ -1332,19 +1332,19 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 {
 	 	printf("FrontDoorCtrl ACT_UNLOCK");
 		 // 如果是华为机柜
-	#if (CABINETTYPE == 1)
+		#if (CABINETTYPE == 1)
 		 //if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
 		 {
 			locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
 		 }
 		 //else if (CabinetTypeGet == CABIN_ZTE)
-	#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+		#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
 		   	zte_jsa_locker_process(0,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
-	#endif
+		#endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_LOCK) 				 //关锁
@@ -1355,9 +1355,17 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_LOCK);
 		 }
-		 #endif
-		 usleep(2000);
+		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+		 {
+			memset(byteSend,0,BASE64_HEX_LEN);
+			// 开锁
+		   	zte_jsa_locker_process(0,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 }
+		#endif
+		usleep(2000);
 	 }
+
+	 // 后门
 	 if(pstuRCtrl->BackDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
 	 	printf("BackDoorCtrl ACT_UNLOCK");
@@ -1384,27 +1392,33 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_2_CTRL_LOCK);
 		 }
-		 #endif
+		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+		 {
+			memset(byteSend,0,BASE64_HEX_LEN);
+			// 开锁
+		   	zte_jsa_locker_process(1,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 }
+		#endif
 		 usleep(2000);
 	 }
+
+	 // 设备柜，电源柜定义看客户
 	 if(pstuRCtrl->SideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
 	 	printf("SideDoorCtrl ACT_UNLOCK");
 	     //CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特斯 StrVersionNo
-   	#if(CABINETTYPE == 1) //华为
+   		#if(CABINETTYPE == 1) //华为
 		 // 如果是华为机柜
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_UNLOCK);
 		 }
-	#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
-		 //else if (CabinetTypeGet == CABIN_ZTE)
-		// else
+		#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
 			memset(byteSend,0,BASE64_HEX_LEN);
 			// 开锁
 		   	zte_jsa_locker_process(2,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 }
-	#endif
+		#endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_LOCK)					 //关锁
@@ -1415,9 +1429,17 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_LOCK);
 		 }
+		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+		 {
+			memset(byteSend,0,BASE64_HEX_LEN);
+			// 开锁
+		   	zte_jsa_locker_process(2,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
+		 }
 		 #endif
 		 usleep(2000);
 	 }
+
+	 // 后门
 	 if(pstuRCtrl->RightSideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
 	 	printf("SideDoorCtrl ACT_UNLOCK");
@@ -1442,6 +1464,12 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 #if (CABINETTYPE == 1)
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_4_CTRL_LOCK);
+		 }
+		 #elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+		 {
+			memset(byteSend,0,BASE64_HEX_LEN);
+			// 开锁
+		   	zte_jsa_locker_process(3,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
 		 }
 		 #endif
 		 usleep(2000);

@@ -5678,12 +5678,54 @@ void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &m
 		{sprintf(str,"\"cabineid\":%d,\n",i+1); strJson = strJson + str;}	//机柜ID
 	}
 
+	sprintf(str,"\"cardid\":\"%u\",\n",cardid); strJson = strJson + str;	//ID卡号
+	sprintf(str,"\"operate\":%d\n",ACT_UNLOCK); strJson = strJson + str;	//操作请求
+	strJson +=	"}\n\0";
+
+    mstrjson = strJson;
+}
+
+
+// 64位卡号发送函数
+void SetjsonDealLockerStr64(int messagetype,UINT64 cardid,UINT8 lockaddr,string &mstrjson)
+{
+	char str[100],sDateTime[30];
+	int i;
+
+    time_t nSeconds;
+    struct tm * pTM;
+
+    time(&nSeconds);
+    pTM = localtime(&nSeconds);
+
+    //系统日期和时间,格式: yyyymmddHHMMSS
+    sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
+            pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
+            pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
+
+	std::string strJson;
+
+    strJson +=  "{\n";
+	sprintf(str,"\"messagetype\":%d,\n",messagetype); strJson = strJson + str;//消息类型
+	strJson = strJson + "\"vmctrl_ipaddr\":\""+ StrIP +"\",\n";	//IP地址
+	strJson = strJson + "\"flagroadid\":\""+ StrFlagRoadID +"\",\n";		// ETC 门架路段编号
+	strJson = strJson + "\"flagid\": \"" + StrFlagID +"\",\n";			// ETC 门架编号
+	strJson = strJson + "\"opttime\": \"" + sDateTime + "\",\n";	//时间
+	strJson = strJson + "\"cabinettype\":"+ StrCabinetType +",\n";	//机柜类型
+//	sprintf(str,"\"cabineid\":%d,\n",lockaddr); strJson = strJson + str;	//机柜ID
+	for (i = 0; i < LOCK_MAX_NUM; i++)
+	{
+		if(lockaddr==atoi(StrAdrrLock[i].c_str()))
+		{sprintf(str,"\"cabineid\":%d,\n",i+1); strJson = strJson + str;}	//机柜ID
+	}
+
 	sprintf(str,"\"cardid\":\"%llu\",\n",cardid); strJson = strJson + str;	//ID卡号
 	sprintf(str,"\"operate\":%d\n",ACT_UNLOCK); strJson = strJson + str;	//操作请求
 	strJson +=	"}\n\0";
 
     mstrjson = strJson;
 }
+
 
 bool jsonstrSPDReader(char* jsonstr, int len, UINT8 *pstuRCtrl)
 {
