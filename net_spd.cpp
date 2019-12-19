@@ -159,7 +159,7 @@ void char_to_float(UINT8* buffer,FDATA* value)
 
 /*接口函数，其它线程调用这个函数,进行参数的设置*/
 /*ai_data: ai参数设置，data:其它参数设置*/
-int Ex_SPD_Set_Process(int seq,SPD_CTRL_LIST SPD_ctrl_event, UINT8 set_addr, FDATA ai_data,UINT16 data)
+int Ex_SPD_Set_Process(int seq,SPD_CTRL_LIST SPD_ctrl_event, UINT16 set_addr, FDATA ai_data,UINT16 data)
 {
 	// 如果是SPD_NUM表明所有的防雷监测器都要设置
 	if (seq < SPD_NUM)
@@ -399,6 +399,7 @@ int SPD_Res_Set_Reg(int socket_addr,UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR, UI
 	usleep(5000);	//delay 5ms
 	return 0 ;
 }
+
 
 /* psd发送数据--时间同步 */
 int SPD_Time_Set_Reg(int socket_addr,UINT8 Addr, UINT8 Func, UINT16 REFS_ADDR,UINT16 REFS_COUNT)
@@ -655,21 +656,29 @@ int spd_ctrl_process(UINT16 seq,UINT16 *pctrl_flag)
 				*pctrl_flag &= ~(BIT(event_i));
 				switch(event_i)
 				{
+				case SPD_DO_SET:
+					SPD_DO_Ctrl_Reg(socketq,addr_temp,KY_WRITE_CMD,SPD_ctrl_value[seq].ref_addr,SPD_ctrl_value[seq].do_set);
+					break;
+
 				case SPD_RES_SET:
 					// 不要改id,防止误操作
 					if (SPD_ctrl_value[seq].ref_addr == KY_RES_TEST_ADDR)
 					{
 						//SPD_Address[SPD_NUM] = (UINT8)SPD_ctrl_value.res_set;
 						// RES接地电阻部分设置, 测试电阻是读命令
-						SPD_Read_Reg(socketq,addr_temp, KY_READ_CMD,SPD_ctrl_value[seq].ref_addr,KY_RES_NUM);
+						// read的参数不是socket，是seq
+						SPD_Read_Reg(0,addr_temp, KY_READ_CMD,SPD_ctrl_value[seq].ref_addr,KY_RES_NUM);
 						KY_test_disable_cnt = KY_SHIELD_INTERVAL;
+						KY_res_read_seq = KY_RES_TEST_ADDR;	// 不要把测试返回值付给了KY_RES_ALARM_ADDR
 					}
 					else if (SPD_ctrl_value[seq].ref_addr == KY_RES_ALARM_ADDR)
 					{
+						#if 0
 						if (SPD_ctrl_value[seq].res_set == 0)	// 上位机是写入0禁止
 						{
 							SPD_ctrl_value[seq].res_set = 500;	// 宽永是写入500禁止报警功能
 						}
+						#endif
 						SPD_Res_Set_Reg(socketq,addr_temp,KY_WRITE_CMD,SPD_ctrl_value[seq].ref_addr,SPD_ctrl_value[seq].res_set);
 					}
 					break;
@@ -977,6 +986,7 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 			pdes++;
 			psrc++;
 		}
+		#if 1
 		printf("LXspd_real begain,%5hd\r\n",seq);
 		printf("leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_current);
 		printf("A_leak_current = %7.3f \r\n",stuSpd_Param->rSPD_data[seq].leak_A);
@@ -1033,6 +1043,7 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 		printf("last_5_struck_day = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_day);
 		printf("last_5_struck_hour = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_hour);
 		printf("last_5_struck_min = %5hd \r\n",stuSpd_Param->rSPD_data[seq].last_5_struck_min);
+		#endif
 		break;
 
 	case (SPD_DI_DATA):
@@ -1043,12 +1054,10 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 		stuSpd_Param->rSPD_data[seq].DI_grd_alarm = (stuSpd_Param->dSPD_DI[seq].SPD_DI & BIT(4))?1:0;
 		stuSpd_Param->rSPD_data[seq].DI_volt_alarm  = (stuSpd_Param->dSPD_DI[seq].SPD_DI & BIT(7))?1:0;
 
-
 		printf("C1_status%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_C1_status);
 		printf("grd_alarm%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_grd_alarm);
 		printf("leak_alarm%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_leak_alarm);
 		printf("volt_alarm%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DI_volt_alarm);
-
 		break;
 
 	case (SPD_DO_DATA):
@@ -1058,7 +1067,7 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 		stuSpd_Param->rSPD_data[seq].DO_psdtime_clear = (stuSpd_Param->dSPD_DO[seq].SPD_DO & BIT(4))?1:0;
 		stuSpd_Param->rSPD_data[seq].DO_daytime_clear = (stuSpd_Param->dSPD_DO[seq].SPD_DO & BIT(5))?1:0;
 
-		printf("DO_leak_type%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DO_leak_type);
+		//printf("DO_leak_type%d = 0x%02x \r\n",seq,stuSpd_Param->rSPD_data[0].DO_leak_type);
 		break;
 
 	case (SPD_HZ_DATA):
@@ -1134,6 +1143,7 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 			*pdes = 0;
 			pdes++;
 		}
+
 		printf("HZspd_real begain,%5hd\r\n",seq);
 		printf("breaker_alarm = %5hd \r\n",stuSpd_Param->rSPD_data[seq].DI_C1_status);
 		printf("grd_alarm = %5hd \r\n",stuSpd_Param->rSPD_data[seq].DI_grd_alarm);
@@ -1204,7 +1214,8 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 		stuSpd_Param->rSPD_data[seq].volt_B = (float)stuSpd_Param->dSPD_KY[seq].volt_B/10;
 		stuSpd_Param->rSPD_data[seq].volt_C = (float)stuSpd_Param->dSPD_KY[seq].volt_C/10;
 
-		stuSpd_Param->rSPD_data[seq].leak_current = NULL_VALUE;
+		// 说漏电流对应B相的数据,只取1路
+		stuSpd_Param->rSPD_data[seq].leak_current = (float)stuSpd_Param->dSPD_KY[seq].current_B*10;	// 本来是要 /100但是要从A转化成mA
 		// 只有电流值，没有漏电流
 		stuSpd_Param->rSPD_data[seq].leak_A = NULL_VALUE;
 		stuSpd_Param->rSPD_data[seq].leak_B = NULL_VALUE;
@@ -1212,9 +1223,10 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 
 		stuSpd_Param->rSPD_data[seq].struck_cnt = (float)stuSpd_Param->dSPD_KY[seq].struck_cnt;
 		stuSpd_Param->rSPD_data[seq].struck_total = (float)stuSpd_Param->dSPD_KY[seq].struck_cnt;
-		stuSpd_Param->rSPD_data[seq].spd_temp = ((float)stuSpd_Param->dSPD_KY[seq].temp-1000)/10;
-		stuSpd_Param->rSPD_data[seq].envi_temp = NULL_VALUE;
-		stuSpd_Param->rSPD_data[seq].life_time = (100-(float)stuSpd_Param->dSPD_KY[seq].life_time/10);
+		stuSpd_Param->rSPD_data[seq].spd_temp = NULL_VALUE;
+		stuSpd_Param->rSPD_data[seq].envi_temp = ((float)stuSpd_Param->dSPD_KY[seq].temp-1000)/10;
+		// 宽永给出的劣化程度，和寿命值相反，然后接常开，又反一次，所以就不用反了
+		stuSpd_Param->rSPD_data[seq].life_time = (float)stuSpd_Param->dSPD_KY[seq].life_time/10;
 		if (stuSpd_Param->rSPD_data[seq].life_time < 0)
 		{
 			stuSpd_Param->rSPD_data[seq].life_time = 0;
@@ -1259,7 +1271,6 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 		// 0：闭合	  1:是断开, 因为外部是NO接在bit0位，所以闭合0是报警
 		stuSpd_Param->rSPD_data[seq].DI_C1_status = (stuSpd_Param->dSPD_KY[seq].di_alarm & BIT(0))?0:1;
 		stuSpd_Param->rSPD_data[seq].DI_grd_alarm = (stuSpd_Param->dSPD_KY[seq].di_alarm & BIT(2))?1:0;
-
 		printf("KYspd_DI begain,%5hd\r\n",seq);
 		printf("breaker_alarm = %5hd \r\n",stuSpd_Param->rSPD_data[seq].DI_C1_status);
 		printf("grd_alarm = %5hd \r\n",stuSpd_Param->rSPD_data[seq].DI_grd_alarm);
@@ -1311,7 +1322,6 @@ void RealDataCopy(int seq,SPD_DATA_LIST msg_t)
 			*pdes = 0;
 			pdes++;
 		}
-
 		printf("KYspd_HIS begain,%5hd\r\n",seq);
 		printf("systime_year = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_year);
 		printf("systime_month = %5hd \r\n",stuSpd_Param->rSPD_data[seq].systime_month);
@@ -1388,7 +1398,7 @@ void DealHZResMsg(int seq,unsigned char *buf,unsigned short int len)
 		// 前面2个字节保留
 		HZ_char_to_int(buf + HZ_HEAD_NUM +2*2, pointer);
 		stuSpd_Param->rSPD_res.grd_res_real = (float)stuSpd_Param->rSPD_res.grd_res_value/100;
-		printf("HZ_grd_res_real = %7.3f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
+		//printf("HZ_grd_res_real = %7.3f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
 	}
 }
 
@@ -1406,11 +1416,15 @@ void DealKYResMsg(unsigned char *buf,unsigned short int len)
 			pointer = &stuSpd_Param->rSPD_res.grd_res_value;
 			//*pointer = *(buf+FRAME_HEAD_NUM);		// 这里只赋值了1个字节
 			char_to_int(buf + FRAME_HEAD_NUM, pointer);
-			if (stuSpd_Param->rSPD_res.grd_res_value >= 5000)
+			// 不处理
+			#if 0
+			if (stuSpd_Param->rSPD_res.grd_res_value >= 50000)
 			{
 				stuSpd_Param->rSPD_res.grd_res_value = 0xFFFF;		// 赋给1个无效值
 			}
-			stuSpd_Param->rSPD_res.grd_res_real = stuSpd_Param->rSPD_res.grd_res_value;
+			#endif
+			// 2位小数
+			stuSpd_Param->rSPD_res.grd_res_real = ((float)stuSpd_Param->rSPD_res.grd_res_value/100);
 		}
 		else if (KY_res_read_seq == KY_RES_ID_ADDR)
 		{
@@ -1424,10 +1438,11 @@ void DealKYResMsg(unsigned char *buf,unsigned short int len)
 			//*pointer = *(buf+FRAME_HEAD_NUM);
 			char_to_int(buf + FRAME_HEAD_NUM, pointer);
 		}
-
+		/*
 		printf("KY_grd_res_value = %5.2f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
 		printf("KY_id = %5hd \r\n",stuSpd_Param->rSPD_res.id);
-		printf("alarm_value = %5hd \r\n",stuSpd_Param->rSPD_res.alarm_value);
+		printf("alarm_value = %u \r\n",stuSpd_Param->rSPD_res.alarm_value);
+		*/
 	}
 }
 
@@ -1439,27 +1454,28 @@ void DealKYSPDMsg(int seq,unsigned char *buf,unsigned short int len)
 
 	UINT8 i;
 	UINT16 *pointer = &stuSpd_Param->dSPD_KY[seq].current_A;
+	static UINT16 last_struk_peak[SPD_NUM] = {0,0};
 
 	// 只返回1个字节
 	if (len == (KY_RUN_NUM*2+5))
 	{
 		pointer = &stuSpd_Param->dSPD_KY[seq].current_A;
-		printf("KYspd_RUN begain->%d\r\n",seq);
+		//printf("KYspd_RUN begain->%d\r\n",seq);
 		for (i=0;i<KY_RUN_NUM;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
-			printf("KYRUN%5hd = %5hd \r\n",i,*(pointer+i));
+			//printf("KYRUN%5hd = %5hd \r\n",i,*(pointer+i));
 		}
 		RealDataCopy(seq,SPD_RUN_DATA);
 	}
 	else if (len == (KY_DI_NUM*2+5))
 	{
 		pointer = &stuSpd_Param->dSPD_KY[seq].life_time_alarm;
-		printf("KYspd_DI begain->%d\r\n",seq);
+		//printf("KYspd_DI begain->%d\r\n",seq);
 		for (i=0;i<KY_DI_NUM;i++)
 		{
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
-			printf("KYDI%5hd = %5hd \r\n",i,*(pointer+i));
+			//printf("KYDI%5hd = %5hd \r\n",i,*(pointer+i));
 		}
 		RealDataCopy(seq,SPD_REMOTE_DATA);
 	}
@@ -1472,7 +1488,23 @@ void DealKYSPDMsg(int seq,unsigned char *buf,unsigned short int len)
 			char_to_int(buf + FRAME_HEAD_NUM + i*2, (pointer+i));
 			printf("KYHIS%5hd = %5hd \r\n",i,*(pointer+i));
 		}
-		RealDataCopy(seq,SPD_REC_DATA);
+		// 如果雷击次数已经被清0了，时间也要清0
+		if (stuSpd_Param->rSPD_data[seq].struck_cnt == 0)
+		{
+			stuSpd_Param->rSPD_data[seq].last_1_struck_year = 0;
+			stuSpd_Param->rSPD_data[seq].last_1_struck_month = 0;
+			stuSpd_Param->rSPD_data[seq].last_1_struck_day = 0;
+			stuSpd_Param->rSPD_data[seq].last_1_struck_hour = 0;
+			stuSpd_Param->rSPD_data[seq].last_1_struck_min = 0;
+		}
+		// 只取最近的记录，断电后会丢失
+		// 不用his_num，因为测试发现his_num是剩余条数，当只发生1条时，返回也是0
+		if ((last_struk_peak[seq] == 0) && (stuSpd_Param->dSPD_KY[seq].struk_peak != 0))
+		{
+			printf("copy HIS begins \r\n");
+			RealDataCopy(seq,SPD_REC_DATA);
+		}
+		last_struk_peak[seq] = stuSpd_Param->dSPD_KY[seq].struk_peak;
 	}
 }
 
@@ -1621,7 +1653,7 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 		{
 	      	len = read(sockfd_spd[0], buf, sizeof(buf)-1);
 			printf("len= %d\n\r",len);
-			if (len >= 0)
+			if (len > 0)
 			{
 			  	buffPos = buffPos+len;
 			  	if(buffPos<5) continue;
@@ -1835,15 +1867,8 @@ void* NetWork_server_thread_SPD(void*arg)
 		memset (&SPD_ctrl_value[i],0,sizeof(SPD_CTRL_VALUE));
 	}
 	dummy.f=NULL_VAR;
-
-	#if 0
-	// 测试时定义的数据
-	static UINT16 testvalue = 9;
-	FDATA test_v;
-	static UINT16 entry = 0;
-	#endif
-
 	temp=0;
+
 	if ((SPD_Type == TYPE_LEIXUN) || (SPD_Type == TYPE_KY))
 	{
 		net_Conneted=0;		// 开始连接前置0
@@ -1872,15 +1897,6 @@ void* NetWork_server_thread_SPD(void*arg)
 	sleep(2);	//连接后等待2s稳定
 	while(1)
 	{
-		#if 0
-		if (entry == 0)
-		{
-			entry = 1;
-			Ex_SPD_Set_Process(SPD_RES_SET,RES_ALARM_ADDR,dummy,0);
-			printf("SPD_RES_SET\n\r");
-			usleep(500000);
-		}
-		#endif
 		if (SPD_Type == TYPE_HUAZI)
 		{
 			// 如果是华咨,没有设置参数，忽略
@@ -1889,7 +1905,7 @@ void* NetWork_server_thread_SPD(void*arg)
 				spd_ctl_flag[i] = 0;
 			}
 		}
-		printf("spd_ctl_flag_0=%d,spd_ctl_flag_1=%d\r\n",spd_ctl_flag[0],spd_ctl_flag[1]);
+		//printf("spd_ctl_flag_0=%d,spd_ctl_flag_1=%d\r\n",spd_ctl_flag[0],spd_ctl_flag[1]);
 		if ((spd_ctl_flag[0]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[1]&BITS_MSK_GET(0,SPD_CTRL_NUM)))
 		{
 			spd_net_flag[0] = 0;
@@ -1898,35 +1914,7 @@ void* NetWork_server_thread_SPD(void*arg)
 		else
 		{
 			poll_cnt++;
-			#if 0
-			// 改id测试
-			if (poll_cnt == 1)
-			{
-				test_v.f =testvalue;
-				Ex_SPD_Set_Process(SPD_RES_SET,RES_ID_ADDR,dummy,testvalue);
-				testvalue++;
-				if (testvalue >=11)
-				{
-					testvalue = 9;
-				}
-				usleep(500000);
-			}
-			#endif
-			#if 0
-			// DO清0测试
-			if (poll_cnt == 2)
-			{
-				Ex_SPD_Set_Process(SPD_DO_SET,testvalue,dummy,DO_OFF_CMD);
-				testvalue++;
-				if (testvalue >= 6)
-				{
-					testvalue = 0;
-				}
-				usleep(500000);
-			}
-			#endif
-
-			printf("poll_cnt=%d\r\n",poll_cnt);
+			//printf("poll_cnt=%d\r\n",poll_cnt);
 			// 400*3 = 1.2s，即1.2s轮询一个项目
 			if (poll_cnt >= SPD_POLLING_INTERVAL)
 			{
@@ -1962,12 +1950,14 @@ void* NetWork_server_thread_SPD(void*arg)
 					if ((ctrl_counter % SPD_TEST_RES_INTERVAL) ==0)
 					{
 						// 接地电阻10分钟测试一次
-						Ex_SPD_Set_Process(SPD_NUM,SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
+						// Ex_SPD_Set_Process(SPD_NUM,SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
+						// 注意，只有1个接地电阻，只需要测试一次就可以了
+						Ex_SPD_Set_Process(0,SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
 					}
 					if (ctrl_counter >= SPD_TIME_SYN_INTERVAL)
 					{
 						ctrl_counter = 0;
-						Ex_SPD_Set_Process(SPD_NUM,SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
+						Ex_SPD_Set_Process(0,SPD_TIME_SET,TIME_SET_ADDR,dummy,dummy_u);
 					}
 					ctrl_counter++;		// 每隔一段时间进行一次接地电阻测试
 					//printf("ctrl_counter = 0x%08x \r\n",ctrl_counter);
@@ -2039,8 +2029,8 @@ void* NetWork_server_thread_SPD(void*arg)
 					if ((ctrl_counter % SPD_TEST_RES_INTERVAL) ==0)
 					{
 						ctrl_counter = 0;
-						// 接地电阻10分钟测试一次
-						Ex_SPD_Set_Process(SPD_NUM,SPD_RES_SET,RES_TEST_ADDR,dummy,RES_TEST_EN);
+						// 接地电阻30分钟测试一次
+						Ex_SPD_Set_Process(0,SPD_RES_SET,KY_RES_TEST_ADDR,dummy,RES_TEST_EN);
 					}
 					ctrl_counter++;		// 每隔一段时间进行一次接地电阻测试
 				}
@@ -2049,7 +2039,7 @@ void* NetWork_server_thread_SPD(void*arg)
 				if (seq_cnt < SPD_NUM)
 				{
 					spd_net_flag[seq_cnt] |= BIT(op_counter);
-					printf("seq_cnt=%d,spd_net_flag=%02x\r\n",seq_cnt,spd_net_flag[seq_cnt]);
+					//printf("seq_cnt=%d,spd_net_flag=%02x\r\n",seq_cnt,spd_net_flag[seq_cnt]);
 					if (SPD_Type == TYPE_KY)
 					{
 						if (KY_test_disable_cnt > 0)
@@ -2063,7 +2053,14 @@ void* NetWork_server_thread_SPD(void*arg)
 				op_counter++;		// 轮询间隔标志
 			}
 		}
-		printf("SPD_Type=%d,SPD_num=%d",SPD_Type,SPD_num);
+		//printf("SPD_Type=%d,SPD_num=%d\r\n",SPD_Type,SPD_num);
+
+		// 因为后面对spd_ctl_flag又进行了操作，准备设置前再次屏蔽其他轮询
+		if ((spd_ctl_flag[0]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[1]&BITS_MSK_GET(0,SPD_CTRL_NUM)))
+		{
+			spd_net_flag[0] = 0;
+			spd_net_flag[1] = 0;
+		}
 
 		// 统一处理的设置函数，这种结构注定上位机只能一次设置一个，且要有个间隔时间,400ms
 		for (i=0; i<SPD_NUM; i++)
@@ -2081,109 +2078,6 @@ void* NetWork_server_thread_SPD(void*arg)
 			}
 		}
 
-	#if 0
-		if (spd_ctl_flag[0]&BIT(SPD_AI_SET))
-		{
-			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_AI_SET);
-		}
-		else if (spd_ctl_flag[0]&BIT(SPD_DO_SET))
-		{
-			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_DO_SET);
-		}
-		else if (spd_ctl_flag[0]&BIT(SPD_TIME_SET))
-		{
-			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_TIME_SET);
-		}
-		else if (spd_ctl_flag[0]&BIT(SPD_RES_SET))
-		{
-			spd_ctrl_process(0,&spd_ctl_flag[0],SPD_RES_SET);
-		}
-
-		else if (spd_ctl_flag[1]&BIT(SPD_AI_SET))
-		{
-			spd_ctrl_process(1,&spd_ctl_flag[1],SPD_AI_SET);
-		}
-		else if (spd_ctl_flag[1]&BIT(SPD_DO_SET))
-		{
-			spd_ctrl_process(1,&spd_ctl_flag[1],SPD_DO_SET);
-		}
-		else if (spd_ctl_flag[1]&BIT(SPD_TIME_SET))
-		{
-			spd_ctrl_process(1,&spd_ctl_flag[1],SPD_TIME_SET);
-		}
-		// 接地电阻只有1个，这里是多余的
-		else if (spd_ctl_flag[1]&BIT(SPD_RES_SET))
-		{
-			spd_ctl_flag[1] &= ~(BIT(SPD_RES_SET));
-			//spd_ctrl_process(1,&spd_ctl_flag,SPD_RES_SET);
-		}
-
-
-		// 设置完毕，开始轮询
-		else if (spd_net_flag[0]&BIT(SPD_AI_DATA))
-		{
-			spd_send_process(0,&spd_net_flag[0],SPD_AI_DATA);
-		}
-		else if (spd_net_flag[0]&BIT(SPD_DI_DATA))
-		{
-			spd_send_process(0,&spd_net_flag[0],SPD_DI_DATA);
-		}
-		else if (spd_net_flag[0]&BIT(SPD_DO_DATA))
-		{
-			spd_send_process(0,&spd_net_flag[0],SPD_DO_DATA);
-		}
-
-		// 宽永的
-		else if (spd_net_flag[0]&BIT(SPD_RUN_DATA))
-		{
-			spd_send_process(0,&spd_net_flag[0],SPD_RUN_DATA);
-		}
-		else if (spd_net_flag[0]&BIT(SPD_REMOTE_DATA))
-		{
-			spd_send_process(0,&spd_net_flag[0],SPD_REMOTE_DATA);
-		}
-		else if (spd_net_flag[0]&BIT(SPD_REMOTE_DATA))
-		{
-			spd_send_process(0,&spd_net_flag[0],SPD_REMOTE_DATA);
-		}
-
-		// 华咨的
-		else if (spd_net_flag[0]&BIT(SPD_HZ_DATA))
-		{
-			spd_send_process(0,&spd_net_flag[0],SPD_HZ_DATA);
-		}
-		// 接地电阻,共用的
-		else if (spd_net_flag[0]g&BIT(SPD_RES_DATA))
-		{
-			spd_send_process(0,&spd_net_flag,SPD_RES_DATA);
-		}
-
-
-		// 第二套轮询
-		else if (spd_net_flag[1]&BIT(SPD_AI_DATA))
-		{
-			spd_send_process(1,&spd_net_flag[1],SPD_AI_DATA);
-		}
-		else if (spd_net_flag[1]&BIT(SPD_DI_DATA))
-		{
-			spd_send_process(1,&spd_net_flag[1],SPD_DI_DATA);
-		}
-		else if (spd_net_flag[1]&BIT(SPD_DO_DATA))
-		{
-			spd_send_process(1,&spd_net_flag[1],SPD_DO_DATA);
-		}
-
-		else if (spd_net_flag[1]&BIT(SPD_HZ_DATA))
-		{
-			spd_send_process(1,&spd_net_flag[1],SPD_HZ_DATA);
-		}
-		else if (spd_net_flag[1]&BIT(SPD_RES_DATA))
-		{
-			// 只有1套接地
-			spd_net_flag[1] &= ~(BIT(SPD_RES_DATA));
-			//spd_send_process(0,&spd_net_flag,SPD_RES_DATA);
-		}
-		#endif
 		usleep(SPD_INTERVAL_TIME);	// 参数设置间隔
 	}
 }

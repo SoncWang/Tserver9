@@ -1521,10 +1521,19 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 		}
 		if(it->first=="spdres_alarm_value" && stuSpd_Param->rSPD_res.alarm_value!=atoi(value))	//接地电阻报警值
 		{
+			UINT16 addr_ref = 1;
 			stuSpd_Param->rSPD_res.alarm_value=atoi(value);
 			printf("spdres报警值修改=%s\n",value);
+			if (SPD_Type == TYPE_LEIXUN)
+			{
+				addr_ref = RES_ALARM_ADDR;
+			}
+			else if (SPD_Type == TYPE_KY)
+			{
+				addr_ref = KY_RES_ALARM_ADDR;
+			}
 			//spdres更改报警值
-			Ex_SPD_Set_Process(0,SPD_RES_SET,RES_ALARM_ADDR,dummy,atoi(value));
+			Ex_SPD_Set_Process(0,SPD_RES_SET,addr_ref,dummy,atoi(value));
 		}
 
 		for(i=0;i<LOCK_MAX_NUM;i++)
@@ -3139,6 +3148,7 @@ bool jsonstrVmCtlParamReaderXY(char* jsonstr, int len, UINT8 *pstPam)
 	jsonkey = cJSON_GetObjectItem(json, key);
 	if(jsonkey!=0)
 	{
+		UINT16 addr_ref=1;
 		sprintf(value,"%s",jsonkey->valuestring);
 		printf("%s %s\n",key,value);
 		if(atoi(value)!=stuSpd_Param->rSPD_res.alarm_value)
@@ -3146,7 +3156,15 @@ bool jsonstrVmCtlParamReaderXY(char* jsonstr, int len, UINT8 *pstPam)
 			stuSpd_Param->rSPD_res.alarm_value=atoi(value);
 			printf("spdres报警值修改=%s\n",value);
 			//spdres更改报警值
-			Ex_SPD_Set_Process(0,SPD_RES_SET,RES_ALARM_ADDR,dummy,atoi(value));
+			if (SPD_Type == TYPE_LEIXUN)
+			{
+				addr_ref = RES_ALARM_ADDR;
+			}
+			else if (SPD_Type == TYPE_KY)
+			{
+				addr_ref = KY_RES_ALARM_ADDR;
+			}
+			Ex_SPD_Set_Process(0,SPD_RES_SET,addr_ref,dummy,atoi(value));
 		}
 	}
 

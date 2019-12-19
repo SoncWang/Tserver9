@@ -1635,6 +1635,10 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 					Ex_SPD_Set_Process(i,SPD_DO_SET,DO_ADDR_CNT_CLR,dummy,DO_ON_CMD);
 				}
 			 }
+			 else if (SPD_Type == TYPE_KY)
+			 {
+				Ex_SPD_Set_Process(i,SPD_DO_SET,KY_CLEAR_ADDR,dummy,DO_ON_CMD_KY);	// 这里是1:清除记录
+			 }
 		 }
 		 if(pstuRCtrl->DO_totalspdcnt_clear[i]!=ACT_HOLD)
 		 {
