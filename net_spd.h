@@ -27,7 +27,8 @@
 
 
 #define DO_ON_CMD	0xFF00	// 清零
-#define DO_OFF_CMD	0x0
+#define DO_ON_CMD_KY	0x01
+#define DO_OFF_CMD		0x0
 
 #define RES_TEST_ADDR		0x11	// 测试接地电阻值
 #define RES_ID_ADDR			0x12		// 改接地电阻设备id的地址
@@ -90,7 +91,7 @@
 #define KY_DI_ADDR			0x200	// 遥信数据从200H开始，2个
 #define KY_DI_NUM			2
 
-#define KY_HIS_ADDR			0x99	// 遥信数据从99H开始，8个
+#define KY_HIS_ADDR			0xFF	// 遥信数据从FFH开始，8个
 #define KY_HIS_NUM			8
 
 #define KY_RES_VALUE_ADDR			0x01	// 1：接地电阻值,2:设备地址 3：报警值 4:接地电阻测试 5:使能测试模式
@@ -101,7 +102,7 @@
 #define KY_RES_NUM					1		// 宽永的比较坑,1次只能读1个数量
 
 #define KY_SHIELD_INTERVAL			20		// 宽永的电阻测试需要2s以上才有回复，10不能再次测试，为了保险，设为20s
-
+#define KY_CLEAR_ADDR				0x0407
 
 
 /**********************************************/
@@ -436,7 +437,7 @@ typedef struct spd_struct
 // 防雷器结构体
 typedef struct spd_ctrl_value_struct
 {
-	UINT8 ref_addr;		// 要控制的寄存器地址
+	UINT16 ref_addr;		// 要控制的寄存器地址
 	FDATA f_ai_set;		// 要控制的值,根据地址不同而不同
 	UINT16 do_set;		//
 	UINT16 res_set;		//
@@ -460,7 +461,7 @@ int obtain_net_psd(UINT16 seq);
 void DealSPDAiMsg(int seq,unsigned char *buf,unsigned short int len);
 void DealSPDDiMsg(unsigned char *buf,unsigned short int len);
 int DealNetSPD(int skt,unsigned char *buf,unsigned short int len);
-int Ex_SPD_Set_Process(int seq,SPD_CTRL_LIST SPD_ctrl_event, UINT8 set_addr, FDATA ai_data,UINT16 data);
+int Ex_SPD_Set_Process(int seq,SPD_CTRL_LIST SPD_ctrl_event, UINT16 set_addr, FDATA ai_data,UINT16 data);
 void RealDataCopy(int seq,SPD_DATA_LIST msg_t);
 
 
