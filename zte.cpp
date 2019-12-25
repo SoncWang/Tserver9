@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <sstream>
 #include <iostream>
+#include <assert.h>
 
 #include "registers.h"
 #include "HttpPost.h"
@@ -42,6 +43,7 @@ string zteDoorDevID[2] ;
 string zteSmokeDevID[2] ;
 string zteAirDevID[2] ;
 string zteBatDevID[4] ;
+string zteBatTieDevID[4] ;
 string zteUPSDevID[2] ;
 string zteSwitchPowerDevID;//开关电源
 LOCKER_ZTE_ID_PORT zteLockDevParam[4];// 用来对ID号排序，根据PortID排序
@@ -140,7 +142,7 @@ void char_to_longlong(UINT8* buffer,UINT64* value)
 
 
 
-
+#if(CABINETTYPE == 5) //中兴
 //中兴机柜获取
 
 //设备列表获取
@@ -173,6 +175,7 @@ bool jsonzteDevReader(char* jsonstr, int len)
           int TempTick = 0;
           int AirTick  = 0;
           int BatTick = 0;
+          int BatTieTick = 0;
           int UPSTick = 0;
           int LockTick = 0;
           int DoorTick = 0;
@@ -197,6 +200,7 @@ bool jsonzteDevReader(char* jsonstr, int len)
                      string strgetTemp = "";
                      string strgetAir = "";
                      string strgetBat = "";
+                     string strgetTieBat = "";
                      string strgetUPS = "";
                      string strgetLock = "";
                      string strgetwater = "";
@@ -243,6 +247,8 @@ bool jsonzteDevReader(char* jsonstr, int len)
                             strgetAir = newstring;
                          if(newstring == "锂电池")
                             strgetBat = newstring;
+                         if(newstring == "铁锂电池")
+                            strgetTieBat = newstring;
                          if(newstring == "UPS")
                             strgetUPS = newstring;
                          if(newstring == "cabinet_lock")
@@ -277,6 +283,12 @@ bool jsonzteDevReader(char* jsonstr, int len)
                         zteBatDevID[BatTick]  = strObjId;
                         BatTick = (BatTick+1)%4;
                         printf("锂电池设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetTieBat == "铁锂电池")  //string zteBatDevID[4] ;
+                     {
+                        zteBatTieDevID[BatTieTick]  = strObjId;
+                        BatTieTick = (BatTieTick+1)%4;
+                        printf("铁锂电池设备ID:%s\r\n",strObjId.c_str());
                      }
                      else if(strgetUPS == "UPS")
                      {
@@ -329,6 +341,211 @@ bool jsonzteDevReader(char* jsonstr, int len)
 return true ;
 
 }
+
+#elif(CABINETTYPE == 6) //金晟安
+
+//设备列表获取
+bool jsonJsaDevReader(char* jsonstr, int len,int mIndex)
+{
+    //printf("%s \r\n",jsonstr);
+
+  Json::Reader reader;
+
+  Json::Value json_object;
+
+  //const char* json_document = "{\"age\" : 26,\"name\" : \"huchao\"}";
+
+  if (!reader.parse(jsonstr, json_object))
+
+    return 0;
+
+  string strentity = json_object["result"].toStyledString() ;
+  if(strentity.size() > 3)
+  {
+     //printf("result:%s\r\n",strentity.c_str()) ;
+     Json::Reader reader_Objs;
+     Json::Value json_object_Objs;
+     if (!reader_Objs.parse(strentity, json_object_Objs))
+       return 0;
+      string strObjs = json_object_Objs["Objs"].toStyledString() ;
+      if(strObjs.size() > 3)
+      {
+          int TempTick = 0;
+          int AirTick  = 0;
+          int BatTick = 0;
+          int BatTieTick = 0;
+          int UPSTick = 0;
+          int LockTick = 0;
+          int DoorTick = 0;
+          int SmokeTick = 0 ;
+         //printf("Objs:%s\r\n",strObjs.c_str()) ;
+         Json::Value::Members mem = json_object_Objs.getMemberNames();
+         for (Json::Value::Members::iterator iter = mem.begin(); iter != mem.end(); iter++)
+         {
+             for(int n=0;n<json_object_Objs[*iter].size();n++)
+             {
+                 string strTemplate = json_object_Objs[*iter][n].toStyledString();
+
+
+                 //printf("strTemplate:%s\r\n",strTemplate.c_str());
+                 //解析设备列表具体协议
+                 {
+                     Json::Reader reader_devs;
+                     Json::Value json_object_devs;
+                     if (!reader_devs.parse(strTemplate, json_object_devs))
+                       return 0;
+
+                     string strgetTemp = "";
+                     string strgetAir = "";
+                     string strgetBat = "";
+                     string strgetTieBat = "";
+                     string strgetUPS = "";
+                     string strgetLock = "";
+                     string strgetwater = "";
+                     string strgetdoor = "";
+                     string strgetSmoke = "";
+                     string strgetSwitchPower = "";
+                     string strObjId = "";
+                     Json::Value::Members memdev = json_object_devs.getMemberNames();
+
+                     for (Json::Value::Members::iterator iterdev = memdev.begin(); iterdev != memdev.end(); iterdev++)
+                     {
+                         string newstring;
+                         stringstream ss;
+                         switch (json_object_devs[*iterdev].type())
+                         {
+                         case Json::nullValue:
+                             break;
+                         case Json::booleanValue:
+                             break;
+                         case Json::intValue:
+                             ss<<(json_object_devs[*iterdev].asInt());
+                             newstring = ss.str();
+                             break;
+                         case Json::uintValue:
+                             ss<<(json_object_devs[*iterdev].asUInt());
+                             newstring = ss.str();
+                             break;
+                         case Json::realValue:
+                             ss<<(json_object_devs[*iterdev].asDouble());
+                             newstring = ss.str();
+                             break;
+                         case Json::stringValue:
+                             newstring = json_object_devs[*iterdev].asString();
+                             break;
+                         default:
+                             break;
+                         }
+
+                        // json_object_devs[*iterdev].toStyledString();
+                         //printf("newstring:%s,%s\r\n",newstring.c_str(),(*iterdev).c_str());
+                         if(newstring == "数字温湿度")
+                            strgetTemp = newstring;
+                         if(newstring == "普通空调")
+                            strgetAir = newstring;
+                         if(newstring == "锂电池")
+                            strgetBat = newstring;
+                         if(newstring == "铁锂电池")
+                            strgetTieBat = newstring;
+                         if(newstring == "UPS")
+                            strgetUPS = newstring;
+                         if(newstring == "PE_CMM_93")
+                             strgetLock = newstring;
+                         if(newstring == "水浸")
+                             strgetwater = newstring;
+                         if(newstring == "门磁")
+                             strgetdoor = newstring;
+                         if(newstring == "烟感")
+                             strgetSmoke = newstring;
+                         if(newstring == "开关电源")
+                             strgetSwitchPower = newstring;
+
+                         if((*iterdev) == "ObjId")
+                             strObjId = newstring ;
+                    }
+
+                     if(strgetTemp == "数字温湿度")
+                     {
+                        zteTempDevID[mIndex]  = strObjId;
+                        TempTick = (TempTick+1)%2;
+                        printf("数字温湿度设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetAir == "普通空调")
+                     {
+                        zteAirDevID[mIndex]  = strObjId;
+                        AirTick = (AirTick+1)%2;
+                        printf("普通空调设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetBat == "锂电池")  //string zteBatDevID[4] ;
+                     {
+                        zteBatDevID[BatTick]  = strObjId;
+                        BatTick = (BatTick+1)%4;
+                        printf("锂电池设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetTieBat == "铁锂电池")  //string zteBatDevID[4] ;
+                     {
+                        zteBatTieDevID[BatTieTick]  = strObjId;
+                        BatTieTick = (BatTieTick+1)%4;
+                        printf("铁锂电池设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetUPS == "UPS")
+                     {
+                        zteUPSDevID[UPSTick]  = strObjId;
+                        UPSTick = (UPSTick+1)%2;
+                        printf("UPS设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetLock == "PE_CMM_93")
+                     {
+                     	if ((2*mIndex+LockTick) < 4)
+                     	{
+                     		zteLockDevID[2*mIndex+LockTick] = strObjId ;
+	                        LockTick = (LockTick+1)%2;
+	                        printf("锁设备ID:%s\r\n",strObjId.c_str());
+                     	}
+                     }
+                     else if(strgetwater == "水浸")
+                     {
+                        ztewaterDevID = strObjId ;
+                        printf("水浸设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetdoor == "门磁")
+                     {
+                         zteDoorDevID[DoorTick]  = strObjId;
+                         DoorTick = (DoorTick+1)%2;
+                         printf("门磁设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetSmoke == "烟感")
+                     {
+                         zteSmokeDevID[SmokeTick]  = strObjId;
+                         SmokeTick = (SmokeTick+1)%2;
+                         printf("烟感设备ID:%s\r\n",strObjId.c_str());
+                     }
+                     else if(strgetSwitchPower == "开关电源")
+                     {
+                        zteSwitchPowerDevID = strObjId ;
+                        printf("开关电源设备ID:%s\r\n",strObjId.c_str());
+                     }
+
+
+
+
+                 }
+             }
+         }
+
+      }
+
+  }
+
+  //std::cout << json_object["age"] << std::endl;
+
+return true ;
+
+}
+
+
+#endif
+
 
 //温湿度获取
 bool jsonzteTempReader(char* jsonstr, int len,int Index)
@@ -429,6 +646,128 @@ bool jsonzteTempReader(char* jsonstr, int len,int Index)
                          printf("湿度%d:%s\r\n",Index,strgetValue.c_str());
                          pthread_mutex_unlock(&snmpoidMutex);
                      }
+                     else if(strObjId == "115236001")//普通空调送风温度
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         Index = Index%2;
+                         HUAWEIDevValue.strhwDcAirEnterChannelTemp[Index] = strgetValue;
+                         printf("普通空调送风温度%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     //飞达空调开关机温度
+                     else if(strObjId == "115235001")
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         Index = Index%2;
+                         HUAWEIDevValue.strhwDcAirPowerOnTempPoint[Index] = strgetValue;
+                         printf("空调开机温度点%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "115232001")
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         Index = Index%2;
+                         //HUAWEIDevValue.strhwDcAirPowerOffTempPoint[Index] = strgetValue;
+                         printf("空调加热开启温度%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     //end 飞达空调开关机温度
+#if(CABINETTYPE == 5) //中兴
+                     //飞达整流器
+                     else if(strObjId == "106030001") //整流模块输出电压
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.RectifierModuleVol = strgetValue;
+                         printf("整流模块输出电压%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "106100001") //整流模块输出电流
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.RectifierModuleCurr = strgetValue;
+                         printf("整流模块输出电流%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "106101001") //整流模块温度
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.RectifierModuleTemp = strgetValue;
+                         printf("整流模块温度%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+
+                     //end 飞达整流器
+#endif
+
+                     //飞达交流输入
+                     else if(strObjId == "106206001") //交流输入相电压Ua
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.strhwApOrAblVoltage = strgetValue;
+                         printf("交流输入相电压Ua%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "106207001") //交流输入相电压Ub
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.strhwBpOrBclVoltage = strgetValue;
+                         printf("交流输入相电压Ua%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "106208001") //交流输入相电压Uc
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.strhwCpOrCalVoltage = strgetValue;
+                         printf("交流输入相电压Ua%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "106339001") //交流输出电流Ia
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.strhwAphaseCurrent = strgetValue;
+                         printf("交流输出电流Ia%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "106340001") //交流输出电流Ib
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.strhwBphaseCurrent = strgetValue;
+                         printf("交流输出电流Ib%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "106341001") //交流输出电流Ic
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         HUAWEIDevValue.strhwCphaseCurrent = strgetValue;
+                         printf("交流输出电流Ic%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     //end 飞达交流输入
+
+                     //
+                     else if(strObjId == "115009001")
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         Index = Index%2;
+                         if(Index==0)
+                            HUAWEIDevValue.StrIn_FanState = strgetValue;
+                         else
+                             HUAWEIDevValue.StrIn_FanState2 = strgetValue;
+                         printf("空调内风机状态%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     else if(strObjId == "115010001")
+                     {
+                         pthread_mutex_lock(&snmpoidMutex);
+                         Index = Index%2;
+                         if(Index == 0)
+                           HUAWEIDevValue.StrOut_FanState = strgetValue;
+                         else
+                           HUAWEIDevValue.StrOut_FanState2 = strgetValue;
+                         printf("空调外风机状态%d:%s\r\n",Index,strgetValue.c_str());
+                         pthread_mutex_unlock(&snmpoidMutex);
+                     }
+                     //金晟安空调开关机温度
                      else if(strObjId == "115276001")//普通空调柜内温度
                      {
                          pthread_mutex_lock(&snmpoidMutex);
@@ -457,7 +796,7 @@ bool jsonzteTempReader(char* jsonstr, int len,int Index)
                      {
                          pthread_mutex_lock(&snmpoidMutex);
                          Index = Index%2;
-                         HUAWEIDevValue.strhwDcAirPowerOffTempPoint[Index] = strgetValue;
+                         //HUAWEIDevValue.strhwDcAirPowerOffTempPoint[Index] = strgetValue;
                          printf("空调加热开启温度%d:%s\r\n",Index,strgetValue.c_str());
                          pthread_mutex_unlock(&snmpoidMutex);
                      }
@@ -469,6 +808,7 @@ bool jsonzteTempReader(char* jsonstr, int len,int Index)
                          printf("空调加热停止温度%d:%s\r\n",Index,strgetValue.c_str());
                          pthread_mutex_unlock(&snmpoidMutex);
                      }
+                     //end 金晟安空调开关机温度
                      else if(strObjId == "190004001") //电池组电压# 49.35
                      {
                          pthread_mutex_lock(&snmpoidMutex);
@@ -528,6 +868,7 @@ bool jsonzteTempReader(char* jsonstr, int len,int Index)
                          printf("电压下限%d:%s\r\n",Index,strgetValue.c_str());
                          pthread_mutex_unlock(&snmpoidMutex);
                      }
+
 
 
                      //zteUPSDevID
@@ -791,6 +1132,8 @@ bool jsonzteAlarmReader(char* jsonstr, int len)
                          HUAWEIDevAlarm.hwSmokeAlarmTraps = "1";
                          printf("烟感2告警\r\n");
                      }
+
+                     #if(CABINETTYPE == 5) //中兴
                      else if(strgetDeviceId == zteSwitchPowerDevID) //开关电源告警
                      {
                          if(strObjId == "0")
@@ -807,6 +1150,7 @@ bool jsonzteAlarmReader(char* jsonstr, int len)
                          }
 
                      }
+                     #endif
 
 
 
@@ -869,6 +1213,7 @@ UINT8 locker_cmd_pack(UINT8 msg_type,UINT8 door_pos,UINT8 *buf)
 	UINT8 authorbuf[7] = {0xF0,0xE0,0,0,0,0,0};
 	// 读取记录对应的comand group,type 分别为0xF2,0xE2
 	UINT8 pollbuf[2] = {0xF2,0xE2};
+	UINT8 stsbuf[3] = {0xF2,0xE7,0x00};// 读取门锁状态对应的comand group,type 分别为0xF2,0xE7
 
 	switch(msg_type)
 	{
@@ -887,14 +1232,23 @@ UINT8 locker_cmd_pack(UINT8 msg_type,UINT8 door_pos,UINT8 *buf)
 		printf("JSA poll begins\r\n ");
 		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
 		break;
-	case DOOR_JSA_OPEN_CMD:
+
+	case DOOR_JSA_AUTHOR_CMD:
 		// 开锁命令需要先确权
 		len = comm_pack_ydn(door_pos,YDN_CID2_AUTH,7,authorbuf,buf);
 		printf("JSA author begins\r\n ");
 		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
-		usleep(100000);		// 延时100ms
+		break;
+
+	case DOOR_JSA_OPEN_CMD:
 		len = comm_pack_ydn(door_pos,YDN_CID2_CTRL,8,databuf,buf);
 		printf("JSA cmd begins\r\n ");
+		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
+		break;
+
+	case DOOR_JSA_STATUS_CMD:
+		len = comm_pack_ydn(door_pos,YDN_CID2_POLL,3,stsbuf,buf);
+		printf("JSA sts begins\r\n ");
 		for(int j=0;j<len;j++) printf("%02x ",pbuf[j]);printf("\r\n");
 		break;
 
@@ -1187,7 +1541,11 @@ bool card_id_parse(char *buf,int len,int seq)
 	#elif (CABINETTYPE == 6) //金晟安
 	{
 		buf_len = strlen(buf);
-		temp  = checkSumCalc(pbuf+1, buf_len-1);
+		//buf_len = 46;	// 为了保险，不对长度进行校验，因为中间有0
+		cout<<"buf_len = "<<buf_len<<endl;
+		temp  = checkSumCalc(pbuf+1, buf_len-6);// 要减6,SOI,EOI,CHECKSUM本身
+		printf("temp = %04x",temp);
+		//cout<<"temp = "<<temp<<endl;
 		// 对收到的数据进行校验，1是长度，1是校验码
 		/*
 		7E
@@ -1204,8 +1562,10 @@ bool card_id_parse(char *buf,int len,int seq)
 		0D
 		*/
 		// 锁的状态没法读?
-		if ((buf_len == 46) && (temp == ascii_to_hex4(pbuf+buf_len-5)))
+		// ASCII码正常来说是没有0的，因为0要加0x30,空格是0x20
+		if ((buf_len==46)&&(temp == ascii_to_hex4(pbuf+buf_len-5)))
 		{
+			cout<<"checkok = "<<endl;
 			remark = ascii_to_hex2(pbuf+buf_len-7);		// remark字段
 			// REMARK字段，8: 无效卡        9:有效期过期       10：当前时间无进入权限            0：刷卡记录开门
 			if ((remark == 8) || (remark == 9) ||(remark == 10))
@@ -1222,6 +1582,7 @@ bool card_id_parse(char *buf,int len,int seq)
 					lockerHw_Param[seq]->id[8] = ascii_to_hex2(pbuf+CARD_ID_POS+8);
 					// ID卡是有5字节的
 					char_to_longlong(&(lockerHw_Param[seq]->id[1]),&card_id64);
+					printf("  lock_id = %lld\r\n",card_id64);
 					if (card_id64 != 0)
 					{
 						zte_locker_id_send_hook(seq,card_id64);
@@ -1236,7 +1597,46 @@ bool card_id_parse(char *buf,int len,int seq)
 }
 
 
-// 锁状态
+bool locker_sts_parse(char *buf,int len,int seq)
+{
+	UINT16 buf_len = 0;
+	UINT8 *pbuf = (UINT8 *)buf;
+	UINT16 temp = 0;
+	// 第二字节： SM 监控线路的状态：
+	// D7 紧急驱动输入
+	// D6 联动输入 2
+	// D5 联动输入 1
+	// D4 联动输出继电器状态(=0,关闭 ;=1 加电驱动)
+	// D3=0 门关闭， =1 开启；
+	// D2=0 红外输入正常， =1 报警状态；
+	// D1=0 手动开门键松开， =1 按下；
+	// D0=0 门控电磁继电器关闭， =1 加电驱动；
+	UINT8 status_2 = 0;	// 只关心第2个字节
+
+	#if(CABINETTYPE == 6) //只有金晟安需要另外读取
+	if (buf[0] == 0x7E)
+	{
+		buf_len = strlen(buf);
+		cout<<"buf_len = "<<buf_len<<endl;
+		temp  = checkSumCalc(pbuf+1, buf_len-6);// 要减6,SOI,EOI,CHECKSUM本身
+		printf("temp = %04x",temp);
+		if (temp == ascii_to_hex4(pbuf+buf_len-5))
+		{
+			// datainfo 2字节
+			status_2 = ascii_to_hex2(pbuf+buf_len-7);		// status_2字段
+			printf("status_2 = %02x",status_2);
+			lockerHw_Param[seq]->status = (status_2&0x08)?LOCKER_OPEN:LOCKER_CLOSED;
+			printf("locker%dstatus = %02x",seq,lockerHw_Param[seq]->status);
+			return true;
+		}
+
+	}
+	#endif
+	return false;
+}
+
+
+// 锁卡号读取
 bool jsonzteLockerReader(char* jsonstr, int len, int seq)
 {
     //printf("%s \r\n",jsonstr);
@@ -1327,7 +1727,7 @@ bool jsonzteLockerReader(char* jsonstr, int len, int seq)
 					base64_2_Hex_decode(strData.c_str(), strData.size(),(unsigned char *)card_read);
 					//printf("card_read = %s\n\r",card_read);	// 这样输出因为有0很快就结束了
 					printf(" card_read[i] = ");
-					for (int i = 0 ; i< 30; i++)
+					for (int i = 0 ; i< 46; i++)
 					{
 					 	//card_read[i] = atoi(&card_read[i]);
 						printf(" %02x",card_read[i]);
@@ -1349,6 +1749,121 @@ bool jsonzteLockerReader(char* jsonstr, int len, int seq)
   return false;
 
 }
+
+// 锁状态
+bool jsonzteLockerStsReader(char* jsonstr, int len, int seq)
+{
+    //printf("%s \r\n",jsonstr);
+
+
+  Json::Reader reader;
+
+  Json::Value json_object;
+
+  string data_read;
+  char card_read[BASE64_HEX_LEN];	// c语言中的字符串
+  bool reval = false;
+  int real_len = 0;
+
+  //const char* json_document = "{\"age\" : 26,\"name\" : \"huchao\"}";
+
+  if (!reader.parse(jsonstr, json_object))
+
+    return 0;
+
+  string strObjs = json_object["result"].toStyledString() ;
+  if(strObjs.size() > 3)
+  {
+          int TempTick = 0;
+          int LockTick = 0;
+         //printf("Objs:%s\r\n",strObjs.c_str()) ;
+        // Json::Value::Members mem = json_object.getMemberNames();
+        // for (Json::Value::Members::iterator iter = mem.begin(); iter != mem.end(); iter++)
+        // {
+             //for(int n=0;n<json_object[*iter].size();n++)
+            // {
+                 //string strTemplate = json_object[*iter][n].toStyledString();
+
+
+                 //printf("strTemp:%s\r\n",strTemplate.c_str());
+                 //解析设备列表具体协议
+                 {
+                     Json::Reader reader_devs;
+                     Json::Value json_object_devs;
+                     if (!reader_devs.parse(strObjs, json_object_devs))
+                       return 0;
+
+                     string strgetDeviceId = "";
+                     string strObjId = "";
+					 string strData = "";
+                     Json::Value::Members memdev = json_object_devs.getMemberNames();
+
+                     for (Json::Value::Members::iterator iterdev = memdev.begin(); iterdev != memdev.end(); iterdev++)
+                     {
+                         string newstring;
+                         stringstream ss;
+                         switch (json_object_devs[*iterdev].type())
+                         {
+                         case Json::nullValue:
+                             break;
+                         case Json::booleanValue:
+                             break;
+                         case Json::intValue:
+                             ss<<(json_object_devs[*iterdev].asInt());
+                             newstring = ss.str();
+                             break;
+                         case Json::uintValue:
+                             ss<<(json_object_devs[*iterdev].asUInt());
+                             newstring = ss.str();
+                             break;
+                         case Json::realValue:
+                             ss<<(json_object_devs[*iterdev].asDouble());
+                             newstring = ss.str();
+                             break;
+                         case Json::stringValue:
+                             newstring = json_object_devs[*iterdev].asString();
+                             break;
+                         default:
+                             break;
+                         }
+
+                        // json_object_devs[*iterdev].toStyledString();
+                         //printf("newstring:%s,%s\r\n",newstring.c_str(),(*iterdev).c_str());
+                         if((*iterdev) == "objid")
+                             strObjId = newstring ;
+                         else if((*iterdev) == "data")
+                             strData = newstring ;
+                     }
+
+					printf("strData = %s\n\r",strData.c_str());
+
+					memset(card_read,0,sizeof(card_read));
+					base64_2_Hex_decode(strData.c_str(), strData.size(),(unsigned char *)card_read);
+					//printf("card_read = %s\n\r",card_read);	// 这样输出因为有0很快就结束了
+					printf(" card_read[i] = ");
+					for (int i = 0 ; i< 24; i++)
+					{
+					 	//card_read[i] = atoi(&card_read[i]);
+						printf(" %02x",card_read[i]);
+					}
+
+                    if(strObjId == zteLockDevID[seq]) //锁1
+                    {
+                    	reval = locker_sts_parse(card_read,BASE64_HEX_LEN,seq);
+						return reval;
+                    }
+                 }
+             //}
+        // }
+
+  }
+
+  //std::cout << json_object["age"] << std::endl;
+
+  return false;
+
+}
+
 
 #if 0
 // 中兴锁的轮询函数
@@ -1457,6 +1972,32 @@ bool zte_jsa_locker_process(int seq,UINT8 msg_type,UINT8 *pSend,string strDigest
 	}
 	#endif
 
+	#if (CABINETTYPE == 6) //金晟安控制前需要先确权
+	if ((msg_type == DOOR_OPEN_CMD) || (msg_type == DOOR_CLOSE_CMD))
+	{
+		lock_len = locker_cmd_pack(DOOR_JSA_AUTHOR_CMD,door_addr,pSend);
+		locker_data= Base64Cal.Encode(pSend, lock_len);	// 加密
+		printf("authorSecret = %s\r\n",locker_data.c_str());
+		mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
+		printf("authortype=%d ---> %s\r\n",msg_type,mStrdata.c_str());
+		zteHttpPostParm(lockerurl,mStrdata,"",HTTPPOST,strDigestUser,strDigestKey,15);
+		//usleep(100000);	// 等待100ms,485返回
+	}
+	// poll卡号之前查询下门锁状态
+	else if (msg_type == DOOR_POLL_CMD)
+	{
+		lock_len = locker_cmd_pack(DOOR_JSA_STATUS_CMD,door_addr,pSend);
+		locker_data= Base64Cal.Encode(pSend, lock_len);	// 加密
+		printf("stsSecret = %s\r\n",locker_data.c_str());
+		mStrdata = "{\"jsonrpc\":\"2.0\",\"method\":\"POST_METHOD\",\"id\":\"3\",\"params\":{\"objid\":\""+zteLockDevID[seq]+"\",\"data\":\""+locker_data+"\",\"endchar\":\"\"}}";
+		printf("ststype=%d ---> %s\r\n",msg_type,mStrdata.c_str());
+		zteHttpPostParm(lockerurl,mStrdata,"",HTTPPOST,strDigestUser,strDigestKey,15);
+		if(mStrdata != "")
+		{
+			re_val = jsonzteLockerStsReader((char *)(mStrdata.c_str()),mStrdata.size(),seq);
+		}
+	}
+	#endif
 
 	lock_len = locker_cmd_pack(msg_div,door_addr,pSend);
 	locker_data= Base64Cal.Encode(pSend, lock_len);	// 加密
@@ -1469,7 +2010,6 @@ bool zte_jsa_locker_process(int seq,UINT8 msg_type,UINT8 *pSend,string strDigest
 		re_val = jsonzteLockerReader((char *)(mStrdata.c_str()),mStrdata.size(),seq);
 	}
 	pthread_mutex_unlock(&lockerwriteMutex);
-
 	return re_val;
 }
 
@@ -1492,7 +2032,7 @@ int zteDevIDInit(void)
 #endif
 
 
-
+#define NET_CONN_INTERVAL		(30)	// 和线程后面的sleep间隔有关，现在是2s，所以是1分钟轮询一次
 #if(CABINETTYPE == 5) //中兴
 
 void *zte_HTTP_thread(void *param)
@@ -1503,7 +2043,7 @@ void *zte_HTTP_thread(void *param)
     string mStrUser = "" ;
     string mStrkey = "" ;
 	string getStrHWServer;
-	static UINT16 poll_cnt = 10;
+	static UINT16 poll_cnt = NET_CONN_INTERVAL;
 
     sleep(5);
 
@@ -1541,6 +2081,10 @@ void *zte_HTTP_thread(void *param)
 
     while(1)
     {
+        mStrHWServer = StrHWServer;
+        mStrUser = StrHWGetPasswd;
+        mStrkey = StrHWSetPasswd;
+
     	//设备列表若未获取到，则再获取
         if(zteTempDevID[0] == "")
         {
@@ -1565,7 +2109,7 @@ void *zte_HTTP_thread(void *param)
         }
 		else
     	{
-    		if (poll_cnt++ >= 10)
+    		if (poll_cnt++ >= NET_CONN_INTERVAL)
     		{
     		  poll_cnt = 0;
         	  mStrdata = "";
@@ -1607,6 +2151,7 @@ void *zte_HTTP_thread(void *param)
                }
             }
 
+            sleep(1);
             //获取普通空调信息
             for(int n=0;n<2;n++)
             {
@@ -1620,33 +2165,42 @@ void *zte_HTTP_thread(void *param)
                    }
              }
 
-
-                //获取锂电池信息
-                for(int n=0;n<4;n++)
-                {
-                     if(zteBatDevID[n] != "")
-                     {
+             sleep(1);
+             //获取锂电池信息
+             for(int n=0;n<4;n++)
+             {
+                   if(zteBatDevID[n] != "")
+                   {
                          mStrdata = "";
                          tempid1 = "http://"+mStrHWServer+"/jscmd/objdataquery?objId="+zteBatDevID[n]+"&mId=0";
                          zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
                          if(mStrdata != "")
                            jsonzteTempReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
-                     }
-                }
+                   }
+              }
 
 
-                //获取开关电源信息
+              sleep(1);
+              //获取开关电源信息
+              if(zteSwitchPowerDevID != "")
+              {
+                  mStrdata = "";
+                  tempid1 = "http://"+mStrHWServer+"/jscmd/objdataquery?objId="+zteSwitchPowerDevID+"&mId=0";
+                  zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+                  if(mStrdata != "")
+                    jsonzteTempReader((char *)(mStrdata.c_str()),mStrdata.size(),0);
+              }
 
-
-                //获取告警信息
-                {
-                     mStrdata = "";
-                     tempid1 = "http://"+mStrHWServer+"/jscmd/alarmquery?type=now";
-                     zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
-                     if(mStrdata != "")
-                        jsonzteAlarmReader((char *)(mStrdata.c_str()),mStrdata.size());
-                }
-    		  }
+               sleep(1);
+               //获取告警信息
+               {
+                   mStrdata = "";
+                   tempid1 = "http://"+mStrHWServer+"/jscmd/alarmquery?type=now";
+                   zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+                   if(mStrdata != "")
+                       jsonzteAlarmReader((char *)(mStrdata.c_str()),mStrdata.size());
+               }
+            }
 
 
 			// 获取锁的卡号和状态
@@ -1676,7 +2230,7 @@ void *zte_HTTP_thread(void *param)
 					}
 				}
 			}
-            sleep(1);
+            sleep(2);
          }
     }
     return 0 ;
@@ -1691,33 +2245,53 @@ void *jsa_HTTP_thread(void *param)
     string mStrHWServer = "";
     string mStrUser = "" ;
     string mStrkey = "" ;
+    string getStrHWServer;
+    static UINT16 poll_cnt = NET_CONN_INTERVAL;
+
     sleep(5);
 
     int zteCabinetType = 0;
 
     UINT8 byteSend[BASE64_HEX_LEN]={0x00,};
     UINT8 lock_len = 0;
-    bool isCardExist[4] = {false,false,false,false};
+
+    zteDevIDInit();
+    mStrHWServer = StrHWServer;
+    mStrUser = StrHWGetPasswd;
+    mStrkey = StrHWSetPasswd;
+
     while(1)
     {
+      for(int IPIndex=0;IPIndex<2;IPIndex++)
+      {
+          if(IPIndex == 0)
+          {
+              mStrHWServer = StrHWServer;
+              mStrUser = StrHWGetPasswd;
+              mStrkey = StrHWSetPasswd;
+          }
+          else
+          {
+              mStrHWServer = StrHWServer2;
+              mStrUser = StrHWGetPasswd2;
+              mStrkey = StrHWSetPasswd2;
+          }
 
-        zteDevIDInit();
-
+        //设备列表若未获取到，则再获取
+        if(zteTempDevID[IPIndex] == "")
         {
-           mStrHWServer = StrHWServer;
-           mStrUser = StrHWGetPasswd;
-           mStrkey = StrHWSetPasswd;
-
-           //设备列表获取
-           {
-              mStrdata = "";
-              string getStrHWServer = "http://"+mStrHWServer+"/jscmd/objs";
-              zteHttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
-              if(mStrdata != "")
-                jsonzteDevReader((char *)(mStrdata.c_str()),mStrdata.size());
-           }
-
-           {
+            sleep(2);
+            mStrdata = "";
+            getStrHWServer = "http://"+mStrHWServer+"/jscmd/objs";
+            zteHttpPostParm(getStrHWServer,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+            if(mStrdata != "")
+               jsonJsaDevReader((char *)(mStrdata.c_str()),mStrdata.size(),IPIndex);
+        }
+        else
+        {
+            if (poll_cnt++ >= NET_CONN_INTERVAL)
+            {
+              poll_cnt = 0;
               mStrdata = "";
               string tempid1;
               //printf("zteTempDevID[0]:%s,zteTempDevID[1]:%s\r\n",zteTempDevID[0].c_str(),zteTempDevID[1].c_str());
@@ -1754,14 +2328,13 @@ void *jsa_HTTP_thread(void *param)
                    zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
                    if(mStrdata != "")
                      jsonzteTempHLReader((char *)(mStrdata.c_str()),mStrdata.size(),n,118205001);
-                  }
-
                }
+            }
 
-
-                //获取普通空调信息
-                for(int n=0;n<2;n++)
-                {
+            sleep(1);
+            //获取普通空调信息
+            for(int n=0;n<2;n++)
+            {
                    if(zteAirDevID[n] != "")
                    {
                       mStrdata = "";
@@ -1770,74 +2343,64 @@ void *jsa_HTTP_thread(void *param)
                       if(mStrdata != "")
                         jsonzteTempReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
                    }
-                }
+             }
 
-
-                 //获取锂电池信息
-                 for(int n=0;n<4;n++)
-                 {
-                     if(zteBatDevID[n] != "")
-                     {
+             sleep(1);
+             //获取锂电池信息
+             for(int n=0;n<4;n++)
+             {
+                   if(zteBatDevID[n] != "")
+                   {
                          mStrdata = "";
                          tempid1 = "http://"+mStrHWServer+"/jscmd/objdataquery?objId="+zteBatDevID[n]+"&mId=0";
                          zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
                          if(mStrdata != "")
                            jsonzteTempReader((char *)(mStrdata.c_str()),mStrdata.size(),n);
-                     }
-                  }
+                   }
+              }
+
+               sleep(1);
+               //获取告警信息
+               {
+                   mStrdata = "";
+                   tempid1 = "http://"+mStrHWServer+"/jscmd/alarmquery?type=now";
+                   zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
+                   if(mStrdata != "")
+                       jsonzteAlarmReader((char *)(mStrdata.c_str()),mStrdata.size());
+               }
+            }
 
 
-                  //获取开关电源信息
-
-
-                  //获取告警信息
-                  {
-                     mStrdata = "";
-                     tempid1 = "http://"+mStrHWServer+"/jscmd/alarmquery?type=now";
-                     zteHttpPostParm(tempid1,mStrdata,"",HTTPGET,mStrUser,mStrkey,15);
-                     if(mStrdata != "")
-                        jsonzteAlarmReader((char *)(mStrdata.c_str()),mStrdata.size());
-                  }
-
-
-                  // 获取锁的卡号和状态
+            // 获取锁的卡号和状态
             // 先进行排序,数字小的一组22545/22546接设备柜前/后门, 数字大一组23042/23043的接电池柜前/后门
             // 同时数字小的为前门22545、23042，数字大的为后门22546/23043
             //StrBubbleSort(zteLockDevID,4);
-                printf("lockerID0 = %s\r\n",zteLockDevID[0].c_str());
-                printf("lockerID1 = %s\r\n",zteLockDevID[1].c_str());
-                printf("lockerID2 = %s\r\n",zteLockDevID[2].c_str());
-                printf("lockerID3 = %s\r\n",zteLockDevID[3].c_str());
-                for(int n=0;n<LOCK_MAX_NUM;n++)
-                {
-                   mStrdata = "";
-                   // 组包锁的轮询协议, 设备柜前门/后门
-                   memset(byteSend,0,BASE64_HEX_LEN);
-                   // 轮询顺序安装zteLockDevID下标来
-                   if (zteLockDevID[n] != "" )	// 如果是空的，则会得到无尽的回应，导致崩溃
-                   {
-                       if (zte_jsa_locker_process(n,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
-                       {
-                            memset(byteSend,0,BASE64_HEX_LEN);
-                            // 测试用，只要刷卡有卡号，就开锁
-                            zte_jsa_locker_process(n,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
-                       }
-                   }
-                }
-
-
-             }
-
-             sleep(6);
-
+            for(int n=0;n<2;n++)
+            {
+            	int seq = IPIndex*2+n;	// 转化成锁的序号
+            	if (seq < LOCK_MAX_NUM)
+            	{
+					printf("lockerID%d = %s\r\n",seq,zteLockDevID[seq].c_str());
+	                if (zteLockDevID[seq] != "")	// 如果是空的，则会得到无尽的回应，导致崩溃
+	                {
+	                    // 组包锁的轮询协议, 设备柜前门/后门
+	                    memset(byteSend,0,BASE64_HEX_LEN);
+	                    // 轮询顺序安装zteLockDevID下标来
+	                    if (zte_jsa_locker_process(seq,DOOR_POLL_CMD,byteSend,mStrUser,mStrkey))
+	                    {
+	                    	;//memset(byteSend,0,BASE64_HEX_LEN);
+	                        // 测试用，只要刷卡有卡号，就开锁
+	                        //zte_jsa_locker_process(seq,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
+	                    }
+	                }
+            	}
+            }
          }
-
-    }
+      }
+	  sleep(2);
+	}
     return 0 ;
-
 }
-
-
 #endif
 
 

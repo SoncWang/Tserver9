@@ -14,6 +14,10 @@ int zteinit(void);
 #define DOOR_JSA_OPEN_CMD		0x04		// 金晟安开锁命令
 #define DOOR_ZTE_CLOSE_CMD		0x05		// 中兴关锁
 #define DOOR_JSA_CLOSE_CMD		0x06		// JSA关锁
+#define DOOR_JSA_AUTHOR_CMD		0x07		// JSA确权
+#define DOOR_JSA_STATUS_CMD		0x08		// JSA读锁状态
+
+
 
 #define DOOR_POLL_CMD			0x10	// 定义一个统一的接口，下面再区分zte还是JSA
 #define DOOR_OPEN_CMD			0x20

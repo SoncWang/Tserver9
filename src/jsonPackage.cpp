@@ -5664,7 +5664,7 @@ void SetjsonCabinetStatus(char* table, string &mstrjson)
 
 }
 
-void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &mstrjson)
+void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT16 lockaddr,string &mstrjson)
 {
 	char str[100],sDateTime[30];
 	int i;
@@ -5705,7 +5705,7 @@ void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &m
 
 
 // 64位卡号发送函数
-void SetjsonDealLockerStr64(int messagetype,UINT64 cardid,UINT8 lockaddr,string &mstrjson)
+void SetjsonDealLockerStr64(int messagetype,UINT64 cardid,UINT16 lockaddr,string &mstrjson)
 {
 	char str[100],sDateTime[30];
 	int i;

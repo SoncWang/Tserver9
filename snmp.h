@@ -16,6 +16,10 @@ int snmpInit(void);
 int SendSnmpOid(string mSnmpOid);
 int snmptrapInit(void);
 void initHUAWEIGantry();
+void initHUAWEIEntity();
+void initHUAWEIEntity1();
+void initHUAWEIswitchEntity();
+void initHUAWEIswitchEntity1();
 int mywalkappinit(void);
 int SendWalkSnmpOid(string mSnmpOid);
 int ClearvecWalkSnmp(void);
@@ -147,6 +151,7 @@ typedef enum
 
 typedef struct
 {
+	unsigned long hwTimeStamp; 		//机柜状态获取时间戳
 	//锂电
 	string strhwAcbGroupBatVolt;                //电池电压 "51.1"
 	string strhwAcbGroupBatCurr;            //电池电流
@@ -215,16 +220,20 @@ typedef struct
     string strhwCtrlMonEquipReset;          //控制单板复位 1,2,255
 
     //防火墙
+	unsigned long hwEntityTimeStamp; 		//防火墙获取时间戳
     string strhwEntityCpuUsage;                //CPU 
     string strhwEntityMemUsage ;              //内存使用率
     string strhwEntityTemperature;            //温度
+	unsigned long hwEntityTimeStamp1; 		//防火墙获取时间戳
     string strhwEntityCpuUsage1;                //CPU
     string strhwEntityMemUsage1 ;              //内存使用率
     string strhwEntityTemperature1;            //温度
     //交换机
+	unsigned long hwswitchEntityTimeStamp; 		//交换机获取时间戳
     string strhwswitchEntityCpuUsage;          //CPU 
     string strhwswitchEntityMemUsage;          //内存使用率
     string strhwswitchEntityTemperature;       //温度
+	unsigned long hwswitchEntityTimeStamp1; 		//交换机获取时间戳
     string strhwswitchEntityCpuUsage1;          //CPU
     string strhwswitchEntityMemUsage1;          //内存使用率
     string strhwswitchEntityTemperature1;       //温度
@@ -247,7 +256,9 @@ typedef struct
     string RectifierModuleTemp;//整流器机内温度
     //空调
     string StrIn_FanState;  //内风机状态 0代表关闭 1代表开启
+    string StrIn_FanState2;  //内风机状态 0代表关闭 1代表开启
     string StrOut_FanState; //外风机状态 0代表关闭 1代表开启
+    string StrOut_FanState2; //外风机状态 0代表关闭 1代表开启
 #elif(CABINETTYPE == 6) //金晟安
     //Ups
     string StrUpsCityVol;    //Ups市电电压
@@ -255,7 +266,9 @@ typedef struct
     string StrUpsTemp;      //Ups温度
     //空调
     string StrIn_FanState;  //内风机状态 0代表关闭 1代表开启
+    string StrIn_FanState2;  //内风机状态 0代表关闭 1代表开启
     string StrOut_FanState; //外风机状态 0代表关闭 1代表开启
+    string StrOut_FanState2; //外风机状态 0代表关闭 1代表开启
 
 #elif(CABINETTYPE == 7) //爱特思
     //爱特思
@@ -268,24 +281,19 @@ typedef struct
     string StrIn_FanState;  //内风机状态 0代表关闭 1代表开启
     string StrOut_FanState; //外风机状态 0代表关闭 1代表开启
     string StrHeaterState;  //加热器状态  0代表关闭 1代表开启
-
-
-
 #endif
-
-
-
-
 }THUAWEIGantry;
 
 typedef struct
 {
+	unsigned long timestamp; 		//获取时间戳
 	string hwEnvTempAlarmTraps;		//高温/低温/高高温告警
     string hwEnvTempAlarmTraps2;		//高温/低温/高高温告警
 	string hwEnvHumiAlarmTraps;		//高湿/低湿告警
     string hwEnvHumiAlarmTraps2;		//高湿/低湿告警
 	string hwSpareDigitalAlarmTraps;	//输入干接点告警
-	string hwDoorAlarmTraps;		//门禁告警
+	string hwDoorAlarmTraps;		//门禁告警(电池柜)
+	string hwDoorAlarmTraps2;		//门禁告警(设备柜)
 	string hwWaterAlarmTraps;		//水浸告警
 	string hwSmokeAlarmTraps;		//烟感告警
 

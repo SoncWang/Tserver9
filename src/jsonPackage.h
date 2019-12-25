@@ -38,8 +38,8 @@ bool jsonStrSwitchStatusWriter(int messagetype, string &mstrjson);	//19回路电
 bool jsonStrSwitchStatusWriterXY(int messagetype, string &mstrjson);	//19回路电压电流开关状态
 bool jsonStrHWCabinetWriter(int messagetype,char *pstPam, string &mstrjson);				//20 华为机柜状态
 void SetjsonCabinetStatus(char* table, string &mstrjson);//20 门架运行状态-新部标准
-void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT8 lockaddr,string &mstrjson);		//22 门禁开关锁请求					//22 门禁开关锁请求
-void SetjsonDealLockerStr64(int messagetype,UINT64 cardid,UINT8 lockaddr,string &mstrjson);
+void SetjsonDealLockerStr(int messagetype,UINT32 cardid,UINT16 lockaddr,string &mstrjson);		//22 门禁开关锁请求					//22 门禁开关锁请求
+void SetjsonDealLockerStr64(int messagetype,UINT64 cardid,UINT16 lockaddr,string &mstrjson);
 void SetjsonFireWallStatusStr(int messagetype,string &mstrjson);			//23防火墙状态
 void SetjsonAtlasStatusStr(int messagetype,string &mstrjson);	//24 ATLAS状态
 bool jsonStrReader(char* jsonstrin, int lenin, char* jsonstrout, int *lenout);

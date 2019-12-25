@@ -88,17 +88,17 @@ UINT16 checkSumCalc(UINT8 *buffer, UINT8 len)
  {
 	 UINT8 re_value = 0;
 
-	 assert(((x >= 0) && (x <= 9)) ||((x >= 0x0A) && (x <= 0x0F)));
-
-	 if ((x >= 0) && (x <= 9))
+	 if (((x >= 0) && (x <= 9)) ||((x >= 0x0A) && (x <= 0x0F)))
 	 {
-		 re_value = x+0x30;  // 数字加上0x30，即0的ascii码
+		 if ((x >= 0) && (x <= 9))
+		 {
+			 re_value = x+0x30;  // 数字加上0x30‘，即0的ascii码
+		 }
+		 else if ((x >= 0x0A) && (x <= 0x0F))
+		 {
+			 re_value =(x-0x0A)+65;  // A的ASCII码是65
+		 }
 	 }
-	 else if ((x >= 0x0A) && (x <= 0x0F))
-	 {
-		 re_value =(x-0x0A)+65;  // A的ASCII码是65
-	 }
-
 	 return re_value;
  }
 
@@ -133,21 +133,22 @@ UINT16 checkSumCalc(UINT8 *buffer, UINT8 len)
  {
 	 UINT8 re_value = 0;
 
-	 assert(((x >= 0x30) && (x <= 0x39)) ||((x >= 65) && (x <= 70)) ||((x >= 97) && (x <= 102)));  // ascii码要在0~9,A~F,a~f之间
-
-	 if ((x >= 0x30) && (x <= 0x39))
+	 if(((x >= 0x30) && (x <= 0x39)) ||((x >= 65) && (x <= 70)) ||((x >= 97) && (x <= 102)))  // ascii码要在0~9,A~F,a~f之间
 	 {
-		 re_value = x-0x30;  // 数字加上0x30，即0的ascii码
+		 if ((x >= 0x30) && (x <= 0x39))
+		 {
+			 re_value = x-0x30;  // 数字加上0x30，即0的ascii码
+		 }
+		 else if ((x >= 65) && (x <= 70))
+		 {
+			 re_value =(x-65)+0x0A;  // A的ASCII码是65
+		 }
+		 else if ((x >= 97) && (x <= 102))
+		 {
+			 re_value =(x-97)+0x0A;  // a的ASCII码是97
+		 }
+		 re_value = re_value&0x0F;	 // 高4位清0
 	 }
-	 else if ((x >= 65) && (x <= 70))
-	 {
-		 re_value =(x-65)+0x0A;  // A的ASCII码是65
-	 }
-	 else if ((x >= 97) && (x <= 102))
-	 {
-		 re_value =(x-97)+0x0A;  // a的ASCII码是97
-	 }
-	 re_value = re_value&0x0F;	 // 高4位清0
 
 	 return re_value;
  }
