@@ -9,7 +9,9 @@
 #define TYPE_LEIXUN		1
 #define TYPE_HUAZI		2
 #define TYPE_KY			3	// 宽永
-#define TYPE_MAX_NUM	4	// 支持的数量
+#define TYPE_ZPTA		4	// 中普同安
+
+#define TYPE_MAX_NUM	5	// 支持的数量
 
 
 
@@ -65,6 +67,9 @@
 
 #define SPD_RES_STATUS_ADDR			0x0C
 #define SPD_RES_STATUS_NUM			8	// 8个数据,后面3个是可读可写的
+// 或者中普同安的从0x0D开始，读6个数据值
+#define SPD_RES_VALUE_ADDR			0x0D
+#define SPD_RES_VALUE_NUM			6	// 6个数据,后面3个是可读可写的
 
 
 /**********************************************/
@@ -103,6 +108,15 @@
 
 #define KY_SHIELD_INTERVAL			20		// 宽永的电阻测试需要2s以上才有回复，10不能再次测试，为了保险，设为20s
 #define KY_CLEAR_ADDR				0x0407
+
+
+/**********************************************/
+// 中普同安检测器的定义
+#define ZPTA_READ_CMD		0x52		// 读命令0x52
+#define ZPTA_RES_CMD		0x41		// 回复0x41
+#define ZPTA_SPD_LEN		15			// 发送，接收都是15个字节
+#define ZPTA_DI_NUM			8
+#define ZPTA_HEAD_NUM 		4			// 前导符4个
 
 
 /**********************************************/
@@ -248,6 +262,14 @@ typedef struct spd_ky_struct
 	UINT16 struck_sec;
 	UINT16 his_num;
 }SPD_KY_PARAMS;
+
+
+// 中普同安的协议参数
+typedef struct spd_zpta_struct
+{
+	UINT8 SPD_DI[ZPTA_DI_NUM];	// 只有DI数据,且1个DI占1个字节
+}SPD_ZPTA_PARAMS;
+
 
 
 // 统一的协议参数
@@ -425,6 +447,9 @@ typedef struct spd_struct
 
 	// 宽永有2个防雷
 	SPD_KY_PARAMS dSPD_KY[SPD_NUM];
+
+	// 中普同安有2个防雷
+	SPD_ZPTA_PARAMS dSPD_ZPTA[SPD_NUM];
 
 	// 共性，接地电阻值数据, 不需要再设置一个协议值了
 	SPD_RES_ST_PARAMS rSPD_res;
