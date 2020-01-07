@@ -103,12 +103,14 @@ string StrWIFIUSER;		//WIIFI用户名
 string StrWIFIKEY;		//WIIFI密码
 
 string StrFireWareType = "" ;//防火墙类型
-extern int IntFireWareType ;
+extern int IntFireWareType ;//防火墙类型 1：华为,2：迪普
 string StrFireWareCount;	//防火墙数量
 string StrFireWareIP[FIREWARE_NUM];         //防火墙IP
 string StrFireWareGetPasswd[FIREWARE_NUM];  //防火墙get密码
 string StrFireWareSetPasswd[FIREWARE_NUM];  //防火墙set密码
 string StrIPSwitchCount;	//交换机数量
+string StrIPSwitchType = "" ;//交换机类型
+extern int IntIPSwitchType ;//交换机类型
 string StrIPSwitchIP[IPSWITCH_NUM] ;//交换机IP
 string StrIPSwitchGetPasswd[IPSWITCH_NUM] ;//交换机get密码
 string StrIPSwitchSetPasswd[IPSWITCH_NUM] ;//交换机set密码
@@ -156,17 +158,17 @@ string getstring(string str,string strkey)
 int GetConfig(void)
 {
     //CABINETTYPE:作为区分机柜类型，用于编译不同的代码
-    //CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特斯 StrVersionNo
+    //CABINETTYPE  1：华为（包括华为单门 双门等） 5：飞达中兴; 6：金晟安; 7：爱特斯 StrVersionNo
     #if(CABINETTYPE == 1) //华为
        StrVersionNo ="V1.01.18" ;//当前版本号
-    #elif (CABINETTYPE == 5) //中兴
-       StrVersionNo ="V1.05.15" ;
+    #elif (CABINETTYPE == 5) //飞达中兴
+       StrVersionNo ="V1.05.20" ;
     #elif (CABINETTYPE == 6) //金晟安
-       StrVersionNo ="V1.06.15" ;//当前版本号
+       StrVersionNo ="V1.06.20" ;//当前版本号
     #elif (CABINETTYPE == 7) //爱特斯
-       StrVersionNo ="V1.07.15" ;//当前版本号
+       StrVersionNo ="V1.07.20" ;//当前版本号
     #endif
-	StrSoftDate="2019-12-11" ;	//当前版本日期
+	StrSoftDate="2019-12-28" ;	//当前版本日期
 
 
     int i,j,vehplatecnt,vehplate900cnt,rsucnt;
@@ -569,8 +571,14 @@ int GetConfig(void)
 	    StrFireWareSetPasswd[i] = getstring(StrConfig,key) ;//防火墙set密码
 	}
     //交换机配置
+    Strkey = "SwitchType=";
+    StrIPSwitchType = getstring(StrConfig,Strkey) ;//交换机类型
+    if(StrIPSwitchType == "")
+        IntIPSwitchType = 1 ;
+    else
+        IntIPSwitchType = atoi(StrIPSwitchType.c_str());
     Strkey = "SwitchCount=";
-    StrIPSwitchCount = getstring(StrConfig,Strkey) ;//防火墙数量
+    StrIPSwitchCount = getstring(StrConfig,Strkey) ;//交换机数量
     if(StrIPSwitchCount=="")
 		StrIPSwitchCount="0";
 	if(atoi(StrIPSwitchCount.c_str())>IPSWITCH_NUM)

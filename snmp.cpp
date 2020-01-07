@@ -24,6 +24,7 @@ extern THUAWEIGantry HUAWEIDevValue;
 extern string StrCabinetType;
 extern string StrHWServer;		//华为服务器地址
 extern void myprintf(char* str);
+extern unsigned long GetTickCount(); 
 
 void UpdataHUAWEIGantryStr(char* mstr,int len,EM_HUAWEIGantry mIntHUAWEIGantry)
 {
@@ -37,6 +38,8 @@ void UpdataHUAWEIGantryStr(char* mstr,int len,EM_HUAWEIGantry mIntHUAWEIGantry)
 		  //printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipSoftwareVersion).c_str());
 		  break;
 	  case hwMonEquipManufacturer:			 //设备生产商
+		  HUAWEIDevValue.hwTimeStamp=GetTickCount(); //添加时间戳
+		  HUAWEIDevValue.hwLinked=true;				//连接状态
 		  HUAWEIDevValue.strhwMonEquipManufacturer = mstr ;
 		  //printf(":%s\r\n",(HUAWEIDevValue.strhwMonEquipManufacturer).c_str());
 		  break;
@@ -563,6 +566,7 @@ void *snmpthread(void *param)
 
 void initHUAWEIGantry()
 {
+   HUAWEIDevValue.hwLinked=false;
    //锂电
    HUAWEIDevValue.strhwAcbGroupBatVolt="2147483647";                //电池电压 "51.1"
    HUAWEIDevValue.strhwAcbGroupBatCurr="2147483647";            //电池电流
@@ -620,29 +624,18 @@ void initHUAWEIGantry()
    	HUAWEIDevValue.strhwSetDcsLowerVoltLimit="2147483647";		//设置DC欠压点
    	HUAWEIDevValue.strhwSetLvdVoltage="2147483647";				//设置LVD电压
 	//环境传感器(新增加)
-//printf("initHUAWEIGantry aaa\n");
    	HUAWEIDevValue.strhwSetEnvTempUpperLimit[0]="2147483647";		//环境温度告警上限
-//printf("initHUAWEIGantry bbb\n");
    	HUAWEIDevValue.strhwSetEnvTempUpperLimit[1]="2147483647";		//环境温度告警上限
-//printf("initHUAWEIGantry ccc\n");
    	HUAWEIDevValue.strhwSetEnvTempLowerLimit[0]="2147483647";		//环境温度告警下限
-//printf("initHUAWEIGantry ddd\n");
    	HUAWEIDevValue.strhwSetEnvTempLowerLimit[1]="2147483647";		//环境温度告警下限
-//printf("initHUAWEIGantry eee\n");
 //   	HUAWEIDevValue.strhwSetEnvTempUltraHighTempThreshold="2147483647";		//环境高高温告警点
    	HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[0]="2147483647";		//环境湿度告警上限
-//printf("initHUAWEIGantry fff\n");
    	HUAWEIDevValue.strhwSetEnvHumidityUpperLimit[1]="2147483647";		//环境湿度告警上限
-//printf("initHUAWEIGantry ggg\n");
    	HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[0]="2147483647";		//环境湿度告警下限
-//printf("initHUAWEIGantry hhh\n");
    	HUAWEIDevValue.strhwSetEnvHumidityLowerLimit[1]="2147483647";		//环境湿度告警下限
 	//直流空调(新增加)
-//printf("initHUAWEIGantry iii\n");
 	HUAWEIDevValue.strhwDcAirRunTime[0]="2147483647";				//空调运行时间
-//printf("initHUAWEIGantry jjj\n");
 	HUAWEIDevValue.strhwDcAirRunTime[1]="2147483647";				//空调运行时间
-//printf("initHUAWEIGantry kkk\n");
 	HUAWEIDevValue.strhwCoolingDevicesMode="2147483647";			//温控模式
 	
 	//2019-08-20新增
@@ -654,31 +647,87 @@ void initHUAWEIGantry()
 	HUAWEIDevValue.strhwAcbBatCurr="2147483647";					//单个电池电流
 	HUAWEIDevValue.strhwAcbBatSoh="2147483647";						//单个电池串SOH
 	HUAWEIDevValue.strhwAcbBatCapacity="2147483647";				//单个电池容量
+
+#if(CABINETTYPE == 5) //飞达中兴
+	//中兴机柜增加
+	HUAWEIDevValue.RectifierModuleVol="2147483647";	//整流器输出电压
+	HUAWEIDevValue.RectifierModuleCurr="2147483647"; //整流器输出电流
+	HUAWEIDevValue.RectifierModuleTemp="2147483647";//整流器机内温度
+	//空调
+	HUAWEIDevValue.StrIn_FanState="2147483647";	//内风机状态 0代表关闭 1代表开启
+	HUAWEIDevValue.StrOut_FanState="2147483647"; //外风机状态 0代表关闭 1代表开启
+#elif(CABINETTYPE == 6) //金晟安
+	//Ups
+	HUAWEIDevValue.StrUpsCityVol="2147483647";	 //Ups市电电压
+	HUAWEIDevValue.StrUpsOVol="2147483647";		//Ups输出电压
+	HUAWEIDevValue.StrUpsTemp="2147483647";		//Ups温度
+	//空调
+	HUAWEIDevValue.StrIn_FanState="2147483647";	//内风机状态 0代表关闭 1代表开启
+	HUAWEIDevValue.StrOut_FanState="2147483647"; //外风机状态 0代表关闭 1代表开启
+
+#elif(CABINETTYPE == 7) //爱特思
+	//爱特思
+	//Ups
+	HUAWEIDevValue.StrUpsCityVol="2147483647";	 //Ups市电电压
+	HUAWEIDevValue.StrUpsOVol="2147483647";		//Ups输出电压
+	HUAWEIDevValue.StrUpsTemp="2147483647";		//Ups温度
+	//空调
+	HUAWEIDevValue.StrCoolerState="2147483647";	//制冷器状态 0代表关闭 1代表开启
+	HUAWEIDevValue.StrIn_FanState="2147483647";	//内风机状态 0代表关闭 1代表开启
+	HUAWEIDevValue.StrOut_FanState="2147483647"; //外风机状态 0代表关闭 1代表开启
+	HUAWEIDevValue.StrHeaterState="2147483647";	//加热器状态  0代表关闭 1代表开启
+#endif
 	
-    //防火墙
-    HUAWEIDevValue.strhwEntityCpuUsage="2147483647";                //CPU 
-    HUAWEIDevValue.strhwEntityMemUsage ="2147483647";              //内存使用率
-    HUAWEIDevValue.strhwEntityTemperature="2147483647";            //温度
-    HUAWEIDevValue.strhwEntityFactory="";                //生产商 
-    HUAWEIDevValue.strhwEntityDevModel="";                //设备型号 
-    HUAWEIDevValue.strhwEntityCpuUsage1="2147483647";                //CPU 
-    HUAWEIDevValue.strhwEntityMemUsage1 ="2147483647";              //内存使用率
-    HUAWEIDevValue.strhwEntityTemperature1="2147483647";            //温度
-    HUAWEIDevValue.strhwEntityFactory1="";                //生产商 
-    HUAWEIDevValue.strhwEntityDevModel1="";                //设备型号 
-    //交换机
-    HUAWEIDevValue.strhwswitchEntityCpuUsage="2147483647";          //CPU 
-    HUAWEIDevValue.strhwswitchEntityMemUsage="2147483647";          //内存使用率
-    HUAWEIDevValue.strhwswitchEntityTemperature="2147483647";       //温度
-    HUAWEIDevValue.strhwswitchEntityFactory="";                //生产商 
-    HUAWEIDevValue.strhwswitchEntityDevModel="";                //设备型号 
-    HUAWEIDevValue.strhwswitchEntityCpuUsage1="2147483647";          //CPU 
-    HUAWEIDevValue.strhwswitchEntityMemUsage1="2147483647";          //内存使用率
-    HUAWEIDevValue.strhwswitchEntityTemperature1="2147483647";       //温度
-    HUAWEIDevValue.strhwswitchEntityFactory1="";                //生产商 
-    HUAWEIDevValue.strhwswitchEntityDevModel1="";                //设备型号 
-//printf("initHUAWEIGantry lll\n");
 }
+
+void initHUAWEIEntity()
+{
+	HUAWEIDevValue.hwEntityTimeStamp=GetTickCount();
+	HUAWEIDevValue.hwEntityLinked=false;
+	//防火墙
+	HUAWEIDevValue.strhwEntityCpuUsage="2147483647";				//CPU 
+	HUAWEIDevValue.strhwEntityMemUsage ="2147483647";			   //内存使用率
+	HUAWEIDevValue.strhwEntityTemperature="2147483647"; 		   //温度
+	HUAWEIDevValue.strhwEntityFactory="";				 //生产商 
+	HUAWEIDevValue.strhwEntityDevModel="";				  //设备型号 
+}
+
+void initHUAWEIEntity1()
+{
+	HUAWEIDevValue.hwEntityTimeStamp1=GetTickCount();
+	HUAWEIDevValue.hwEntityLinked1=false;
+	//防火墙1
+	HUAWEIDevValue.strhwEntityCpuUsage1="2147483647";				 //CPU 
+	HUAWEIDevValue.strhwEntityMemUsage1 ="2147483647";				//内存使用率
+	HUAWEIDevValue.strhwEntityTemperature1="2147483647";			//温度
+	HUAWEIDevValue.strhwEntityFactory1="";				  //生产商 
+	HUAWEIDevValue.strhwEntityDevModel1=""; 			   //设备型号 
+}
+
+void initHUAWEIswitchEntity()
+{
+	HUAWEIDevValue.hwswitchEntityTimeStamp=GetTickCount();
+	HUAWEIDevValue.hwswitchEntityLinked=false;
+	//交换机
+	HUAWEIDevValue.strhwswitchEntityCpuUsage="2147483647";			//CPU 
+	HUAWEIDevValue.strhwswitchEntityMemUsage="2147483647";			//内存使用率
+	HUAWEIDevValue.strhwswitchEntityTemperature="2147483647";		//温度
+	HUAWEIDevValue.strhwswitchEntityFactory=""; 			   //生产商 
+	HUAWEIDevValue.strhwswitchEntityDevModel="";				//设备型号 
+}
+
+void initHUAWEIswitchEntity1()
+{
+	HUAWEIDevValue.hwswitchEntityTimeStamp1=GetTickCount();
+	HUAWEIDevValue.hwswitchEntityLinked1=false;
+	//交换机1
+	HUAWEIDevValue.strhwswitchEntityCpuUsage1="2147483647"; 		 //CPU 
+	HUAWEIDevValue.strhwswitchEntityMemUsage1="2147483647"; 		 //内存使用率
+	HUAWEIDevValue.strhwswitchEntityTemperature1="2147483647";		 //温度
+	HUAWEIDevValue.strhwswitchEntityFactory1="";				//生产商 
+	HUAWEIDevValue.strhwswitchEntityDevModel1="";				 //设备型号 
+}
+
 
 int snmpInit(void)
 {

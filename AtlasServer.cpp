@@ -20,11 +20,11 @@ int AtlassockSrv1;
 struct sockaddr_in AtlasAddr1;
 pthread_mutex_t atlasdataMutex1 ;
 
-string stratlasdata = "";
-string stratlasdata1 = "";
+extern ATLAS_STATE stuAtlasState[ATLAS_NUM]; //Atlas状态
 extern string StrAtlasCount;	//Atlas数量
 extern string StrAtlasIP[ATLAS_NUM] ;//AtlasIP
 extern string StrAtlasPasswd[ATLAS_NUM] ;//Atlas密码
+extern unsigned long GetTickCount(); //返回毫秒
 
 int GetAtlasData(void)
 {
@@ -47,7 +47,7 @@ int GetAtlasData1(void)
 
 void *AtlasSendthread(void *param)
 {
-  sleep(3);
+  sleep(10);
   while(1)
   {
      //发送获取
@@ -60,7 +60,7 @@ void *AtlasSendthread(void *param)
 
 void *AtlasSendthread1(void *param)
 {
-  sleep(3);
+  sleep(10);
   while(1)
   {
      //发送获取
@@ -107,8 +107,10 @@ void *AtlasRecvthread(void *param)
         if(DataLen > 0)
         {   
            pthread_mutex_lock(&atlasdataMutex);             
-           stratlasdata = recvBuf ;
-           printf("atlasdata:%s\r\n",stratlasdata.c_str());
+		   stuAtlasState[0].TimeStamp=GetTickCount();
+		   stuAtlasState[0].Linked=true;
+		   stuAtlasState[0].stratlasdata = recvBuf;
+           printf("atlasdata:%s\r\n",stuAtlasState[0].stratlasdata.c_str());
            pthread_mutex_unlock(&atlasdataMutex);
         }
 			  
@@ -153,8 +155,10 @@ void *AtlasRecvthread1(void *param)
         if(DataLen > 0)
         {
            pthread_mutex_lock(&atlasdataMutex1);
-           stratlasdata1 = recvBuf ;
-           printf("atlasdata1:%s\r\n",stratlasdata1.c_str());
+		   stuAtlasState[1].TimeStamp=GetTickCount();
+		   stuAtlasState[1].Linked=true;
+		   stuAtlasState[1].stratlasdata = recvBuf;
+           printf("atlasdata1:%s\r\n",stuAtlasState[1].stratlasdata.c_str());
            pthread_mutex_unlock(&atlasdataMutex1);
         }
 
@@ -166,7 +170,7 @@ void *AtlasRecvthread1(void *param)
 
 void initTeststr()
 {
-	stratlasdata="{\n";
+/*	stratlasdata="{\n";
 	stratlasdata+="\"hostname\":\"Euler\",\n";
 	stratlasdata+="\"cpurate\":\"26.6%\",\n";
 	stratlasdata+="\"cputemp\":\"58\",\n";
@@ -221,28 +225,39 @@ void initTeststr()
 	stratlasdata+="\"datetime\":\"2019-10-22 19:57:05\"\n";
 	stratlasdata+="}\n";
 
-	stratlasdata1=stratlasdata;
+	stratlasdata1=stratlasdata;*/
 }
 
+void init_atlas_struct(int atlasno)
+{
+	//初始化
+	stuAtlasState[atlasno].TimeStamp=GetTickCount();
+	stuAtlasState[atlasno].Linked=false;
+	
+	stuAtlasState[atlasno].stratlasdata = "";
+}
 
 int AtlasInit(void)
 {
 	//initTeststr();
+	int i;
+	for(i=0;i<ATLAS_NUM;i++)
+		init_atlas_struct(i);
+	
+	pthread_mutex_init(&atlasdataMutex,NULL);
+	pthread_mutex_init(&atlasdataMutex1,NULL);
 
-   pthread_mutex_init(&atlasdataMutex,NULL);
-   pthread_mutex_init(&atlasdataMutex1,NULL);
+	pthread_t m_AtlasRecvthread ;
+	pthread_create(&m_AtlasRecvthread,NULL,AtlasRecvthread,NULL);
 
-   pthread_t m_AtlasRecvthread ;
-   pthread_create(&m_AtlasRecvthread,NULL,AtlasRecvthread,NULL);
+	pthread_t m_AtlasSendthread ;
+	pthread_create(&m_AtlasSendthread,NULL,AtlasSendthread,NULL);
 
-   pthread_t m_AtlasSendthread ;
-   pthread_create(&m_AtlasSendthread,NULL,AtlasSendthread,NULL);
+	pthread_t m_AtlasRecvthread1 ;
+	pthread_create(&m_AtlasRecvthread1,NULL,AtlasRecvthread1,NULL);
 
-   pthread_t m_AtlasRecvthread1 ;
-   pthread_create(&m_AtlasRecvthread1,NULL,AtlasRecvthread1,NULL);
-
-   pthread_t m_AtlasSendthread1 ;
-   pthread_create(&m_AtlasSendthread1,NULL,AtlasSendthread1,NULL);
+	pthread_t m_AtlasSendthread1 ;
+	pthread_create(&m_AtlasSendthread1,NULL,AtlasSendthread1,NULL);
 
 
    return 0 ;

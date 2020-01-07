@@ -15,9 +15,7 @@
 #include "IpcamServer.h"
 #include "ipscan.h"
 #include "net_spd.h"
+#include "lt_state_thread.h"
 
-
-void InitStuEnvi_Param(ENVI_PARAMS *pParam);
-void InitStuUPS_Param(UPS_PARAMS *pParam);
 
 #endif

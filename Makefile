@@ -31,6 +31,7 @@ OBJECTS       =  build/main.o     \
                  build/snmp.o \
                  build/mywalkapp.o \
                  build/AtlasServer.o \
+                 build/lt_state_thread.o \
                  build/ydn23.o \
                  build/zte.o \
                  build/ats.o \
@@ -115,6 +116,10 @@ build/mywalkapp.o: mywalkapp.cpp \
 build/AtlasServer.o: AtlasServer.cpp \
      AtlasServer.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/AtlasServer.o AtlasServer.cpp
+
+build/lt_state_thread.o: lt_state_thread.cpp \
+     lt_state_thread.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) $(LIBS) -o build/lt_state_thread.o lt_state_thread.cpp
 
 build/ydn23.o: ydn23.cpp \
      ydn23.h

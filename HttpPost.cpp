@@ -246,6 +246,7 @@ int HttpPostParm(string url,string &StrParmbuf,string strkey,int flag)
        // curl_easy_setopt(pCurl, CURLOPT_USERPWD, "hdcam:hdcam");
        // curl_easy_setopt(pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 
+	curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, 15);
 
     res = curl_easy_perform(pCurl);
 

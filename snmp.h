@@ -16,6 +16,7 @@ int snmpInit(void);
 int SendSnmpOid(string mSnmpOid);
 int snmptrapInit(void);
 void initHUAWEIGantry();
+void initHUAWEIALARM();
 void initHUAWEIEntity();
 void initHUAWEIEntity1();
 void initHUAWEIswitchEntity();
@@ -152,6 +153,7 @@ typedef enum
 typedef struct
 {
 	unsigned long hwTimeStamp; 		//机柜状态获取时间戳
+	bool hwLinked;					//机柜状态 0:断开 1：连接
 	//锂电
 	string strhwAcbGroupBatVolt;                //电池电压 "51.1"
 	string strhwAcbGroupBatCurr;            //电池电流
@@ -221,19 +223,23 @@ typedef struct
 
     //防火墙
 	unsigned long hwEntityTimeStamp; 		//防火墙获取时间戳
+	bool hwEntityLinked;					//连接状态
     string strhwEntityCpuUsage;                //CPU 
     string strhwEntityMemUsage ;              //内存使用率
     string strhwEntityTemperature;            //温度
 	unsigned long hwEntityTimeStamp1; 		//防火墙获取时间戳
+	bool hwEntityLinked1;					//连接状态
     string strhwEntityCpuUsage1;                //CPU
     string strhwEntityMemUsage1 ;              //内存使用率
     string strhwEntityTemperature1;            //温度
     //交换机
 	unsigned long hwswitchEntityTimeStamp; 		//交换机获取时间戳
+	bool hwswitchEntityLinked;					//连接状态
     string strhwswitchEntityCpuUsage;          //CPU 
     string strhwswitchEntityMemUsage;          //内存使用率
     string strhwswitchEntityTemperature;       //温度
 	unsigned long hwswitchEntityTimeStamp1; 		//交换机获取时间戳
+	bool hwswitchEntityLinked1;					//连接状态
     string strhwswitchEntityCpuUsage1;          //CPU
     string strhwswitchEntityMemUsage1;          //内存使用率
     string strhwswitchEntityTemperature1;       //温度

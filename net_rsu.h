@@ -25,6 +25,9 @@ typedef struct AntennaInfoN_n{
 //			char recv_status;		//1字节天线接收状态，00H正常,01H异常
 }ANTENNAINFON_N;				
 typedef struct control_S{
+	unsigned long TimeStamp; 		//状态获取时间戳
+	bool Linked;					//连接状态 0:断开 1：连接
+	
 	char ControlStatus_1;	//控制器1状态
 	char ControlStatus_2;	//控制器2状态
 	char ControlStatus_3;	//控制器之间的网络连接状态
@@ -62,7 +65,8 @@ typedef struct RSU_reset{
 }RSU_RESET;
 
 void init_net_rsu(void);
-void send_RSU(char command,bool ReSend,char state,int num);
+void send_RSU(int rsuid,char command,bool ReSend,char state,int num);
+void initRSUState(int rsuno);
 
 
 #endif

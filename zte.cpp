@@ -349,6 +349,7 @@ bool jsonJsaDevReader(char* jsonstr, int len,int mIndex)
 {
     //printf("%s \r\n",jsonstr);
 
+
   Json::Reader reader;
 
   Json::Value json_object;
@@ -1563,7 +1564,7 @@ bool card_id_parse(char *buf,int len,int seq)
 		*/
 		// 锁的状态没法读?
 		// ASCII码正常来说是没有0的，因为0要加0x30,空格是0x20
-		if ((buf_len==46)&&(temp == ascii_to_hex4(pbuf+buf_len-5)))
+		if ((buf_len == 46) && (temp == ascii_to_hex4(pbuf+buf_len-5)))
 		{
 			cout<<"checkok = "<<endl;
 			remark = ascii_to_hex2(pbuf+buf_len-7);		// remark字段

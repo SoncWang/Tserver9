@@ -52,7 +52,17 @@ int WritepUpdata(unsigned char *pDateBuf,int pDateLen)
     sleep(2);
     fclose(fdd);
     printf("write tranter len=%d,ret=%d\r\n",pDateLen,ret);
-    if(ret == pDateLen)
+	
+    fdd	= fopen("/opt/tranter", "rb");
+    if(fdd == NULL)
+    {
+       return 1 ;
+    }
+	fseek(fdd,0,SEEK_END);
+	int len=ftell(fdd);
+    printf("read tranter len=%d\r\n",len);
+    fclose(fdd);
+    if(ret == pDateLen && len == pDateLen)
        return 0 ;
     else
        return 1 ;
@@ -342,6 +352,9 @@ void *HttpReboothread(void *param)
         printf("3s affter reboot\r\n");
         sleep(3);
         system("reboot") ;
+/*		system("echo 1 > /proc/sys/kernel/sysrq") ;
+		sleep(2);
+		system("echo b > /proc/sysrq-trigger") ;*/
      }
      else
      {

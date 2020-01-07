@@ -84,6 +84,8 @@ int sethwSetDcsUpperVoltLimitIndex;
 int sethwSetDcsLowerVoltLimitIndex;
 int sethwCtrlMonEquipResetIndex;
 
+extern unsigned long GetTickCount() ;
+extern void myprintf(char* str);
 
 void snmp_get_and_print(netsnmp_session *ss,oid *theoid,size_t theoid_len)
 {  
@@ -877,12 +879,14 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,string getspInt,int Intstrtyp
    case hwEntityCpuUsage:               //CPU
        if(mstrip == StrFireWareIP[0])
        {
+		  HUAWEIDevValue.hwEntityTimeStamp=GetTickCount(); //添加时间戳
           sprintf(mbuf,"%d",mIntegerValue) ;
           HUAWEIDevValue.strhwEntityCpuUsage = mbuf ;
           //printf("防火墙CPU:%s\r\n",(HUAWEIDevValue.strhwEntityCpuUsage).c_str());
        }
        else
        {
+		   HUAWEIDevValue.hwEntityTimeStamp1=GetTickCount(); //添加时间戳
            sprintf(mbuf,"%d",mIntegerValue) ;
            HUAWEIDevValue.strhwEntityCpuUsage1 = mbuf ;
            //printf("防火墙CPU:%s\r\n",(HUAWEIDevValue.strhwEntityCpuUsage).c_str());
@@ -892,12 +896,14 @@ int UpdataHUAWEIFirewall(int mgetindx,string getsp,string getspInt,int Intstrtyp
     case hwswitchEntityCpuUsage:               //CPU
        if(mstrip == StrIPSwitchIP[0])
        {
+		 HUAWEIDevValue.hwswitchEntityTimeStamp=GetTickCount(); //添加时间戳
          sprintf(mbuf,"%d",mIntegerValue) ;
          HUAWEIDevValue.strhwswitchEntityCpuUsage = mbuf ;
          //printf("交换机CPU:%s\r\n",(HUAWEIDevValue.strhwswitchEntityCpuUsage).c_str());
        }
        else
        {
+		   HUAWEIDevValue.hwswitchEntityTimeStamp1=GetTickCount(); //添加时间戳
            sprintf(mbuf,"%d",mIntegerValue) ;
            HUAWEIDevValue.strhwswitchEntityCpuUsage1 = mbuf ;
            //printf("交换机CPU:%s\r\n",(HUAWEIDevValue.strhwswitchEntityCpuUsage).c_str());

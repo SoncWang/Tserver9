@@ -193,18 +193,4 @@ void CalulateCRCbySoft(unsigned char *pucData,unsigned char wLength,unsigned cha
 }
 
 
-// CRC求和校验, 返回1个字节
-unsigned char CRC_sum(unsigned char *puchMsg , unsigned short usDataLen)
-{
-	int i = 0;
-	unsigned char sum_reval = 0;
-
-	for (i=0; i<usDataLen; i++)
-	{
-		sum_reval += puchMsg[i];
-	}
-
-	return sum_reval;
-}
-
 

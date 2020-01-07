@@ -17,8 +17,6 @@ int zteinit(void);
 #define DOOR_JSA_AUTHOR_CMD		0x07		// JSA确权
 #define DOOR_JSA_STATUS_CMD		0x08		// JSA读锁状态
 
-
-
 #define DOOR_POLL_CMD			0x10	// 定义一个统一的接口，下面再区分zte还是JSA
 #define DOOR_OPEN_CMD			0x20
 #define DOOR_CLOSE_CMD			0x30

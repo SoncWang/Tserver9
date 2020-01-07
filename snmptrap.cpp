@@ -161,15 +161,17 @@ int snmp_input(int op, netsnmp_session *session, int reqid, netsnmp_pdu *pdu, vo
 	
 	string mstrjson;
 	string mstrkey = "";
-//	SetjsonTableStr("flagrunstatusalarm",mstrjson);
-	SetjsonLTAlarmTableStr("cabinetAlarmUpload",mstrjson);
-    //printf("SetjsonLTAlarmTableStr \n%s\n",mstrjson.c_str());
 	if(StrServerURL1!="")
+	{
+		myprintf("SetjsonLTAlarmTableStr\n");
+		SetjsonLTAlarmTableStr("cabinetAlarmUpload",mstrjson);
+		myprintf("HttpPostParm\n");
 		HttpPostParm(StrServerURL1,mstrjson,mstrkey,HTTPPOST);
-	
-	mstrkey = "";
+		myprintf("end HttpPostParm\n");
+	}
+/*	mstrkey = "";
 	SetjsonTableStr("flagrunstatusalarm",mstrjson);
-	NetSendParm(NETCMD_FLAGRUNSTATUS,(char *)(mstrjson.c_str()),mstrjson.size());
+	NetSendParm(NETCMD_FLAGRUNSTATUS,(char *)(mstrjson.c_str()),mstrjson.size());*/
 	
     return 1;
 }
@@ -438,7 +440,8 @@ void initHUAWEIALARM()
 	HUAWEIDevAlarm.hwEnvHumiAlarmTraps="0";		//设备柜高湿/低湿告警
 	HUAWEIDevAlarm.hwEnvHumiAlarmTraps2="0";		//电池柜高湿/低湿告警
 	HUAWEIDevAlarm.hwSpareDigitalAlarmTraps="0";	//输入干接点告警
-	HUAWEIDevAlarm.hwDoorAlarmTraps="0";		//门禁告警
+	HUAWEIDevAlarm.hwDoorAlarmTraps="0";		//门禁告警(电池柜)
+	HUAWEIDevAlarm.hwDoorAlarmTraps2="0";		//门禁告警(设备柜)
 	HUAWEIDevAlarm.hwWaterAlarmTraps="0";		//水浸告警
 	HUAWEIDevAlarm.hwSmokeAlarmTraps="0";		//烟感告警
 	HUAWEIDevAlarm.hwair_cond_infan_alarm="0";		//空调内风机故障
@@ -660,6 +663,10 @@ void DealAlarm(string Stroid,int AlarmID,int mgetIndex)
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.85") == 0)//直流空调告警
 	{
+        if(AlarmID==9379)//空调内风机故障
+        {
+           HUAWEIDevAlarm.hwDoorAlarmTraps2 = "1";
+        }
 		if(AlarmID==9350)//空调内风机故障
         {
             if(mgetIndex == hwAirAddrbuf[1])
@@ -742,6 +749,10 @@ void DealAlarm(string Stroid,int AlarmID,int mgetIndex)
 	}
 	if(strcmp(Stroid.c_str(),".1.3.6.1.4.1.2011.6.164.2.1.0.86") == 0)//直流空调告警恢复
 	{
+        if(AlarmID==9379)//空调内风机故障
+        {
+           HUAWEIDevAlarm.hwDoorAlarmTraps2 = "0";
+        }
 		if(AlarmID==9350)//空调内风机故障
 		{printf("空调内风机故障恢复,AlarmID:%d,Index:%d\r\n",AlarmID,mgetIndex);
             if(mgetIndex == hwAirAddrbuf[1])

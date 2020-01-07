@@ -64,15 +64,11 @@ bool SoftwareUpdate(unsigned char *pbuf, int size, string &str);
 extern unsigned short GetCrc(unsigned char *buf,int len);
 extern int WritepUpdata(unsigned char *pDateBuf,int pDateLen);
 
-extern ENVI_PARAMS *stuEnvi_Param;		// 环境数据结构体
-extern UPS_PARAMS *stuUps_Param;		//USP结构体 电源数据寄存器
 extern SPD_PARAMS *stuSpd_Param;		//防雷器结构体
 extern DEVICE_PARAMS *stuDev_Param;		//装置参数寄存器
 extern VA_METER_PARAMS stuVA_Meter_Param[VA_METER_BD_NUM];		//伏安表电压电流结构体
 extern REMOTE_CONTROL *stuRemote_Ctrl;	//遥控寄存器结构体
 extern VMCONTROL_PARAM *stuVMCtl_Param;	//采集器设备信息结构体
-extern AIRCOND_PARAM *stuAirCondRead;		//读空调状态结构体
-extern AIRCOND_PARAM *stuAirCondWrite;		//写空调状态结构体
 extern THUAWEIGantry HUAWEIDevValue;		//华为机柜状态
 
 extern string StrID;			//硬件ID
@@ -130,17 +126,22 @@ extern string StrDirDescription;	//行车方向说明
 extern string StrCabinetType;		//机柜类型 1：华为双机柜双开门；2：华为双机柜单开门；3：华为单机柜双开门；4：华为单机柜单开门
 									//5：中兴； 6：金晟安；7：爱特斯
 extern string zteLockDevID[4];
-
+extern int openatslock(void);
 
 extern int Writeconfig(void);
 extern int Setconfig(string StrKEY,string StrSetconfig);
 extern bool jsonstrRCtrlReader(char* jsonstr, int len, UINT8 *pstuRCtrl);
 extern bool jsonComputerReader(char* jsonstr, int len);
 extern UINT16 SendCom3Test(char *buf,int len);
+extern unsigned long GetTickCount();
 
 pthread_mutex_t PostGetMutex ;
 pthread_mutex_t litdataMutex ;
 extern int litdataTime ;
+extern pthread_mutex_t uprebootMutex ;
+extern pthread_mutex_t httprebootMutex ;
+extern int WDTfd ;
+extern int HttpReboot;
 
 void SetIPinfo(IPInfo *ipInfo)
 {
@@ -475,8 +476,8 @@ void* NetWork_server_thread(void *param)
 	socklen_t sin_size;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
-//	char buf[NETPACKET_MAXLEN];
-	char *buf=(char*)malloc(NETPACKET_MAXLEN);
+    int yes = 1;
+	char buf[NETPACKET_MAXLEN],*pData;
 	int ret;
 	int i,j;
 	SocketPara sockpara;
@@ -498,11 +499,17 @@ void* NetWork_server_thread(void *param)
     	printf ("OK: Obtain Socket Despcritor sucessfully.\n");
 	}
 
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+    {
+    	printf ("ERROR: Failed to setsockopt.\n");
+    	return (0);
+    }
+
 	/* Fill the local socket address struct */
 	server_addr.sin_family = AF_INET;           		// Protocol Family
 	server_addr.sin_port = htons (PORT);         		// Port number
 	server_addr.sin_addr.s_addr  = htonl (INADDR_ANY);  	// AutoFill local address
-	memset (server_addr.sin_zero,0,8);          		// Flush the rest of struct
+    memset(server_addr.sin_zero, '\0', sizeof(server_addr.sin_zero));
 
 	/*  Blind a special Port */
 	if( bind(sockfd, (struct sockaddr*)&server_addr, sizeof(struct sockaddr)) == -1 )
@@ -590,22 +597,20 @@ void* NetWork_server_thread(void *param)
 			continue;
 		}
 
-		for (i = 0; i < conn_amount; i++)
+		for (i = 0; i < BACKLOG; i++)
 		{
-			if (FD_ISSET(fd_A[i], &fdsr))
+            if (0 < fd_A[i] && FD_ISSET(fd_A[i], &fdsr))
 			{
 				ret = recv(fd_A[i], buf, NETCMD_HEADERLEN, 0);
 //				printf("Client_CmdProcessbuff: 000 ret=%d\r\n",ret);
 				if (ret <= 0)
 				{ // client close
-printf("aaaaa client[%d] close\n", i);
 					printf("client[%d] close\n", i);
 					close(fd_A[i]);
 					FD_CLR(fd_A[i], &fdsr);
 					fd_A[i] = 0;
 					fd_ClientIP[i]="";		//改重连时相同ip重复连接问题
-					if(i==conn_amount-1)
-						conn_amount--;
+					conn_amount--;
 				}
 				else
 				{
@@ -616,9 +621,15 @@ printf("aaaaa client[%d] close\n", i);
 						if (pheader->magic == NETCMD_MAGIC)
 						{
 //							printf("Client_CmdProcessbuff: datalen=%d\r\n",pheader->datalen);
+							pData=pheader->data;
 							if (pheader->datalen > 0)
 							{
-								ret += recv(fd_A[i], pheader->data,	pheader->datalen, 0);
+								do
+								{
+//									ret += recv(fd_A[i], pheader->data, pheader->datalen, 0);
+									ret += recv(fd_A[i], pData, pheader->datalen, 0);
+									pData=pheader->data+ret-NETCMD_HEADERLEN;
+								}while(ret<NETCMD_HEADERLEN + pheader->datalen);
 							}
 
 //							printf("Client_CmdProcessbuff: ret=%d\r\n",ret);
@@ -639,8 +650,7 @@ printf("aaaaa client[%d] close\n", i);
 							FD_CLR(fd_A[i], &fdsr);
 							fd_A[i] = 0;
 							fd_ClientIP[i]="";		//改重连时相同ip重复连接问题
-							if (i == conn_amount - 1)
-								conn_amount--;
+							conn_amount--;
 
 						}
 					}
@@ -662,31 +672,25 @@ printf("aaaaa client[%d] close\n", i);
 			}
 
 			// add to fd queue
-			if (conn_amount < BACKLOG)
+			//if (conn_amount < BACKLOG)
 			{
 				//find empty
-				for (i = 0; i < conn_amount; i++)
+				for (i = 0; i < BACKLOG; i++)
 				{
 					if (fd_A[i] == 0)
 					{
 						fd_A[i] = newfd;
+                        conn_amount++;
+                        printf("new connection client[%d] %s:%d\n", i, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 						fd_ClientIP[i]==inet_ntoa(client_addr.sin_addr);
 						break;
 					}
 				}
 
-				if(i==conn_amount)
+				if(i==BACKLOG)
 				{
-					fd_A[i] = newfd;
-					fd_ClientIP[i]=inet_ntoa(client_addr.sin_addr); 	//改重连时相同ip重复连接问题
-					conn_amount++;
-				}
-				printf("new connection client[%d] %s:%d\n", i,inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
-				if (newfd > maxsock)
-					maxsock = newfd;
-				for (i = 0; i < conn_amount; i++)
-				{
-					printf("aaa connection[%d] %s\n", i,fd_ClientIP[i].c_str());
+					printf("[%s:%d]not enough array to accept the socket %d\n", __FILE__, __LINE__, newfd);
+                    close(newfd);
 				}
 /*				//有新客户端连接，主动发门架状态信息
 				memset(jsonPack,0,JSON_LEN);
@@ -699,7 +703,6 @@ printf("aaaaa client[%d] close\n", i);
 		}
 	}
 	free(jsonPack);
-	free(buf);
 }
 
 void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
@@ -878,27 +881,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			break;
 
 		case NETCMD_SEND_ENVI_PARAM: 			//9 环境寄存器参数
-			if(pCMD->status==SFLAG_READ)
-			{
-				memset(jsonPack,0,JSON_LEN);
-				jsonPackLen=0;
-				ENVI_PARAMS *pstrEnvPam=stuEnvi_Param;
-				jsonStrEvnWriter(pCMD->cmd,(char*)pstrEnvPam,jsonPack,&jsonPackLen);
-				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
-				pCMD->datalen = jsonPackLen;
-			}
 			break;
 
 		case NETCMD_SEND_UPS_PARAM: 			//10 UPS参数
-			if(pCMD->status==SFLAG_READ)
-			{
-				memset(jsonPack,0,JSON_LEN);
-				jsonPackLen=0;
-				UPS_PARAMS *pstrUpsPam=stuUps_Param;
-				jsonStrUpsWriter(pCMD->cmd,(char*)pstrUpsPam,jsonPack,&jsonPackLen);
-				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
-				pCMD->datalen = jsonPackLen;
-			}
 			break;
 
 /*		case NETCMD_SEND_SPD_PARAM: 			//11 防雷器寄存器参数
@@ -930,26 +915,6 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			}
 			break;
 		case NETCMD_SEND_AIR_PARAM: 			//13 空调参数
-			if(pCMD->status==SFLAG_READ)
-			{
-				memset(jsonPack,0,JSON_LEN);
-				jsonPackLen=0;
-				AIRCOND_PARAM *pstuAirPam=stuAirCondRead;
-				jsonStrAirCondWriter(pCMD->cmd,(char*)pstuAirPam,jsonPack,&jsonPackLen);
-				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
-				pCMD->datalen = jsonPackLen;
-			}
-			else if(pCMD->status==SFLAG_WRITE)
-			{
-				//printf("NETCMD_SEND_AIR_PARAM write param = %s length=%d \n",pCMD->data,pCMD->datalen);
-				memset(pRecvBuf,0,JSON_LEN);
-				memcpy(pRecvBuf,pCMD->data,pCMD->datalen);
-				AIRCOND_PARAM *pstuAirPam=stuAirCondWrite;
-				memset(pstuAirPam,0,sizeof(REMOTE_CONTROL));
-				jsonstrAirCondReader(pRecvBuf,pCMD->datalen,(UINT8 *)pstuAirPam);//将json字符串转换成结构体
-//				AirCondControl((UINT8*)pstuAirPam);
-				pCMD->datalen = 0;
-			}
 			break;
 		case NETCMD_SEND_RSU_PARAM: 			//14 RSU天线状态
 			if(pCMD->status==SFLAG_READ)
@@ -1005,11 +970,6 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		case NETCMD_HWCABINET_STATUS: 			//20  华为机柜状态
 			if(pCMD->status==SFLAG_READ)
 			{
-/*				memset(jsonPack,0,JSON_LEN);
-				jsonPackLen=0;
-				jsonStrHWCabinetWriter(pCMD->cmd,(char*)&HUAWEIDevValue,jsonPack,&jsonPackLen);
-				memcpy((char *) pCMD->data,jsonPack,jsonPackLen);
-				pCMD->datalen = jsonPackLen;*/
 				jsonStrHWCabinetWriter(pCMD->cmd,(char*)&HUAWEIDevValue,mstrdata);
 				memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
 				pCMD->datalen = mstrdata.size();
@@ -1052,13 +1012,13 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		case NETCMD_SOFTWARE_UPDATE:		//26 软件升级
 			if(pCMD->status==SFLAG_WRITE)
 			{
-//printf("NETCMD_SOFTWARE_UPDATE len=%d\n");
-				unsigned char *strtmp=(unsigned char*)malloc(pCMD->datalen+1);
+//printf("NETCMD_SOFTWARE_UPDATE len=%d\n",pCMD->datalen);
+				unsigned char *strtmp=(unsigned char*)malloc(pCMD->datalen);
 				memcpy(strtmp,pCMD->data,pCMD->datalen);
-				strtmp[pCMD->datalen]='\0';
-				SoftwareUpdate(strtmp,pCMD->datalen+1,mstrdata);
+				SoftwareUpdate(strtmp,pCMD->datalen,mstrdata);
 				memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
 				pCMD->datalen = mstrdata.size();
+				free(strtmp);
 			}
 			break;
 		case NETCMD_SEND_SPD_AI_PARAM:		//27 防雷器参数
@@ -1096,6 +1056,14 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			if(pCMD->status==SFLAG_READ)
 			{
 				jsonStrVehPlate900Writer(pCMD->cmd,mstrdata);
+				memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
+				pCMD->datalen = mstrdata.size();
+			}
+			break;
+		case NETCMD_SEND_VMCTRL_STATE: 			//30 控制器运行状态
+			if(pCMD->status==SFLAG_READ)
+			{
+				jsonStrVMCtrlStateWriter(pCMD->cmd,mstrdata);
 				memcpy((char *) pCMD->data,(char *)(mstrdata.c_str()),mstrdata.size());
 				pCMD->datalen = mstrdata.size();
 			}
@@ -1258,6 +1226,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
  {
 	  int i,j;
 	  REMOTE_CONTROL *pstuRCtrl=(REMOTE_CONTROL *)pRCtrl;
+	  THUAWEIGantry *pHWDev=&HUAWEIDevValue;//华为机柜状态
 	  int seq = 0;
 	  UINT16 seq_temp = 0;
 	  char value[10];
@@ -1333,13 +1302,13 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 {
 	 	printf("FrontDoorCtrl ACT_UNLOCK");
 		 // 如果是华为机柜
-		#if (CABINETTYPE == 1)
+	#if (CABINETTYPE == 1)
 		 //if (CabinetTypeGet() <= CABIN_HUAWEI_1_1)
 		 {
 			locker_ctrl_flag |= LBIT(LOCKER_1_CTRL_UNLOCK);
 		 }
 		 //else if (CabinetTypeGet == CABIN_ZTE)
-		#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+	#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
 		 {
 		 	if (zteLockDevID[0] != "")
 		 	{
@@ -1348,7 +1317,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			   	zte_jsa_locker_process(0,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 	}
 		 }
-		#endif
+	#elif (CABINETTYPE == 7)
+		openatslock();
+	#endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->FrontDoorCtrl==ACT_LOCK) 				 //关锁
@@ -1368,11 +1339,9 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			   	zte_jsa_locker_process(0,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
 		 	}
 		 }
-		#endif
-		usleep(2000);
+		 #endif
+		 usleep(2000);
 	 }
-
-	 // 后门
 	 if(pstuRCtrl->BackDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
 	 	printf("BackDoorCtrl ACT_UNLOCK");
@@ -1391,6 +1360,8 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			   	zte_jsa_locker_process(1,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 	}
 		 }
+		 #elif (CABINETTYPE == 7)
+			 openatslock();
 		 #endif
 		 usleep(2000);
 	 }
@@ -1410,21 +1381,21 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			   	zte_jsa_locker_process(1,DOOR_CLOSE_CMD,byteSend,mStrUser,mStrkey);
 		 	}
 		 }
-		#endif
+		 #endif
 		 usleep(2000);
 	 }
-
-	 // 设备柜，电源柜定义看客户
 	 if(pstuRCtrl->SideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
 	 	printf("SideDoorCtrl ACT_UNLOCK");
 	     //CABINETTYPE  1：华为（包括华为单门 双门等） 5：中兴; 6：金晟安; 7：爱特斯 StrVersionNo
-   		#if(CABINETTYPE == 1) //华为
+   	#if(CABINETTYPE == 1) //华为
 		 // 如果是华为机柜
 		 {
 		 	locker_ctrl_flag |= LBIT(LOCKER_3_CTRL_UNLOCK);
 		 }
-		#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+	#elif ((CABINETTYPE == 5)  || (CABINETTYPE == 6) )
+		 //else if (CabinetTypeGet == CABIN_ZTE)
+		// else
 		 {
 		 	if (zteLockDevID[2] != "")
 		 	{
@@ -1433,7 +1404,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 			   	zte_jsa_locker_process(2,DOOR_OPEN_CMD,byteSend,mStrUser,mStrkey);
 		 	}
 		 }
-		#endif
+	#endif
 		 usleep(2000);
 	 }
 	 if(pstuRCtrl->SideDoorCtrl==ACT_LOCK)					 //关锁
@@ -1455,8 +1426,6 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 #endif
 		 usleep(2000);
 	 }
-
-	 // 后门
 	 if(pstuRCtrl->RightSideDoorCtrl==ACT_UNLOCK)				 //开锁
 	 {
 	 	printf("SideDoorCtrl ACT_UNLOCK");
@@ -1498,36 +1467,38 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 usleep(2000);
 	 }
 
+	 if(pHWDev->hwLinked && GetTickCount()-pHWDev->hwTimeStamp>5*60*1000) //超过5分钟没更新，认为没有连接)
+	 	pHWDev->hwLinked=false;
  	 //控制单板复位 0：保持；1：热复位；
-	 if(pstuRCtrl->hwctrlmonequipreset!=ACT_HOLD)
+	 if(pHWDev->hwLinked && pstuRCtrl->hwctrlmonequipreset!=ACT_HOLD)
 	 {
 		 sprintf(value,"%d",pstuRCtrl->hwctrlmonequipreset);
 		 printf("RemoteControl 控制单板复位=%s\n",value);
 		 SnmpSetOid(hwCtrlMonEquipReset,value,1);
 	 }
  	 //AC过压点设置 0:保持；50-600（有效）；280（缺省值）
-	 if(pstuRCtrl->hwsetacsuppervoltlimit!=ACT_HOLD)
+	 if(pHWDev->hwLinked && pstuRCtrl->hwsetacsuppervoltlimit!=ACT_HOLD)
 	 {
 		 sprintf(value,"%d",pstuRCtrl->hwsetacsuppervoltlimit);
 		 printf("RemoteControl AC过压点设置=%s\n",value);
 		 SnmpSetOid(hwSetAcsUpperVoltLimit,value,1);
 	 }
 	 //AC欠压点设置 0:保持；50-600（有效）；180（缺省值）
-	 if(pstuRCtrl->hwsetacslowervoltlimit!=ACT_HOLD)
+	 if(pHWDev->hwLinked && pstuRCtrl->hwsetacslowervoltlimit!=ACT_HOLD)
 	 {
 		 sprintf(value,"%d",pstuRCtrl->hwsetacslowervoltlimit);
 		 printf("RemoteControl AC欠压点设置=%s\n",value);
 		 SnmpSetOid(hwSetAcsLowerVoltLimit,value,1);
 	 }
 	 //设置DC过压点 0:保持；53-600（有效）；58（缺省值）
-	 if(pstuRCtrl->hwsetdcsuppervoltlimit!=ACT_HOLD)
+	 if(pHWDev->hwLinked && pstuRCtrl->hwsetdcsuppervoltlimit!=ACT_HOLD)
 	 {
 		 sprintf(value,"%d",pstuRCtrl->hwsetdcsuppervoltlimit*10);
 		 printf("RemoteControl 设置DC过压点=%s\n",value);
 		 SnmpSetOid(hwSetDcsUpperVoltLimit,value,1);
 	 }
 	 //设置DC欠压点 0:保持；35 - 57（有效）；45（缺省值）
-	 if(pstuRCtrl->hwsetdcslowervoltlimit!=ACT_HOLD)
+	 if(pHWDev->hwLinked && pstuRCtrl->hwsetdcslowervoltlimit!=ACT_HOLD)
 	 {
 		 sprintf(value,"%d",pstuRCtrl->hwsetdcslowervoltlimit*10);
 		 printf("RemoteControl 设置DC欠压点=%s\n",value);
@@ -1536,7 +1507,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //环境温度告警上限 0:保持；25-80（有效）；55（缺省值）
 	 for(i=0;i<2;i++)
 	 {
-		 if(pstuRCtrl->hwsetenvtempupperlimit[i]!=ACT_HOLD)
+		 if(pHWDev->hwLinked && pstuRCtrl->hwsetenvtempupperlimit[i]!=ACT_HOLD)
 		 {
 			 sprintf(value,"%d",pstuRCtrl->hwsetenvtempupperlimit[i]);
 			 printf("RemoteControl 环境温度告警上限%d=%s\n",i,value);
@@ -1546,7 +1517,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //环境温度告警下限255:保持；-20-20（有效）；-20（缺省值）
 	 for(i=0;i<2;i++)
 	 {
-		 if(pstuRCtrl->hwsetenvtemplowerlimit[i]!=ACT_HOLD_FF)
+		 if(pHWDev->hwLinked && pstuRCtrl->hwsetenvtemplowerlimit[i]!=ACT_HOLD_FF)
 		 {
 			 sprintf(value,"%d",pstuRCtrl->hwsetenvtemplowerlimit[i]);
 			 printf("RemoteControl 环境温度告警下限%d=%s\n",i,value);
@@ -1556,7 +1527,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //环境湿度告警上限 255:保持；0-100（有效）；95（缺省值）
 	 for(i=0;i<2;i++)
 	 {
-		 if(pstuRCtrl->hwsetenvhumidityupperlimit[i]!=ACT_HOLD_FF)
+		 if(pHWDev->hwLinked && pstuRCtrl->hwsetenvhumidityupperlimit[i]!=ACT_HOLD_FF)
 		 {
 			 sprintf(value,"%d",pstuRCtrl->hwsetenvhumidityupperlimit[i]);
 			 printf("RemoteControl 环境湿度告警上限%d=%s\n",i,value);
@@ -1566,7 +1537,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //环境湿度告警下限 255:保持；0-100（有效）；5（缺省值）
 	 for(i=0;i<2;i++)
 	 {
-		 if(pstuRCtrl->hwsetenvhumiditylowerlimit[i]!=ACT_HOLD_FF)
+		 if(pHWDev->hwLinked && pstuRCtrl->hwsetenvhumiditylowerlimit[i]!=ACT_HOLD_FF)
 		 {
 			 sprintf(value,"%d",pstuRCtrl->hwsetenvhumiditylowerlimit[i]);
 			 printf("RemoteControl 环境湿度告警下限%d=%s\n",i,value);
@@ -1574,7 +1545,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 }
 	 }
 	 //温控模式 	 0：保持；1：纯风扇模式；2：纯空调模式；3：智能模式；
-     if(pstuRCtrl->hwcoolingdevicesmode!=ACT_HOLD)
+     if(pHWDev->hwLinked && pstuRCtrl->hwcoolingdevicesmode!=ACT_HOLD)
 	 {
          sprintf(value,"%d",pstuRCtrl->hwcoolingdevicesmode);
          printf("RemoteControl 温控模式=%s\n",value);
@@ -1583,7 +1554,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //空调开机温度点		 255:保持； -20-80（有效）；45(缺省值)
 	 for(i=0;i<2;i++)
 	 {
-	     if(pstuRCtrl->hwdcairpowerontemppoint[i]!=ACT_HOLD_FF)
+	     if(pHWDev->hwLinked && pstuRCtrl->hwdcairpowerontemppoint[i]!=ACT_HOLD_FF)
 		 {
 	         sprintf(value,"%d",pstuRCtrl->hwdcairpowerontemppoint[i]);
 	         printf("RemoteControl 空调开机温度点%d=%s\n",i,value);
@@ -1593,7 +1564,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //空调关机温度点		   255:保持； -20-80（有效）；37(缺省值)
 	 for(i=0;i<2;i++)
 	 {
-	     if(pstuRCtrl->hwdcairpowerofftemppoint[i]!=ACT_HOLD_FF)
+	     if(pHWDev->hwLinked && pstuRCtrl->hwdcairpowerofftemppoint[i]!=ACT_HOLD_FF)
 		 {
 	         sprintf(value,"%d",pstuRCtrl->hwdcairpowerofftemppoint[i]);
 	         printf("RemoteControl 空调关机温度点%d=%s\n",i,value);
@@ -1603,7 +1574,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //空调控制模式 0：保持；1：自动；2：手动
 	 for(i=0;i<2;i++)
 	 {
-		 if(pstuRCtrl->hwdcairctrlmode[i]!=ACT_HOLD)
+		 if(pHWDev->hwLinked && pstuRCtrl->hwdcairctrlmode[i]!=ACT_HOLD)
 		 {
 			 sprintf(value,"%d",pstuRCtrl->hwdcairctrlmode[i]);
 			 printf("RemoteControl 空调控制模式%d=%s\n",i,value);
@@ -1613,7 +1584,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 //控制烟感复位 0：保持；1：不需复位；2：复位
 	 for(i=0;i<2;i++)
 	 {
-		 if(pstuRCtrl->hwctrlsmokereset[i]!=ACT_HOLD)
+		 if(pHWDev->hwLinked && pstuRCtrl->hwctrlsmokereset[i]!=ACT_HOLD)
 		 {
 			 sprintf(value,"%d",pstuRCtrl->hwctrlsmokereset[i]);
 			 printf("RemoteControl 控制烟感复位%d=%s\n",i,value);
@@ -1728,7 +1699,129 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 
  bool SoftwareUpdate(unsigned char *pbuf, int size, string &strjsonback)
  {
-	 if((pbuf[0] == 0x12) && (pbuf[1] == 0x34) && (pbuf[2] == 0x56) && (pbuf[3] == 0x78))
+	 if((pbuf[0] == 0x12) && (pbuf[1] == 0x34) && (pbuf[2] == 0x56) && (pbuf[3] == 0x78)) 
+	 {
+		unsigned int getlen ;
+		memcpy(&getlen,pbuf+4,4);
+		if(getlen == size)
+		{
+		   unsigned short int IntCRC;
+		   unsigned short int getCrc = GetCrc(pbuf,getlen-2) ;
+		   memcpy(&IntCRC,pbuf+getlen-2,2);
+		   if(IntCRC == getCrc)
+		   {
+			  pthread_mutex_lock(&uprebootMutex);
+			  write(WDTfd, "\0", 1);
+	 
+			  system("mv tranter tranter1") ;
+			  printf("start updata\r\n");
+			  if(WritepUpdata(pbuf+8,getlen-16) != 0)
+			  {
+				 printf("rm tranter\r\n");
+				 system("rm tranter") ;
+				 sleep(2);
+				 system("reboot") ;
+			  }
+	 
+			  //get version
+			  char verbuf[100];
+			  string StrNewVersionNo = "";
+			  memset(verbuf,0,100);
+			  sprintf(verbuf,"%d%d.%d%d.%d%d",*(pbuf+getlen-8)-'0',*(pbuf+getlen-7)-'0',*(pbuf+getlen-6)-'0',*(pbuf+getlen-5)-'0',*(pbuf+getlen-4)-'0',*(pbuf+getlen-3)-'0');
+			  StrNewVersionNo = (char *)verbuf ;
+	 
+				strjsonback = strjsonback + "{\n";
+				strjsonback = strjsonback + "\"result\":\"tranterdata updata success\",\n";
+				strjsonback = strjsonback + "\"new version\":\""+ StrNewVersionNo +"\",\n";
+				strjsonback = strjsonback + "\"old version\":\""+ StrVersionNo +"\",\n";
+				strjsonback = strjsonback + "\"dec\":\"Updata LTKJ Controller success! Don't turn off the power in 10 seconds! device is auto restart! Thank you!\"\n";
+				strjsonback = strjsonback + "}\n";
+				printf("strjsonback=%s\r\n",strjsonback.c_str());
+	 
+			  //sleep(2);
+			  system("chmod 777 tranter") ;
+			  printf("chmod 777 tranter\r\n");
+			  sleep(1);
+			  pthread_mutex_lock(&httprebootMutex);
+			  HttpReboot = 1;
+			  pthread_mutex_unlock(&httprebootMutex);
+			  return 1 ;
+	 
+			  pthread_mutex_unlock(&uprebootMutex);
+	 
+		   }
+		   else
+		   {
+			   printf("updata CRC erro %d %d\r\n",IntCRC,getCrc) ;
+		   }
+	 
+		}
+	 }
+/*	 else if((pbuf[0] == 0x11) && (pbuf[1] == 0x22) && (pbuf[2] == 0x33) && (pbuf[3] == 0x55)) 
+	 {
+		unsigned int getlen ;
+		memcpy(&getlen,pbuf+4,4);
+		if(getlen == post_size)
+		{
+		   unsigned short int IntCRC;
+		   unsigned short int getCrc = GetCrc(pbuf,getlen-2) ;
+		   memcpy(&IntCRC,pbuf+getlen-2,2);
+		   if(IntCRC == getCrc)
+		   {
+			  pthread_mutex_lock(&uprebootMutex);
+			  write(WDTfd, "\0", 1);
+	 
+			  printf("start updata zImage\r\n");
+			  if(WritezImagedata(pbuf+8,getlen-16) != 0)
+			  {
+				 printf("rm zImage\r\n");
+				 system("rm zImage") ;
+				 sleep(1);
+				 system("reboot") ;
+			  }
+			  sleep(1);
+			  printf("systemupdate start\r\n");
+			  system("chmod 777 /opt/systemupdate") ;
+			  system("/opt/systemupdate") ;
+			  printf("systemupdate end\r\n");
+			  struct evbuffer *retbuff = NULL;
+			  retbuff = evbuffer_new();
+			  if(retbuff == NULL)
+			  {
+				printf("retbuff is null.");
+				//system("reboot") ;
+				//return;
+			  }
+			  else
+			  {
+				string strjsonback = "";
+				strjsonback = strjsonback + "{\n";
+				strjsonback = strjsonback + "\"result\":\"zImage updata success\",\n";
+				strjsonback = strjsonback + "\"dec\":\"Updata LTKJ Controller success! Don't turn off the power in 10 seconds! device is auto restart! Thank you!\"\n";
+				strjsonback = strjsonback + "}\n";
+	 
+				evhttp_add_header(evhttp_request_get_output_headers(req),"Content-Type", "application/json");
+				evbuffer_add_printf(retbuff,strjsonback.c_str());
+				evhttp_send_reply(req,HTTP_OK,"Client",retbuff);
+			  }
+	 
+			  //sleep(3);
+			  pthread_mutex_lock(&httprebootMutex);
+			  HttpReboot = 1;
+			  pthread_mutex_unlock(&httprebootMutex);
+			  return 1 ;
+	 
+			  pthread_mutex_unlock(&uprebootMutex);
+	 
+		   }
+		   else
+		   {
+			   printf("updata CRC erro %d %d\r\n",IntCRC,getCrc) ;
+		   }
+	 
+		}
+	 }*/
+/*	 if((pbuf[0] == 0x12) && (pbuf[1] == 0x34) && (pbuf[2] == 0x56) && (pbuf[3] == 0x78))
 	 {
 		unsigned int getlen ;
 		memcpy(&getlen,pbuf+4,4);
@@ -1783,7 +1876,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		   }
 
 		}
-	 }
+	 }*/
 	 return 0;
  }
 
@@ -1840,7 +1933,7 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 				 {
 					 printf("do%d  reset %s\n",i,dev);
 					 //重启RSU 0x1D
-					 send_RSU(0x1D,false,0,0);
+					 send_RSU(j,0x1D,false,0,0);
 				 }
 			 }
 			 pstuRCtrl->doseq[i]=ACT_HOLD;
@@ -1853,41 +1946,10 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 		 {
 			 printf("antenna%d  reset\n",i+1);
 			 //重启天线0xC4
-			 send_RSU(0x1D,false,0,i+1);
+			 send_RSU(0,0x1D,false,0,i+1);
 			 pstuRCtrl->antenna[i] = ACT_HOLD;
 		 }
 	 }
- }
-
- void *HTTP_DataGetthread(void *param)
- {
-	 string mStrdata = "";
-	 string mstrkey = ""; //没有用户名和密码：则为“”；
-	 int start,end;
-	 while(1)
-	 {
-	 	 if(StrServerURL3!="")
-	 	 {
-             HttpPostParm(StrServerURL3,mStrdata,mstrkey,HTTPGET);
-			 start = mStrdata.find('[');
-			 end = mStrdata.find(']');
-			 if((end > start) && (end > 0) && (start >= 0))
-			 {
-				mStrdata = mStrdata.substr(start+1,end-start-1) ;
-				jsonComputerReader((char *)(mStrdata.c_str()),mStrdata.size());
-			 }
-	 	 }
-		 sleep(60*3);
- // 	 sleep(1);
-	 }
-	 return 0 ;
- }
-
- void init_HTTP_DataGet()
- {
-	 pthread_mutex_init(&PostGetMutex , NULL);
-	 pthread_t m_HTTP_DataGetthread ;
-	 pthread_create(&m_HTTP_DataGetthread,NULL,HTTP_DataGetthread,NULL);
  }
 
   void *LTKJ_DataPostthread(void *param)
@@ -2009,8 +2071,13 @@ void Client_CmdProcess(int fd, char *cmdbuffer,void *arg)
 	 while(1)
 	 {
 		 if(stuRemote_Ctrl->SysReset==SYSRESET) 				 //系统重启
+		 {
+			 printf("DealSysResetthread reboot\n");
 			 system("reboot") ;
-
+/*			 system("echo 1 > /proc/sys/kernel/sysrq") ;
+			 sleep(2);
+			 system("echo b > /proc/sysrq-trigger") ;*/
+		 }
 		 sleep(1);
 	 }
 
