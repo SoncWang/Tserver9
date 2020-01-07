@@ -2231,9 +2231,9 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 		}
 	}*/
 	// 没有配置的都置空
-	if (SPD_num == 1)
+	if (SPD_num < SPD_NUM)
 	{
-		for (i=1;i<SPD_NUM;i++)
+		for (i=SPD_num;i<SPD_NUM;i++)
 		{
 			StrSPDIP[i] =""; ;//防雷器IP
 			sprintf(key,"SPD%dIP=",i+1);

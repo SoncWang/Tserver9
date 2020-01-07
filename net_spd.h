@@ -10,12 +10,14 @@
 #define TYPE_HUAZI		2
 #define TYPE_KY			3	// 宽永
 #define TYPE_ZPTA		4	// 中普同安
-
-#define TYPE_MAX_NUM	5	// 支持的数量
-
+#define TYPE_ZPZH		5	// 中普众合
 
 
-#define NULL_VALUE		0		// 定义没有这个参数时的默认值
+#define TYPE_MAX_NUM	6	// 支持的数量
+
+
+#define SPD_DEFALT_ADDR			0xF0	// 默认设备地址， 不配置就是1
+#define NULL_VALUE				0		// 定义没有这个参数时的默认值
 /**********************************************/
 // 雷迅检测器的定义
 #define AI_SPD_ID_ADDR					10		// 改设备id的地址，浮点型
@@ -111,7 +113,7 @@
 
 
 /**********************************************/
-// 中普同安检测器的定义
+// 中普同安检测器的定义，自定义的协议
 #define ZPTA_READ_CMD		0x52		// 读命令0x52
 #define ZPTA_RES_CMD		0x41		// 回复0x41
 #define ZPTA_SPD_LEN		15			// 发送，接收都是15个字节
@@ -120,10 +122,19 @@
 
 
 /**********************************************/
+// 中普众合检测器的定义，标志modbus协议
+#define ZPZH_READ_CMD		0x04		// 读命令0x04
+#define ZPZH_SPD_ADDR		0			// 寄存器地址从0开始
+#define ZPZH_SPD_LEN		4			// SPD是4个字节
+#define ZPZH_RES_LEN		2			// 接地电阻是2个字节
+#define ZPZH_HEAD_NUM 		3			// 前导符3个
+
+
+/**********************************************/
 // 一些基本设置
 #define SPD_INTERVAL_TIME		400000		// 400ms,让控制命令更快下发
 #define SPD_POLLING_INTERVAL 	3			// 1.05s轮询一次参数
-#define SPD_TEST_RES_INTERVAL	602		// 1.05*600 = 600s,10min,错开一点点, 所以最后一次24小时时会错失一次
+#define SPD_TEST_RES_INTERVAL	7202		// 1.05*7200 = 7200s,2个小时,错开一点点
 #define SPD_TIME_SYN_INTERVAL	72000		// 时间同步间隔,24小时 = 72000*1.2 s
 
 
@@ -269,6 +280,16 @@ typedef struct spd_zpta_struct
 {
 	UINT8 SPD_DI[ZPTA_DI_NUM];	// 只有DI数据,且1个DI占1个字节
 }SPD_ZPTA_PARAMS;
+
+
+// 中普众合的协议参数
+typedef struct spd_zpzh_struct
+{
+	UINT8 temp_h;	// 温度高字节
+	UINT8 temp_l;	// 温度低字节
+	UINT8 struck_cnt;	// 雷击次数
+	UINT8 DI;			// 开关量报警
+}SPD_ZPZH_PARAMS;
 
 
 
@@ -450,6 +471,9 @@ typedef struct spd_struct
 
 	// 中普同安有2个防雷
 	SPD_ZPTA_PARAMS dSPD_ZPTA[SPD_NUM];
+
+	// 中普众合有2个防雷
+	SPD_ZPZH_PARAMS dSPD_ZPZH[SPD_NUM];
 
 	// 共性，接地电阻值数据, 不需要再设置一个协议值了
 	SPD_RES_ST_PARAMS rSPD_res;
