@@ -134,8 +134,10 @@
 // 一些基本设置
 #define SPD_INTERVAL_TIME		400000		// 400ms,让控制命令更快下发
 #define SPD_POLLING_INTERVAL 	3			// 1.05s轮询一次参数
+#define SPD_ASSERT_INTERVAL 	20			// 20*400ms = 8s, 8s判断一次断线
 #define SPD_TEST_RES_INTERVAL	7202		// 1.05*7200 = 7200s,2个小时,错开一点点
 #define SPD_TIME_SYN_INTERVAL	72000		// 时间同步间隔,24小时 = 72000*1.2 s
+#define SPD_DISC_TIMEOUT		(30*1000)		// 30s
 
 
 // 4字节表示一个float型
@@ -480,6 +482,9 @@ typedef struct spd_struct
 
 	// 上面的防雷都要转换成与后台交互的协议数据
 	SPD_REAL_PARAMS rSPD_data[SPD_NUM];
+
+	UINT32 TimeStamp[SPD_NUM+RES_NUM]; 			//状态获取时间戳
+	bool Linked[SPD_NUM+RES_NUM];				//连接状态 0:断开 1：连接
 }SPD_PARAMS;
 
 

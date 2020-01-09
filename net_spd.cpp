@@ -29,7 +29,7 @@ static int connected_flag[SPD_NUM+RES_NUM];
 UINT16  spd_net_flag[SPD_NUM] = {0,};	// SPD轮询标志
 UINT16  spd_ctl_flag[SPD_NUM] = {0,};	// SPD控制标志
 
-UINT8  WAIT_net_res_flag[SPD_NUM]={0,};	// 等待信息回应
+UINT8  WAIT_spd_res_flag[SPD_NUM]={0,};	// 等待信息回应
 
 //UINT16 net_Conneted = 0;	// 连接标志1:已经连接
 //UINT16 ZP_Conneted[SPD_NUM+RES_NUM] = {0,};	// 连接标志1:已经连接
@@ -68,7 +68,9 @@ UINT16 KY_test_disable_cnt = 0;
 int obtain_net();
 extern void char_to_int(UINT8* buffer,UINT16* value);
 extern void WriteLog(char* str);
-//void myprintf(char* str);
+extern UINT32 timestamp_get(void);
+extern UINT32 timestamp_delta(UINT32 const timestamp);
+
 
 
 /*雷迅功能码及功能码对应的处理函数*/
@@ -157,6 +159,51 @@ void char_to_float(UINT8* buffer,FDATA* value)
 	}
 	value->f = f_value.f;
 }
+
+// 收到合法数据，刷新时间戳,并置位
+void SPD_timeStamp_update(int seq)
+{
+	stuSpd_Param->TimeStamp[seq]=timestamp_get();
+	stuSpd_Param->Linked[seq]=true;
+}
+
+
+// 监测器断线后上传数据全部初始化
+void SPD_vars_init(int seq)
+{
+	int i=0;
+
+	stuSpd_Param->Linked[seq]=false;
+	if (seq < SPD_NUM)
+	{
+		memset(&stuSpd_Param->rSPD_data[seq],0,sizeof(SPD_REAL_PARAMS));
+	}
+	else
+	{
+		memset(&stuSpd_Param->rSPD_res,0,sizeof(SPD_RES_ST_PARAMS));
+	}
+}
+
+// 断线后的逻辑处理
+void SPD_disconnct_process(void)
+{
+	int i;
+	for (i=0;i<SPD_NUM+RES_NUM; i++)
+	{
+		// 没有配置的直接跳过
+		if ((i>=SPD_num) && (i != SPD_NUM))
+		{
+			continue;
+		}
+		// 有30s未刷新，断线
+		if ((timestamp_delta(stuSpd_Param->TimeStamp[i]) > SPD_DISC_TIMEOUT) && stuSpd_Param->Linked[i])
+		{
+			SPD_vars_init(i);
+		}
+	}
+}
+
+
 
 /*接口函数，其它线程调用这个函数,进行参数的设置*/
 /*ai_data: ai参数设置，data:其它参数设置*/
@@ -971,6 +1018,9 @@ void DealSPDAiMsg(int seq,unsigned char *buf,unsigned short int len)
 		{
 			char_to_int(buf+(FRAME_HEAD_NUM + INT_REG_POS*4)+(i-INT_REG_POS)*2, (pointer+i-INT_REG_POS));
 		}
+
+		// 更新时间戳
+		SPD_timeStamp_update(seq);
 		#if 0
 		printf("spd_AI begain\r\n");
 		printf("systime_year = %5hd \r\n",stuSpd_Param->dSPD_AIdata.systime_year);
@@ -1051,6 +1101,8 @@ void DealSPDDoMsg(int seq,unsigned char *buf,unsigned short int len)
 	}
 }
 
+
+// 雷迅的地阻数据
 void DealSPDResStatusMsg(unsigned char *buf,unsigned short int len)
 {
 	UINT8 i;
@@ -1082,6 +1134,10 @@ void DealSPDResStatusMsg(unsigned char *buf,unsigned short int len)
 		{
 			stuSpd_Param->rSPD_res.grd_res_real = res_temp;
 		}
+
+		// 如果收到地阻数据，更新timestamp
+		SPD_timeStamp_update(SPD_NUM);
+
 		printf("res_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_res.alarm);
 		printf("grd_res_value = 0x%02x \r\n",stuSpd_Param->rSPD_res.grd_res_value);
 		printf("grd_res_dot_num = 0x%02x \r\n",stuSpd_Param->rSPD_res.grd_res_dot_num);
@@ -1657,6 +1713,8 @@ void DealHZSPDMsg(int seq,unsigned char *buf,unsigned short int len)
 			//printf("HZitem%5hd = %5hd \r\n",i,*(pointer+i));
 		}
 		//printf("life_time = %5hd \r\n",stuSpd_Param->dSPD_HZ[seq].life_time);
+		// 更新SPD时间戳
+		SPD_timeStamp_update(seq);
 	}
 }
 
@@ -1673,6 +1731,8 @@ void DealHZResMsg(int seq,unsigned char *buf,unsigned short int len)
 		HZ_char_to_int(buf + HZ_HEAD_NUM +2*2, pointer);
 		stuSpd_Param->rSPD_res.grd_res_real = (float)stuSpd_Param->rSPD_res.grd_res_value/100;
 		//printf("HZ_grd_res_real = %7.3f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
+		// 更新SPD时间戳
+		SPD_timeStamp_update(SPD_NUM);
 	}
 }
 
@@ -1712,6 +1772,9 @@ void DealKYResMsg(unsigned char *buf,unsigned short int len)
 			//*pointer = *(buf+FRAME_HEAD_NUM);
 			char_to_int(buf + FRAME_HEAD_NUM, pointer);
 		}
+
+		// 宽永,更新地阻的时间戳
+		SPD_timeStamp_update(SPD_NUM);
 		/*
 		printf("KY_grd_res_value = %5.2f \r\n",stuSpd_Param->rSPD_res.grd_res_real);
 		printf("KY_id = %5hd \r\n",stuSpd_Param->rSPD_res.id);
@@ -1744,6 +1807,8 @@ void DealKYSPDMsg(int seq,unsigned char *buf,unsigned short int len)
 			//printf("KYRUN%5hd = %5hd \r\n",i,*(pointer+i));
 		}
 		RealDataCopy(seq,SPD_RUN_DATA);
+		// 更新SPD时间戳
+		SPD_timeStamp_update(seq);
 	}
 	else if (len == (KY_DI_NUM*2+5))
 	{
@@ -1807,6 +1872,9 @@ void DealZPTASPDMsg(int seq,unsigned char *buf,unsigned short int len)
 			*(pointer+i) = *(buf+ZPTA_HEAD_NUM+i);
 			printf("SPD_DI%d = %5hd \r\n",i,stuSpd_Param->dSPD_ZPTA[seq].SPD_DI[i]);
 		}
+
+		// 更新SPD时间戳
+		SPD_timeStamp_update(seq);
 	}
 }
 
@@ -1844,6 +1912,10 @@ void DealZPTAResMsg(unsigned char *buf,unsigned short int len)
 		{
 			stuSpd_Param->rSPD_res.grd_res_real = res_temp;
 		}
+
+		// 更新地阻时间戳
+		SPD_timeStamp_update(SPD_NUM);
+
 		printf("res_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_res.alarm);
 		printf("grd_res_value = 0x%02x \r\n",stuSpd_Param->rSPD_res.grd_res_value);
 		printf("grd_res_dot_num = 0x%02x \r\n",stuSpd_Param->rSPD_res.grd_res_dot_num);
@@ -1882,6 +1954,9 @@ int DealZPZHSPDMsg(int seq,unsigned char *buf,unsigned short int len)
 			printf("SPD_ZHL%d = %5hd \r\n",i,stuSpd_Param->dSPD_ZPZH[k].temp_l);
 			printf("SPD_ZHC%d = %5hd \r\n",i,stuSpd_Param->dSPD_ZPZH[k].struck_cnt);
 			printf("SPD_ZHD%d = %5hd \r\n",i,stuSpd_Param->dSPD_ZPZH[k].DI);
+
+			// 更新SPD时间戳
+			SPD_timeStamp_update(k);
 		}
 	}
 
@@ -1915,6 +1990,8 @@ void DealZPZHResMsg(unsigned char *buf,unsigned short int len)
 		pointer = &stuSpd_Param->rSPD_res.grd_volt;
 		char_to_int(buf + FRAME_HEAD_NUM +2, pointer);
 
+		// 更新SPD时间戳
+		SPD_timeStamp_update(SPD_NUM);
 
 		printf("res_alarm = 0x%02x \r\n",stuSpd_Param->rSPD_res.alarm);
 		printf("grd_res_value = 0x%02x \r\n",stuSpd_Param->rSPD_res.grd_res_value);
@@ -2699,6 +2776,10 @@ void* NetWork_server_thread_SPD(void*arg)
 	static UINT16 con_cnt[SPD_NUM+RES_NUM] ={0,};	// 连接次数
 	static bool any_connected = false;		// 如果有几个TCP连接，任意1个连接好了的标志
 
+	// 断线判断变量
+	static UINT16 connect_assert_cnt = 0;	// 多久判断一次断线
+	static bool connect_assert_flag = false;
+
 	// 一些参数先进行初始化
 	for (i = 0; i < SPD_NUM; i++)
 	{
@@ -2806,10 +2887,13 @@ void* NetWork_server_thread_SPD(void*arg)
 			}
 		}
 		printf("spd_ctl_flag_0=%d,spd_ctl_flag_1=%d\r\n",spd_ctl_flag[0],spd_ctl_flag[1]);
-		if ((spd_ctl_flag[0]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[1]&BITS_MSK_GET(0,SPD_CTRL_NUM)))
+		if ((spd_ctl_flag[0]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[1]&BITS_MSK_GET(0,SPD_CTRL_NUM))
+			|| (spd_ctl_flag[2]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[3]&BITS_MSK_GET(0,SPD_CTRL_NUM)))
 		{
 			spd_net_flag[0] = 0;
 			spd_net_flag[1] = 0;
+			spd_net_flag[2] = 0;
+			spd_net_flag[3] = 0;
 		}
 		else
 		{
@@ -3030,14 +3114,23 @@ void* NetWork_server_thread_SPD(void*arg)
 				}
 				op_counter++;		// 轮询间隔标志
 			}
+			connect_assert_cnt++;
+			if (connect_assert_cnt >= SPD_ASSERT_INTERVAL)
+			{
+				connect_assert_cnt = 0;
+				connect_assert_flag = true;
+			}
 		}
 		printf("SPD_Type=%d,SPD_num=%d\r\n",SPD_Type,SPD_num);
 
 		// 因为后面对spd_ctl_flag又进行了操作，准备设置前再次屏蔽其他轮询
-		if ((spd_ctl_flag[0]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[1]&BITS_MSK_GET(0,SPD_CTRL_NUM)))
+		if ((spd_ctl_flag[0]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[1]&BITS_MSK_GET(0,SPD_CTRL_NUM))
+			|| (spd_ctl_flag[2]&BITS_MSK_GET(0,SPD_CTRL_NUM)) ||(spd_ctl_flag[3]&BITS_MSK_GET(0,SPD_CTRL_NUM)))
 		{
 			spd_net_flag[0] = 0;
 			spd_net_flag[1] = 0;
+			spd_net_flag[2] = 0;
+			spd_net_flag[3] = 0;
 		}
 
 		// 统一处理的设置函数，这种结构注定上位机只能一次设置一个，且要有个间隔时间,400ms
@@ -3056,6 +3149,13 @@ void* NetWork_server_thread_SPD(void*arg)
 			}
 		}
 
+		// 是否断线判断，断线包含了网络断线和485断线
+		if (connect_assert_flag)
+		{
+			connect_assert_flag = false;
+			SPD_disconnct_process();
+		}
+
 		usleep(SPD_INTERVAL_TIME);	// 参数设置间隔
 	}
 }
@@ -3063,17 +3163,24 @@ void* NetWork_server_thread_SPD(void*arg)
 
 void SPD_data_init(void)
 {
-	for (int i=0;i<SPD_NUM+RES_NUM;i++)
+	int i=0;
+
+	for (i=0;i<SPD_NUM+RES_NUM;i++)
 	{
 		sockfd_spd[i] = -1;		// 如果TCP，用这个SOCKET变量
 		udpfd_spd[i] = -1;		// 如果UDP，用这个SOCKET变量
-		spd_net_flag[i] = 0;	// 轮询数据的变量标志
-		spd_ctl_flag[i] = 0;	// 设置数据的变量标志
-		WAIT_net_res_flag[i] = 0;	// 等待回复的标志
-		//ZP_Conneted[i] = 0;
 		connected_flag[i] = 0;	// 是否连接成功的标志,0:不成功，1:成功
 		// 设备地址启动就会读取，这里不要赋值，否则覆盖了
 		//SPD_Address[i] = SPD_DEFALT_ADDR;		// 如果是串口服务器拖485设备的，需要设备地址
+		stuSpd_Param->TimeStamp[i]=timestamp_get();
+		stuSpd_Param->Linked[i]=false;
+	}
+	// 数组大小不一样，分开初始化
+	for (i=0;i<SPD_NUM;i++)
+	{
+		spd_net_flag[i] = 0;	// 轮询数据的变量标志
+		spd_ctl_flag[i] = 0;	// 设置数据的变量标志
+		WAIT_spd_res_flag[i] = 0;	// 等待回复的标志
 	}
 }
 

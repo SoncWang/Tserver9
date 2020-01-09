@@ -2,7 +2,7 @@
 #include <linux/watchdog.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>  
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <string>
 #include <sys/time.h>
@@ -93,12 +93,12 @@ void InitTimer(void)
      //设置时间间隔为10秒
      interval.tv_sec = 10;
 	 interval.tv_usec =0;
-      
+
      timer.it_interval = interval;
      timer.it_value = interval;
-      
+
      setitimer(ITIMER_VIRTUAL, &timer, NULL);//让它产生SIGVTALRM信号
-      
+
      //为SIGVTALRM注册信号处理函数
      signal(SIGALRM, sig_handler);
 }
@@ -114,7 +114,7 @@ int main(void)
 
 	//读设置文件
 	GetConfig();
-	
+
 	//防雷器结构体
 	stuSpd_Param = (SPD_PARAMS*)malloc(sizeof(SPD_PARAMS));
 	memset(stuSpd_Param,0,sizeof(SPD_PARAMS));
@@ -180,7 +180,7 @@ int main(void)
 		}
 	}
 	/////////////////  电压电流传感器配置开始完毕/////////////////////////////////////
-	
+
 	/////////////////  电源控制板配置开始	/////////////////////////////////////////////
 	//装置参数寄存器,分为电源板和IO板
 	temp = 0;	//统计到底有几个电源板
@@ -223,7 +223,7 @@ int main(void)
 	memset(stuRemote_Ctrl,0,sizeof(REMOTE_CONTROL));
 	//控制器运行状态结构体
 	stuVMCtl_State = &VMCtl_State;
-	
+
 	/////////////////  DO配置表开始/////////////////////////////////////////////
 	temp = 0;	//统计到底有几个DO
 	for (i = 0; i < SWITCH_COUNT; i++)
@@ -258,7 +258,7 @@ int main(void)
 	stuHUAWEIDevValue = &HUAWEIDevValue;
     initHUAWEIGantry();
 	initHUAWEIALARM();
-	
+
 	write(WDTfd, "\0", 1);
 	//初始化串口232
 	cominit();
@@ -356,80 +356,100 @@ void WriteLog(char* str)
 	 exePath="logs";
 	 if(access(exePath.c_str(),0) == -1)
 	 	mkdir(exePath.c_str(),0755);
-	 
+
 	 time_t nSeconds;
 	 struct tm * pTM;
-	 
+
 	 time(&nSeconds);
 	 pTM = localtime(&nSeconds);
-	 
+
 	 //判断前一天文件是否存在，存在就先删除
 	 if(pTM->tm_mday>1 && pTM->tm_mday<=31)
 	 {
-		 sprintf(stmp,"%d",pTM->tm_mday-1);   
+		 sprintf(stmp,"%d",pTM->tm_mday-1);
 		 filename=exePath+"/"+stmp+".txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }		 
+		 }
 	 }
 	 else if(pTM->tm_mday==1)
 	 {
 		 filename=exePath+"/30.txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }		 
+		 }
 		 filename=exePath+"/31.txt";
-		 if((access(filename.c_str(),F_OK))!=-1)   
-		 {	 
+		 if((access(filename.c_str(),F_OK))!=-1)
+		 {
 			 printf("%s 存在\n",filename.c_str());
 			 remove(filename.c_str());
-		 }	
+		 }
 	 }
-	 
-	 //系统日期和时间,格式: yyyymmddHHMMSS 
+
+	 //系统日期和时间,格式: yyyymmddHHMMSS
 	 sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
 			 pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
 			 pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
-	 
-/*	 sprintf(stmp,"%d",pTM->tm_mday);	 
+
+/*	 sprintf(stmp,"%d",pTM->tm_mday);
 	 filename=exePath+"/"+stmp+".txt";
 	 fpLog = fopen(filename.c_str(), "a");
-	 
+
 	 fseek(fpLog, 0, SEEK_END);
 	 fprintf(fpLog, "%s->%s\n", sDateTime,str);*/
-	 printf("%s-->%s",sDateTime,str);	 
-	 
+	 printf("%s-->%s",sDateTime,str);
+
 //	 fclose(fpLog);
  }
- 
+
 void myprintf(char* str)
   {
 	  char sDateTime[30],stmp[10];
 	  time_t nSeconds;
 	  struct tm * pTM;
-	  
+
 	  time(&nSeconds);
 	  pTM = localtime(&nSeconds);
-	  
-	  //系统日期和时间,格式: yyyymmddHHMMSS 
+
+	  //系统日期和时间,格式: yyyymmddHHMMSS
 	  sprintf(sDateTime, "%04d-%02d-%02d %02d:%02d:%02d",
 			  pTM->tm_year + 1900, pTM->tm_mon + 1, pTM->tm_mday,
 			  pTM->tm_hour, pTM->tm_min, pTM->tm_sec);
-	  
-	  printf("%s-->%s",sDateTime,str);	  
+
+	  printf("%s-->%s",sDateTime,str);
   }
 
 unsigned long GetTickCount() //返回毫秒
-{ 
-	struct timespec ts; 
+{
+	struct timespec ts;
 
-	clock_gettime(CLOCK_MONOTONIC, &ts); 
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 
-	return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000); 
+	return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
-  
+
+//  ----------------------------------------------------------------------------
+/// 通用函数，对GetTickCount再次封装.
+/// \return 32-bits timestamp.
+//  ----------------------------------------------------------------------------
+UINT32 timestamp_get(void)
+{
+    return GetTickCount();
+}
+
+
+//  ----------------------------------------------------------------------------
+/// \brief  得到时间间隔.
+//  ----------------------------------------------------------------------------
+UINT32 timestamp_delta(UINT32 const timestamp)
+{
+    UINT32 now = timestamp_get();
+    // The unsigned substraction takes care of one possible wrap-around, but no
+    // more.
+    return now - timestamp;
+}
 
