@@ -2161,8 +2161,6 @@ bool jsonstrVmCtlParamReader(char* jsonstr, int len, UINT8 *pstPam)
 			sprintf(key,"SPD%dAddr=",i+1);
 			Setconfig(key,StrSPDAddr[i]);
 		}
-		Setconfig("SPDResIP=","");
-		Setconfig("SPDResPort=","");
 	}
 	if (locker_changed)
 	{
