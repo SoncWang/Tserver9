@@ -186,11 +186,11 @@ int main(void)
 	temp = 0;	//统计到底有几个电源板
 	for (i = 0; i < POWER_BD_MAX_NUM; i++)
 	{
+		stuDev_Param[i] = (DEVICE_PARAMS*)malloc(sizeof(DEVICE_PARAMS));
+		memset(stuDev_Param[i],0,sizeof(DEVICE_PARAMS));
 		/*配置文件中是否有配置*/
 		if (StrAdrrPower[i].length() != 0)
 		{
-			stuDev_Param[i] = (DEVICE_PARAMS*)malloc(sizeof(DEVICE_PARAMS));
-			memset(stuDev_Param[i],0,sizeof(DEVICE_PARAMS));
 			stuDev_Param[i]->Address = atoi(StrAdrrPower[i].c_str());
 			Rs485_table_set(POWER_BD_1+i, ENABLE,pos_cnt+actual_locker_num, stuDev_Param[i]->Address);
 			pos_cnt++;
@@ -198,7 +198,7 @@ int main(void)
 		}
 		else
 		{
-			stuDev_Param[i] = NULL; 	// 防止为野指针
+			//stuDev_Param[i] = NULL; 	// 防止为野指针
 			Rs485_table_set(POWER_BD_1+i, DISABLE,NULL_VAR, NULL_VAR);
 		}
 	}

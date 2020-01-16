@@ -38,6 +38,8 @@ UINT8  WAIT_response_flag[RS485_NUM]={0,0};
 UINT8 Recive_Flag[RS485_NUM] = {0,0};			/* 接收标志*/
 UINT8 actual_locker_num = 0;
 UINT8 actual_485dev_num = 0;
+POWER_STAMP_PARAMS power_stamp_flag[POWER_BD_MAX_NUM];
+
 
 /*Unpack the data from RS485*/
 #define FIXED_NUM		4	// The former num of the locker's status
@@ -65,9 +67,14 @@ string StrDoSeq[SWITCH_COUNT];	//do和设备映射的配置
 UINT16 DoSeq[SWITCH_COUNT]={0,};	// 另外定义一个专门用来存储映射的数组,stuRemote_Ctrl会被清0
 
 extern void RemoteControl(UINT8* pRCtrl);
+extern UINT32 timestamp_get(void);
+extern UINT32 timestamp_delta(UINT32 const timestamp);
 
+
+
+// 电子锁的轮询状态标志
 int *polling_arr = NULL;		// 注意存储的是Var_Table中被使能的status,作为轮询的标志
-int *polling_subarr;
+int *polling_subarr;	// 电压电流传感器的状态标志
 
 const UINT32 locker_id[CARD_NUM] =
 {
@@ -189,6 +196,86 @@ void lockerDataMalloc(void)
 	memset(locker_opened,0,sizeof(UINT16)*LOCK_MAX_NUM);
 	last_cnt = (UINT16*)malloc(sizeof(UINT16)*LOCK_MAX_NUM);
 	memset(last_cnt,0,sizeof(UINT16)*LOCK_MAX_NUM);
+}
+
+
+// 收到合法数据，刷新时间戳,并置位
+void VA_timeStamp_update(int seq)
+{
+	stuVA_Meter_Param[seq]->TimeStamp=timestamp_get();
+	stuVA_Meter_Param[seq]->Linked=true;
+}
+
+
+// 收到合法数据，刷新时间戳,并置位
+void power_timeStamp_update(int seq)
+{
+	power_stamp_flag[seq].TimeStamp=timestamp_get();
+	power_stamp_flag[seq].Linked=true;
+}
+
+
+//VA传感器断线后上传数据全部初始化
+void dev_vars_init(int seq)
+{
+	int i=0;
+
+	stuVA_Meter_Param[seq]->Linked=false;
+	if (seq < VA_METER_BD_MAX_NUM)
+	{
+		for (i=0; i<VA_PHASE_NUM;i++)
+		{
+			memset(&stuVA_Meter_Param[seq]->phase[i],0,sizeof(VA_PHASE_PARAMS));
+		}
+	}
+}
+
+//VA传感器断线后上传数据全部初始化
+void power_ver_init(int seq)
+{
+	int i=0;
+
+	power_stamp_flag[seq].Linked=false;
+	if (seq < POWER_BD_MAX_NUM)
+	{
+		sprintf(stuVMCtl_Param->secSoftVersion[seq],"V%d.%d%d.%d%d\0",0,0,0,0,0);
+	}
+}
+
+
+// 断线后的逻辑处理
+void dev_disconnct_process(void)
+{
+	int i;
+	for (i=0;i<VA_METER_BD_MAX_NUM; i++)
+	{
+		// 没有配置的直接跳过
+		//if (i>=actual_485dev_num)
+		//{
+		//	continue;
+		//}
+		// 有30s未刷新，断线
+		if ((timestamp_delta(stuVA_Meter_Param[i]->TimeStamp) > DEV_DISC_TIMEOUT) && stuVA_Meter_Param[i]->Linked)
+		{
+			printf("stuVA_Meter_Param[%d]->TimeStamp=%d\r\n",i,timestamp_get());
+			dev_vars_init(i);
+		}
+	}
+}
+
+
+// 断线后的逻辑处理
+void power_disconnct_process(void)
+{
+	int i;
+	for (i=0;i<POWER_BD_MAX_NUM; i++)
+	{
+		// 有15s未刷新，断线
+		if ((timestamp_delta(power_stamp_flag[i].TimeStamp) > POWER_DISC_TIMEOUT) && power_stamp_flag[i].Linked)
+		{
+			power_ver_init(i);
+		}
+	}
 }
 
 
@@ -540,6 +627,11 @@ int Ver_polling_process(UINT16 *pver_flag)
 void *Dev_DataPollingthread(void *param)
 {
 	param = NULL;
+	static UINT32 dev_connect_cnt = 0;
+	static bool dev_connect_flag = false;
+	static UINT32 power_connect_cnt = 0;
+	static bool power_connect_flag = false;
+
 	static UINT16 dataget_cnt = 0;
 	static UINT16 dev_poll_counter = 0;
 	static UINT16 loop_cnt = 0;			// 表明电压电流传感器轮询循环次数,超过阈值轮询其它的设备
@@ -559,7 +651,7 @@ void *Dev_DataPollingthread(void *param)
 		else
 		{
 			dataget_cnt++;
-			// 360*8 = 2.9s，即2.9s轮询一个VA传感器
+			// 360*4 = 1.5s，即1.5s轮询一个VA传感器
 			if (dataget_cnt >= VA_INTERVAL)
 			{
 				dataget_cnt = 0;
@@ -585,7 +677,7 @@ void *Dev_DataPollingthread(void *param)
 				}
 				else
 				{
-					// 轮询电压电流传感器数据,2.9s一次
+					// 轮询电压电流传感器数据,1.5s一次
 					if (dev_poll_counter < actual_485dev_num)
 					{
 						comm_flag[RS485_2] |= LBIT(polling_subarr[dev_poll_counter]);
@@ -598,7 +690,7 @@ void *Dev_DataPollingthread(void *param)
 //						printf("0x%02x" ,dev_poll_counter);printf("\r\n");
 						dev_poll_counter = 0;
 						loop_cnt++;
-						// 如果有6个VA传感器，要2.9*6*6s才轮询一次电源板
+						// 如果有6个VA传感器，要1.5*6*6s才轮询一次电源板
 						if (loop_cnt >= VA_LOOP_NUM)
 						{
 							loop_cnt = 0;
@@ -606,6 +698,21 @@ void *Dev_DataPollingthread(void *param)
 						}
 					}
 				}
+			}
+
+			// 对电压电流传感器和电源板断线的判断
+			dev_connect_cnt++;
+			power_connect_cnt++;
+			if (dev_connect_cnt >= DEV_DISCON_INTERVAL)
+			{
+				dev_connect_cnt = 0;
+				dev_connect_flag = true;
+			}
+			// 电源板只有版本上传
+			if (power_connect_cnt >= POWER_DISCON_INTERVAL)
+			{
+				power_connect_cnt = 0;
+				power_connect_flag = true;
 			}
 		}
 
@@ -649,6 +756,19 @@ void *Dev_DataPollingthread(void *param)
 				Ver_polling_process(&power_ver_flag);
 			}
 		}
+
+		// 是否断线判断，断线包含了网络断线和485断线
+		if (dev_connect_flag)
+		{
+			dev_connect_flag = false;
+			dev_disconnct_process();
+		}
+		if (power_connect_flag)
+		{
+			power_connect_flag = false;
+			power_disconnct_process();
+		}
+
 		usleep(DEV_INTERVAL_TIME);		// every 3.6s sending
 	}
 	return 0 ;
@@ -889,7 +1009,7 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 
 	if(len == (REAL_DATA_NUM*2+5))
 	{
-		//printf("va begain\r\n");
+		//printf("va begain%d\r\n",seq);
 		/*第5相*/
 		pointer = &stuVA_Meter_Param[seq]->phase[0].vln;
 		for(i = 35;i <= 36;i++)
@@ -943,6 +1063,10 @@ void comm_VAData_analyse(unsigned char *buf,unsigned short int len,unsigned char
 		}
 		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].vln);printf("\r\n");
 		//printf("%5hd ",stuVA_Meter_Param[seq]->phase[5].amp);printf("\r\n");
+
+		// 更新SPD时间戳
+		VA_timeStamp_update(seq);
+		//printf("1stuVA_Meter_Param[%d]->TimeStamp=%d\r\n",seq,stuVA_Meter_Param[seq]->TimeStamp);
 	}
 }
 
@@ -983,8 +1107,12 @@ void comm_VerData_analyse(unsigned char *buf,unsigned short int len,unsigned cha
 			temp1 = temp1/10;
 			verchar[i] = temp2;
 		}
-		sprintf(stuVMCtl_Param->secSoftVersion[addr_base],"V%d.%d%d.%d%d\0",verchar[4],verchar[3],verchar[2],verchar[1],verchar[0]);
-		//printf("%s",stuVMCtl_Param->secSoftVersion[addr_base]);
+		if (addr_base < POWER_BD_MAX_NUM)
+		{
+			sprintf(stuVMCtl_Param->secSoftVersion[addr_base],"V%d.%d%d.%d%d\0",verchar[4],verchar[3],verchar[2],verchar[1],verchar[0]);
+			//printf("%s",stuVMCtl_Param->secSoftVersion[addr_base]);
+			power_timeStamp_update(addr_base);
+		}
 	}
 }
 

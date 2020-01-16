@@ -2204,7 +2204,7 @@ void *NetWork_DataGet_thread_SPD_L(void *param)
 			if ((connected_flag[0] != 0) && (sockfd_spd[0] != -1))
 			{
 		      	len = read(sockfd_spd[0], buf, sizeof(buf)-1);
-				//printf("len= %d\n\r",len);
+				//printf("llen= %d\n\r",len);
 				if (len > 0)
 				{
 				  	buffPos = buffPos+len;

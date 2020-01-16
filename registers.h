@@ -1,15 +1,15 @@
 /**************************Copyright (c)****************************************************
- * 								
- * 						
- * 	
+ *
+ *
+ *
  * ------------------------文件信息---------------------------------------------------
  * 文件名:
  * 版	本:
  * 描	述: modbus协议的寄存器处理宏定义，用户接口
- * 
- * --------------------------------------------------------------------------------------- 
- * 作	者: 
- * 日	期: 
+ *
+ * ---------------------------------------------------------------------------------------
+ * 作	者:
+ * 日	期:
  * 版	本:
  * 描	述:
  ****************************************************************************************/
@@ -26,16 +26,16 @@ typedef unsigned int      	UINT32;
 typedef unsigned long long  UINT64;
 
 /*机柜类型定义*/
-#define HUAWEI_DUALCAB_DUALDOOR		1		
+#define HUAWEI_DUALCAB_DUALDOOR		1
 #define HUAWEI_DUALCAB_SINGDOOR		2
-#define HUAWEI_SINGCAB_DUALDOOR		3		
+#define HUAWEI_SINGCAB_DUALDOOR		3
 #define HUAWEI_SINGCAB_SINGDOOR		4
-#define ZHONGXING_CAB				5		
-#define JINSHENGAN_CAB				6		
-#define AITESI_CAB					7		
+#define ZHONGXING_CAB				5
+#define JINSHENGAN_CAB				6
+#define AITESI_CAB					7
 
 /*http 请求类型*/
-#define HTTPGET						1		
+#define HTTPGET						1
 #define HTTPPOST					2
 
 /*寄存器属性定义*/
@@ -80,11 +80,11 @@ typedef unsigned long long  UINT64;
 
 /*装置参数寄存器*/
 #define PARAMS_START_ADDR		1200		/*设备参数寄存器开始地址*/
-#define PARAMS_REG_MAX			5			/*本版本所支持的最大寄存器数*/ 
+#define PARAMS_REG_MAX			5			/*本版本所支持的最大寄存器数*/
 
 /*空调参数寄存器*/
 #define AIRCOND_START_ADDR		1220		/*设备参数寄存器开始地址*/
-#define AIRCOND_REG_MAX			5			/*本版本所支持的最大寄存器数*/ 
+#define AIRCOND_REG_MAX			5			/*本版本所支持的最大寄存器数*/
 
 /*遥控寄存器*/
 #define DO_START_ADDR					1500
@@ -110,7 +110,7 @@ typedef unsigned long long  UINT64;
 //预留4路防雷检测器
 #define SPD_NUM 4
 // 预留1路网口接地电阻
-#define RES_NUM 1	
+#define RES_NUM 1
 
 // 最大支持6个伏安表, 每个伏安表为6组电流电压值
 #define VA_METER_BD_NUM		6
@@ -120,7 +120,7 @@ typedef unsigned long long  UINT64;
 //最大支持3层电源板
 #define POWER_BD_NUM			3
 //最大支持36路开关数量
-#define SWITCH_COUNT	36			
+#define SWITCH_COUNT	36
 
 /*功能码*/
 #define	READ_REGS				0x03           //读寄存器
@@ -148,10 +148,10 @@ typedef unsigned long long  UINT64;
 #define VPLATE12_REG			1511		//车牌识别12 0xFF00: 遥合; 0xFF01: 遥分
 
 #define AIRCONDSET_REG			1220		//空调开关机寄存器1220
-#define AIRCOLDSTARTPOINT_REG 	1221		//空调制冷点//1221 			
-#define AIRCOLDLOOP_REG			1222		//空调制冷回差//1222		
-#define AIRHOTSTARTPOINT_REG 	1223		//空调制热点//1223 
-#define AIRHOTLOOP_REG			1224		//空调制热回差//1224	
+#define AIRCOLDSTARTPOINT_REG 	1221		//空调制冷点//1221
+#define AIRCOLDLOOP_REG			1222		//空调制冷回差//1222
+#define AIRHOTSTARTPOINT_REG 	1223		//空调制热点//1223
+#define AIRHOTLOOP_REG			1224		//空调制热回差//1224
 
 #define SYSRESET		1		//系统重启
 
@@ -211,10 +211,19 @@ typedef struct va_phase_struct
 //RSU天线数据结构体
 typedef struct va_meter_struct
 {
-	unsigned long timestamp; 		//获取时间戳
 	UINT16 address;
 	VA_PHASE_PARAMS phase[VA_PHASE_NUM];		// 每个伏安表6路电流电压值
+	UINT32 TimeStamp; 		//获取时间戳
+	bool Linked;
 }VA_METER_PARAMS;
+
+
+// 电源板的数据状态
+typedef struct power_stamp_struct
+{
+	UINT32 TimeStamp; 		//获取时间戳
+	bool Linked;
+}POWER_STAMP_PARAMS;
 
 
 //装置参数寄存器
@@ -251,7 +260,7 @@ typedef struct vmctl_params_struct
     char ServerURL3[128];      //服务器3推送地址
     char ServerURL4[128];      //门锁4推送地址
     char StationURL[128];      //控制器接收地址
-    
+
     char RSUCount[5];            //RSU数量
     char RSUIP[RSUCTL_NUM][20];            //RSU控制器IP地址
     char RSUPort[RSUCTL_NUM][6];          //RSU控制器端口
@@ -277,7 +286,7 @@ typedef struct vmctl_params_struct
     char SwitchCount[5];            //交换机数量
     char SwitchIP[IPSWITCH_NUM][20];         //交换机地址(预留2台)
     char SwitchGetPasswd[IPSWITCH_NUM][20];     //交换机get密码
-    char SwitchSetPasswd[IPSWITCH_NUM][20];     //交换机set密码 
+    char SwitchSetPasswd[IPSWITCH_NUM][20];     //交换机set密码
     char AtlasCount[5];            //Atlas数量
     char AtlasIP[ATLAS_NUM][20];         //Atlas地址(预留2台)
     char AtlasPasswd[ATLAS_NUM][20];     //Atlas密码
@@ -286,7 +295,7 @@ typedef struct vmctl_params_struct
 	char SPDIP[SPD_NUM+RES_NUM][20];	//SPD控制器IP地址
 	char SPDPort[SPD_NUM+RES_NUM][10];	//SPD控制器端口
 	char SPDAddr[SPD_NUM+RES_NUM][10];		//SPD控制器硬件地址
-    
+
     char LockAddr[LOCK_NUM][4];         //门锁地址	最多4把锁
     char VameterAddr[VA_METER_BD_NUM][4];     //电能表地址 最多6个表 每层2个
     char PowerAddr[POWER_BD_NUM][4];       //电源板地址 最多3层
@@ -316,13 +325,13 @@ typedef struct Remote_Control_struct	//
 	UINT16 rsu1;				//1500 RSU天线1 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 door_do;				//1501 电子门锁 0xFF00: 关锁;0xFF01: 开锁
 	UINT16 autoreclosure;		//1502 自动重合闸0xFF00: 遥合;0xFF01: 遥分
-	
+
 	UINT16 vehplate[VEHPLATE_NUM];			//车牌识别1 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 rsucontrlor[RSUCTL_NUM];			//rsu 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 antenna[ANTENNA_NUM];			//天线 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 fireware[FIREWARE_NUM];			//防火墙 0xFF00: 遥合;0xFF01: 遥分
 	UINT16 ipswitch[IPSWITCH_NUM];			//交换机 0xFF00: 遥合;0xFF01: 遥分
-	
+
 	UINT16 doseq[SWITCH_COUNT];			//备用do 0xFF00: 遥合;0xFF01: 遥分
 
 	UINT16 SysReset;			//系统重启 1548
@@ -333,7 +342,7 @@ typedef struct Remote_Control_struct	//
 	UINT16 AutoReclosure_Close;		//自动重合闸-合闸
 	UINT16 AutoReclosure_Open;		//自动重合闸-分闸
 	char systemtime[50];		//设置控制器时间
-	
+
 	UINT16 aircondset;		//空调关机//1220					1
 	UINT16 aircoldstartpoint;		//空调制冷点//1221				50
 	UINT16 aircoldloop; 	//空调制冷回差//1222					10

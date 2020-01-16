@@ -17,8 +17,15 @@
 
 
 #define CARD_NUM		5	// 暂时为5张卡
-#define VA_INTERVAL		8	// 单位为 DEV_INTERVAL_TIME
+#define VA_INTERVAL		4	// 单位为 DEV_INTERVAL_TIME
 #define VA_LOOP_NUM		6	// 电子锁轮询循环计数
+#define DEV_DISCON_INTERVAL		10	// 多久判断一次断线?3.6s
+#define DEV_DISC_TIMEOUT		(30*1000)		// 30s,485短一点,未回应就不会再有回应了
+
+#define POWER_DISCON_INTERVAL	95	// 多久判断一次断线?36s
+#define POWER_DISC_TIMEOUT		(10*60*1000UL)		// 10分钟
+
+
 
 #define DOOR_LOCK_ADDR_1		91			// address of the LOCKER
 #define DOOR_LOCK_ADDR_2		92			// address of the LOCKER
